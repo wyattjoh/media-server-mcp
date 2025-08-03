@@ -116,7 +116,7 @@ Add to your MCP servers configuration using the JSR package:
    - **Radarr**: Settings → General → Security → API Key
    - **Sonarr**: Settings → General → Security → API Key
    - **IMDB**: Sign up at [RapidAPI](https://rapidapi.com/), subscribe to an IMDB API service
-   
+
    **Important**: For IMDB, ensure your `IMDB_URL` includes the full path with `/api/imdb` at the end.
 
 3. **Start using** - Ask your AI assistant to manage your media library!
