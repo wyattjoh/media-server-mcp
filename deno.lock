@@ -1,14 +1,25 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@std/assert@*": "1.0.13",
     "jsr:@std/dotenv@~0.225.5": "0.225.5",
+    "jsr:@std/internal@^1.0.6": "1.0.10",
     "npm:@modelcontextprotocol/sdk@1": "1.17.1_express@5.1.0_zod@3.24.1",
     "npm:@types/node@*": "22.10.2",
     "npm:zod@^3.22.0": "3.24.1"
   },
   "jsr": {
+    "@std/assert@1.0.13": {
+      "integrity": "ae0d31e41919b12c656c742b22522c32fb26ed0cba32975cb0de2a273cb68b29",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
     "@std/dotenv@0.225.5": {
       "integrity": "9ce6f9d0ec3311f74a32535aa1b8c62ed88b1ab91b7f0815797d77a6f60c922f"
+    },
+    "@std/internal@1.0.10": {
+      "integrity": "e3be62ce42cab0e177c27698e5d9800122f67b766a0bea6ca4867886cbde8cf7"
     }
   },
   "npm": {

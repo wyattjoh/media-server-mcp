@@ -14,6 +14,9 @@ deno task lint
 # Code formatting
 deno task fmt
 
+# Run tests
+deno test --allow-net
+
 # Development with hot reload
 deno task dev
 
@@ -24,6 +27,8 @@ deno task start
 ## Development Best Practices
 
 - Always use `deno task fmt`, `deno task lint`, and `deno task check` after modifying or creating code to ensure that it's correct.
+- Run `deno test --allow-net` to verify all tests pass before committing changes.
+- Tests are organized by layer: `tests/clients/`, `tests/tools/`, and `tests/server_test.ts`.
 
 ## Architecture Overview
 
@@ -40,9 +45,9 @@ The codebase follows a **layered architecture**:
 
 ### Key Architectural Decisions
 
-**Separation of Tool Creation and Execution**: Tools are created as metadata-only definitions via `createRadarrTools()`, `createSonarrTools()`, and `createIMDBTools()` functions that don't require client instances. Tool execution happens separately through `handleRadarrTool()`, `handleSonarrTool()`, and `handleIMDBTool()` functions that receive the client at runtime.
+**Separation of Tool Creation and Execution**: Tools are created as metadata-only definitions via `createRadarrTools()`, `createSonarrTools()`, and `createIMDBTools()` functions that don't require client configurations. Tool execution happens separately through `handleRadarrTool()`, `handleSonarrTool()`, and `handleIMDBTool()` functions that receive the service configurations at runtime.
 
-**Client Injection**: The main server class maintains optional client instances (`radarrClient`, `sonarrClient`, `imdbClient`) and injects them into tool handlers during execution, allowing the server to work with any combination of services configured.
+**Configuration Injection**: The main server maintains optional service configurations (`radarrConfig`, `sonarrConfig`, `imdbConfig`) and injects them into tool handlers during execution, allowing the server to work with any combination of services configured.
 
 **Environment-Based Configuration**: Service availability is determined by environment variables at startup. Missing configuration results in that service's tools being unavailable rather than failing the entire server.
 
@@ -54,11 +59,13 @@ The codebase follows a **layered architecture**:
 
 ### HTTP Client Pattern
 
-All clients (`RadarrClient`, `SonarrClient`, and `IMDBClient`) follow the same pattern:
+All clients use a **functional architecture** rather than classes:
 
-- Single `makeRequest<T>()` method handles all HTTP communication
-- Individual methods (`getMovies()`, `addMovie()`, `searchIMDB()`, etc.) are thin wrappers that call `makeRequest`
-- Methods that only call `makeRequest` without `await` should NOT be marked `async`
+- **Configuration Objects**: Each service uses config objects (`RadarrConfig`, `SonarrConfig`, `IMDBConfig`) created by factory functions (`createRadarrConfig()`, `createSonarrConfig()`, `createIMDBConfig()`)
+- **HTTP Communication**: Each client has a private `makeRequest<T>()` function that handles all HTTP communication
+- **Public Functions**: Individual functions (`getMovies()`, `addMovie()`, `searchIMDB()`, etc.) are exported functions that accept config objects and call `makeRequest`
+- **Async Patterns**: Functions that only call `makeRequest` without additional `await` should NOT be marked `async`
+- **Connection Testing**: Each client exports a `testConnection()` function that returns `{ success: boolean; error?: string }`
 
 **IMDB Client Specifics**: Uses RapidAPI headers (`X-RapidAPI-Key`, `X-RapidAPI-Host`) for authentication instead of direct API key headers.
 
@@ -91,8 +98,8 @@ RAPIDAPI_KEY=your-rapidapi-key
 - The server tests API connections on startup but continues running even if services are unavailable
 - Tool execution happens through a routing system in the main server's `CallToolRequestSchema` handler
 - Each service's tools are only registered if that service is properly configured
-- Radarr and Sonarr clients use the same base URL + endpoint pattern with API key authentication via `X-Api-Key` header
-- IMDB client uses RapidAPI with `X-RapidAPI-Key` and `X-RapidAPI-Host` headers for authentication
+- Radarr and Sonarr use the same base URL + endpoint pattern with API key authentication via `X-Api-Key` header
+- IMDB uses RapidAPI with `X-RapidAPI-Key` and `X-RapidAPI-Host` headers for authentication
 
 ## IMDB Tools Available
 
