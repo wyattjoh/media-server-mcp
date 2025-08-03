@@ -1,0 +1,39 @@
+name: Publish to JSR
+
+on:
+  push:
+    branches:
+      - main
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for OIDC authentication with JSR
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run tests
+        run: deno task test
+
+      - name: Check formatting
+        run: deno task fmt --check
+
+      - name: Lint code
+        run: deno task lint
+
+      - name: Type check
+        run: deno task check
+
+      - name: Publish to JSR
+        run: deno publish
