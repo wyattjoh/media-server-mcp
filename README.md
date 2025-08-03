@@ -1,57 +1,123 @@
 # Media Server MCP
 
-A Model Context Protocol (MCP) server that provides tools for interacting with Radarr, Sonarr, and IMDB APIs. This allows AI assistants to manage your media library and access movie/TV information through natural language interactions.
+A Model Context Protocol (MCP) server that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series) media servers, and access IMDB data through natural language interactions.
 
 ## Features
 
 - **Radarr Integration**: Search, add, manage, and monitor movies
 - **Sonarr Integration**: Search, add, manage, and monitor TV series
 - **IMDB Integration**: Search movies/shows, get details, cast info, and popular content
-- **Comprehensive API Coverage**: Access to most Radarr and Sonarr v3 API endpoints
+- **Flexible Configuration**: Each service is optional - configure any combination
 - **Type-Safe**: Built with TypeScript for reliable operations
-- **Flexible Configuration**: Support for any combination of services
+- **Easy Setup**: Install directly from JSR with a single deno run command
 
 ## Installation
 
-### Prerequisites
+### JSR (Recommended)
 
-- [Deno](https://deno.land/) runtime
-- Running Radarr and/or Sonarr instances (optional)
-- API keys for your media servers (optional)
-- RapidAPI key for IMDB functionality (optional)
+Add to your MCP servers configuration using the JSR package:
 
-### Setup
-
-1. Clone this repository:
-
-```bash
-git clone <repository-url>
-cd media-server-mcp
+```json
+{
+  "mcpServers": {
+    "media-server": {
+      "command": "deno",
+      "args": ["run", "--allow-all", "jsr:@wyattjoh/media-server-mcp"],
+      "env": {
+        "RADARR_URL": "http://localhost:7878",
+        "RADARR_API_KEY": "your-radarr-api-key",
+        "SONARR_URL": "http://localhost:8989",
+        "SONARR_API_KEY": "your-sonarr-api-key",
+        "IMDB_URL": "https://imdb236.p.rapidapi.com/api/imdb",
+        "RAPIDAPI_KEY": "your-rapidapi-key"
+      }
+    }
+  }
+}
 ```
 
-2. Create environment configuration:
+### Direct from GitHub
 
-```bash
-cp .env.example .env
+```json
+{
+  "mcpServers": {
+    "media-server": {
+      "command": "deno",
+      "args": [
+        "run",
+        "--allow-all",
+        "https://raw.githubusercontent.com/wyattjoh/media-server-mcp/main/src/index.ts"
+      ],
+      "env": {
+        "RADARR_URL": "http://localhost:7878",
+        "RADARR_API_KEY": "your-radarr-api-key"
+      }
+    }
+  }
+}
 ```
 
-3. Configure your environment variables in `.env`:
+## Quick Start
 
-```bash
-# At least one service must be configured
-RADARR_URL=http://localhost:7878
-RADARR_API_KEY=your-radarr-api-key
-SONARR_URL=http://localhost:8989
-SONARR_API_KEY=your-sonarr-api-key
-IMDB_URL=https://imdb236.p.rapidapi.com/api/imdb
-RAPIDAPI_KEY=your-rapidapi-key
+1. **Configure at least one service** in your MCP client's configuration:
+
+### Minimal Radarr-only Setup
+
+```json
+{
+  "mcpServers": {
+    "media-server": {
+      "command": "deno",
+      "args": ["run", "--allow-all", "jsr:@wyattjoh/media-server-mcp"],
+      "env": {
+        "RADARR_URL": "http://localhost:7878",
+        "RADARR_API_KEY": "your-radarr-api-key"
+      }
+    }
+  }
+}
 ```
 
-4. Run the server:
+### Minimal Sonarr-only Setup
 
-```bash
-deno task start
+```json
+{
+  "mcpServers": {
+    "media-server": {
+      "command": "deno",
+      "args": ["run", "--allow-all", "jsr:@wyattjoh/media-server-mcp"],
+      "env": {
+        "SONARR_URL": "http://localhost:8989",
+        "SONARR_API_KEY": "your-sonarr-api-key"
+      }
+    }
+  }
+}
 ```
+
+### Minimal IMDB-only Setup
+
+```json
+{
+  "mcpServers": {
+    "media-server": {
+      "command": "deno",
+      "args": ["run", "--allow-all", "jsr:@wyattjoh/media-server-mcp"],
+      "env": {
+        "IMDB_URL": "https://imdb236.p.rapidapi.com/api/imdb",
+        "RAPIDAPI_KEY": "your-rapidapi-key"
+      }
+    }
+  }
+}
+```
+
+2. **Find your API keys**:
+   - **Radarr**: Settings → General → Security → API Key
+   - **Sonarr**: Settings → General → Security → API Key
+   - **IMDB**: Sign up at [RapidAPI](https://rapidapi.com/), subscribe to an IMDB API service
+
+3. **Start using** - Ask your AI assistant to manage your media library!
 
 ## Configuration
 
@@ -66,32 +132,18 @@ deno task start
 | `IMDB_URL`       | Base URL of IMDB API service        | Optional* |
 | `RAPIDAPI_KEY`   | RapidAPI key for IMDB functionality | Optional* |
 
-*At least one service (Radarr, Sonarr, or IMDB) must be configured.
+*_At least one service (Radarr, Sonarr, or IMDB) must be configured._
 
-### Finding API Keys
+### Example URLs
 
-#### Radarr
-
-1. Open Radarr web interface
-2. Go to Settings → General
-3. Find "API Key" in the Security section
-
-#### Sonarr
-
-1. Open Sonarr web interface
-2. Go to Settings → General
-3. Find "API Key" in the Security section
-
-#### IMDB (via RapidAPI)
-
-1. Sign up at [RapidAPI](https://rapidapi.com/)
-2. Subscribe to an IMDB API (e.g., "IMDB API" by API Dojo)
-3. Copy the API's base URL (e.g., `https://imdb-api1.p.rapidapi.com`)
-4. Copy your RapidAPI key from the dashboard
+- **Local Radarr**: `http://localhost:7878`
+- **Local Sonarr**: `http://localhost:8989`
+- **Remote with custom port**: `https://radarr.yourdomain.com:443`
+- **IMDB via RapidAPI**: `https://imdb236.p.rapidapi.com/api/imdb`
 
 ## Available Tools
 
-### Radarr Tools
+### Radarr Tools (when configured)
 
 #### Movie Management
 
@@ -114,7 +166,7 @@ deno task start
 - `radarr_get_health` - Check system health
 - `radarr_refresh_movie` - Refresh movie metadata
 
-### Sonarr Tools
+### Sonarr Tools (when configured)
 
 #### Series Management
 
@@ -144,7 +196,7 @@ deno task start
 - `sonarr_get_health` - Check system health
 - `sonarr_refresh_series` - Refresh series metadata
 
-### IMDB Tools
+### IMDB Tools (when configured)
 
 #### Search and Discovery
 
@@ -160,7 +212,19 @@ deno task start
 
 ## Usage Examples
 
-### Adding a Movie
+### Natural Language Requests
+
+With this MCP server configured, you can ask your AI assistant:
+
+- "Add the movie Inception to my Radarr library"
+- "Show me what TV series are in my Sonarr queue"
+- "Search IMDB for popular action movies from 2023"
+- "What episodes of Breaking Bad are airing this week?"
+- "Add The Office to my TV library and monitor all seasons"
+
+### API Examples
+
+#### Adding a Movie
 
 ```json
 {
@@ -178,7 +242,7 @@ deno task start
 }
 ```
 
-### Adding a TV Series
+#### Adding a TV Series
 
 ```json
 {
@@ -195,19 +259,6 @@ deno task start
 }
 ```
 
-### Searching for Content
-
-```json
-{
-  "tool": "radarr_search_movie",
-  "arguments": {
-    "term": "Inception"
-  }
-}
-```
-
-### IMDB Examples
-
 #### Searching IMDB
 
 ```json
@@ -219,46 +270,54 @@ deno task start
 }
 ```
 
-#### Getting Movie Details
+## Troubleshooting
 
-```json
-{
-  "tool": "imdb_get_details",
-  "arguments": {
-    "imdbId": "tt0468569"
-  }
-}
-```
+### Common Issues
 
-#### Getting Top Movies
+#### No Tools Available
 
-```json
-{
-  "tool": "imdb_get_top_movies",
-  "arguments": {}
-}
-```
+- Ensure at least one service is configured with valid environment variables
+- Check that URLs are accessible and API keys are correct
+- Verify the MCP server is starting without errors
+
+#### Connection Refused
+
+- Verify Radarr/Sonarr URLs are correct and accessible
+- Check that the services are running
+- Ensure no firewall is blocking the connections
+
+#### Unauthorized/403 Errors
+
+- Verify API keys are correct and haven't expired
+- Check that API access is enabled in service settings
+- For IMDB, ensure RapidAPI subscription is active
+
+### Debug Mode
+
+Check MCP server logs for connection status on startup. The server will test each configured service and report connection results.
 
 ## Development
 
-### Project Structure
+### Local Development Setup
 
+1. Clone this repository:
+
+```bash
+git clone https://github.com/wyattjoh/media-server-mcp.git
+cd media-server-mcp
 ```
-src/
-├── index.ts              # Main MCP server
-├── clients/
-│   ├── radarr.ts         # Radarr API client
-│   ├── sonarr.ts         # Sonarr API client
-│   └── imdb.ts           # IMDB API client
-├── tools/
-│   ├── radarr-tools.ts   # Radarr MCP tools
-│   ├── sonarr-tools.ts   # Sonarr MCP tools
-│   └── imdb-tools.ts     # IMDB MCP tools
-└── types/
-    ├── radarr.ts         # Radarr type definitions
-    ├── sonarr.ts         # Sonarr type definitions
-    ├── imdb.ts           # IMDB type definitions
-    └── mcp.ts            # MCP-specific types
+
+2. Create environment configuration:
+
+```bash
+cp .env.example .env
+# Edit .env with your service URLs and API keys
+```
+
+3. Run the server:
+
+```bash
+deno task dev
 ```
 
 ### Available Scripts
@@ -267,7 +326,7 @@ src/
 # Development with hot reload
 deno task dev
 
-# Production run
+# Production run  
 deno task start
 
 # Type checking
@@ -280,39 +339,24 @@ deno task fmt
 deno task lint
 ```
 
-### Testing Connections
+### Project Structure
 
-The server will test connections to configured services on startup and log the results. Check the console output for connection status.
-
-## Troubleshooting
-
-### Common Issues
-
-#### Connection Refused
-
-- Verify Radarr/Sonarr URLs are correct and accessible
-- Check that the services are running
-- Ensure no firewall blocking the connections
-
-#### Unauthorized/403 Errors
-
-- Verify API keys are correct
-- Check that API keys haven't expired
-- Ensure API access is enabled in service settings
-
-#### Tools Not Available
-
-- Check environment variables are properly set
-- Ensure at least one service is configured
-- Verify the service is responding to API calls
-
-### Debug Mode
-
-For detailed logging, you can modify the server to include debug output:
-
-```bash
-# Add debug environment variable
-DEBUG=1 deno run --allow-all src/index.ts
+```
+src/
+├── index.ts              # Main MCP server
+├── clients/
+│   ├── radarr.ts         # Radarr API client
+│   ├── sonarr.ts         # Sonarr API client
+│   └── imdb.ts           # IMDB API client
+├── tools/
+│   ├── radarr-tools.ts   # Radarr MCP tools
+│   ├── sonarr-tools.ts   # Sonarr MCP tools  
+│   └── imdb-tools.ts     # IMDB MCP tools
+└── types/
+    ├── radarr.ts         # Radarr type definitions
+    ├── sonarr.ts         # Sonarr type definitions
+    ├── imdb.ts           # IMDB type definitions
+    └── mcp.ts            # MCP-specific types
 ```
 
 ## Contributing
