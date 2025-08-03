@@ -9,24 +9,22 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
-
+import deno from "../deno.json" with { type: "json" };
 import { RadarrClient } from "./clients/radarr.ts";
 import { SonarrClient } from "./clients/sonarr.ts";
 import { createRadarrTools, handleRadarrTool } from "./tools/radarr-tools.ts";
 import { createSonarrTools, handleSonarrTool } from "./tools/sonarr-tools.ts";
-import type { MediaServerConfig } from "./types/mcp.ts";
 
 class MediaServerMCPServer {
   private server: Server;
   private radarrClient?: RadarrClient;
   private sonarrClient?: SonarrClient;
-  private config: MediaServerConfig;
 
   constructor() {
     this.server = new Server(
       {
         name: "media-server-mcp",
-        version: "1.0.0",
+        version: deno.version,
       },
       {
         capabilities: {
@@ -35,21 +33,15 @@ class MediaServerMCPServer {
       },
     );
 
-    this.config = this.loadConfig();
+    this.loadConfig();
     this.setupHandlers();
   }
 
-  private loadConfig(): MediaServerConfig {
-    const config: MediaServerConfig = {};
-
+  private loadConfig(): void {
     // Load Radarr configuration
     const radarrUrl = Deno.env.get("RADARR_URL");
     const radarrApiKey = Deno.env.get("RADARR_API_KEY");
     if (radarrUrl && radarrApiKey) {
-      config.radarr = {
-        url: radarrUrl,
-        apiKey: radarrApiKey,
-      };
       this.radarrClient = new RadarrClient(radarrUrl, radarrApiKey);
     }
 
@@ -57,20 +49,14 @@ class MediaServerMCPServer {
     const sonarrUrl = Deno.env.get("SONARR_URL");
     const sonarrApiKey = Deno.env.get("SONARR_API_KEY");
     if (sonarrUrl && sonarrApiKey) {
-      config.sonarr = {
-        url: sonarrUrl,
-        apiKey: sonarrApiKey,
-      };
       this.sonarrClient = new SonarrClient(sonarrUrl, sonarrApiKey);
     }
 
-    if (!config.radarr && !config.sonarr) {
+    if (!this.radarrClient && !this.sonarrClient) {
       throw new Error(
         "At least one of Radarr or Sonarr must be configured. Please set RADARR_URL/RADARR_API_KEY or SONARR_URL/SONARR_API_KEY environment variables.",
       );
     }
-
-    return config;
   }
 
   private setupHandlers(): void {
