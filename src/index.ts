@@ -1,20 +1,20 @@
 #!/usr/bin/env -S deno run --allow-all
 
 import process from "node:process";
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
   ErrorCode,
   ListToolsRequestSchema,
   McpError,
-} from '@modelcontextprotocol/sdk/types.js';
+} from "@modelcontextprotocol/sdk/types.js";
 
-import { RadarrClient } from './clients/radarr.ts';
-import { SonarrClient } from './clients/sonarr.ts';
-import { createRadarrTools, handleRadarrTool } from './tools/radarr-tools.ts';
-import { createSonarrTools, handleSonarrTool } from './tools/sonarr-tools.ts';
-import type { MediaServerConfig } from './types/mcp.ts';
+import { RadarrClient } from "./clients/radarr.ts";
+import { SonarrClient } from "./clients/sonarr.ts";
+import { createRadarrTools, handleRadarrTool } from "./tools/radarr-tools.ts";
+import { createSonarrTools, handleSonarrTool } from "./tools/sonarr-tools.ts";
+import type { MediaServerConfig } from "./types/mcp.ts";
 
 class MediaServerMCPServer {
   private server: Server;
@@ -25,8 +25,8 @@ class MediaServerMCPServer {
   constructor() {
     this.server = new Server(
       {
-        name: 'media-server-mcp',
-        version: '1.0.0',
+        name: "media-server-mcp",
+        version: "1.0.0",
       },
       {
         capabilities: {
@@ -43,8 +43,8 @@ class MediaServerMCPServer {
     const config: MediaServerConfig = {};
 
     // Load Radarr configuration
-    const radarrUrl = Deno.env.get('RADARR_URL');
-    const radarrApiKey = Deno.env.get('RADARR_API_KEY');
+    const radarrUrl = Deno.env.get("RADARR_URL");
+    const radarrApiKey = Deno.env.get("RADARR_API_KEY");
     if (radarrUrl && radarrApiKey) {
       config.radarr = {
         url: radarrUrl,
@@ -54,8 +54,8 @@ class MediaServerMCPServer {
     }
 
     // Load Sonarr configuration
-    const sonarrUrl = Deno.env.get('SONARR_URL');
-    const sonarrApiKey = Deno.env.get('SONARR_API_KEY');
+    const sonarrUrl = Deno.env.get("SONARR_URL");
+    const sonarrApiKey = Deno.env.get("SONARR_API_KEY");
     if (sonarrUrl && sonarrApiKey) {
       config.sonarr = {
         url: sonarrUrl,
@@ -66,7 +66,7 @@ class MediaServerMCPServer {
 
     if (!config.radarr && !config.sonarr) {
       throw new Error(
-        'At least one of Radarr or Sonarr must be configured. Please set RADARR_URL/RADARR_API_KEY or SONARR_URL/SONARR_API_KEY environment variables.',
+        "At least one of Radarr or Sonarr must be configured. Please set RADARR_URL/RADARR_API_KEY or SONARR_URL/SONARR_API_KEY environment variables.",
       );
     }
 
@@ -88,51 +88,58 @@ class MediaServerMCPServer {
       return { tools };
     });
 
-    this.server.setRequestHandler(CallToolRequestSchema, async (request): Promise<{ content: Array<{ type: string; text: string }> }> => {
-      const { name, arguments: args } = request.params;
+    this.server.setRequestHandler(
+      CallToolRequestSchema,
+      async (
+        request,
+      ): Promise<{ content: Array<{ type: string; text: string }> }> => {
+        const { name, arguments: args } = request.params;
 
-      try {
-        // Handle Radarr tools
-        if (name.startsWith('radarr_')) {
-          if (!this.radarrClient) {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              'Radarr is not configured',
-            );
+        try {
+          // Handle Radarr tools
+          if (name.startsWith("radarr_")) {
+            if (!this.radarrClient) {
+              throw new McpError(
+                ErrorCode.InvalidRequest,
+                "Radarr is not configured",
+              );
+            }
+            return await handleRadarrTool(name, args, this.radarrClient);
           }
-          return await handleRadarrTool(name, args, this.radarrClient);
-        }
 
-        // Handle Sonarr tools
-        if (name.startsWith('sonarr_')) {
-          if (!this.sonarrClient) {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              'Sonarr is not configured',
-            );
+          // Handle Sonarr tools
+          if (name.startsWith("sonarr_")) {
+            if (!this.sonarrClient) {
+              throw new McpError(
+                ErrorCode.InvalidRequest,
+                "Sonarr is not configured",
+              );
+            }
+            return await handleSonarrTool(name, args, this.sonarrClient);
           }
-          return await handleSonarrTool(name, args, this.sonarrClient);
-        }
 
-        throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
-      } catch (error) {
-        if (error instanceof McpError) {
-          throw error;
-        }
+          throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
+        } catch (error) {
+          if (error instanceof McpError) {
+            throw error;
+          }
 
-        throw new McpError(
-          ErrorCode.InternalError,
-          `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-    });
+          throw new McpError(
+            ErrorCode.InternalError,
+            `Tool execution failed: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      },
+    );
 
     // Error handling
     this.server.onerror = (error) => {
-      console.error('[MCP Error]', error);
+      console.error("[MCP Error]", error);
     };
 
-    process.on('SIGINT', async () => {
+    process.on("SIGINT", async () => {
       await this.server.close();
     });
   }
@@ -143,12 +150,15 @@ class MediaServerMCPServer {
       try {
         const connected = await this.radarrClient.testConnection();
         if (connected) {
-          console.error('[INFO] Successfully connected to Radarr');
+          console.error("[INFO] Successfully connected to Radarr");
         } else {
-          console.error('[WARNING] Failed to connect to Radarr');
+          console.error("[WARNING] Failed to connect to Radarr");
         }
       } catch (error) {
-        console.error('[WARNING] Radarr connection test failed:', error instanceof Error ? error.message : String(error));
+        console.error(
+          "[WARNING] Radarr connection test failed:",
+          error instanceof Error ? error.message : String(error),
+        );
       }
     }
 
@@ -156,18 +166,21 @@ class MediaServerMCPServer {
       try {
         const connected = await this.sonarrClient.testConnection();
         if (connected) {
-          console.error('[INFO] Successfully connected to Sonarr');
+          console.error("[INFO] Successfully connected to Sonarr");
         } else {
-          console.error('[WARNING] Failed to connect to Sonarr');
+          console.error("[WARNING] Failed to connect to Sonarr");
         }
       } catch (error) {
-        console.error('[WARNING] Sonarr connection test failed:', error instanceof Error ? error.message : String(error));
+        console.error(
+          "[WARNING] Sonarr connection test failed:",
+          error instanceof Error ? error.message : String(error),
+        );
       }
     }
 
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.error('[INFO] Media Server MCP Server running on stdio');
+    console.error("[INFO] Media Server MCP Server running on stdio");
   }
 }
 
@@ -176,7 +189,10 @@ async function main(): Promise<void> {
     const server = new MediaServerMCPServer();
     await server.run();
   } catch (error) {
-    console.error('[FATAL]', error instanceof Error ? error.message : String(error));
+    console.error(
+      "[FATAL]",
+      error instanceof Error ? error.message : String(error),
+    );
     Deno.exit(1);
   }
 }

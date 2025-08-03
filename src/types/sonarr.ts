@@ -245,7 +245,7 @@ export interface SonarrQueueItem {
       resolution: number;
     };
     revision: {
-      version: number;  
+      version: number;
       real: number;
       isRepack: boolean;
     };
@@ -253,7 +253,7 @@ export interface SonarrQueueItem {
   customFormats: Array<{
     id: number;
     name: string;
-  }>;  
+  }>;
   size: number;
   title: string;
   sizeleft: number;
@@ -455,12 +455,14 @@ export interface SonarrAddSeriesOptions {
   tvdbId: number;
   rootFolderPath: string;
   seasonFolder: boolean | undefined;
-  seriesType: 'standard' | 'daily' | 'anime' | undefined;
+  seriesType: "standard" | "daily" | "anime" | undefined;
   tags: number[] | undefined;
-  seasons: Array<{
-    seasonNumber: number;
-    monitored: boolean;
-  }> | undefined;
+  seasons:
+    | Array<{
+      seasonNumber: number;
+      monitored: boolean;
+    }>
+    | undefined;
   addOptions: {
     ignoreEpisodesWithFiles: boolean | undefined;
     ignoreEpisodesWithoutFiles: boolean | undefined;

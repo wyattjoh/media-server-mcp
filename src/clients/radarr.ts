@@ -1,20 +1,20 @@
 import type {
+  RadarrAddMovieOptions,
+  RadarrHealth,
   RadarrMovie,
   RadarrQualityProfile,
   RadarrQueueItem,
+  RadarrRootFolder,
   RadarrSearchResult,
   RadarrSystemStatus,
-  RadarrHealth,
-  RadarrRootFolder,
-  RadarrAddMovieOptions,
-} from '../types/radarr.ts';
+} from "../types/radarr.ts";
 
 export class RadarrClient {
   private baseUrl: string;
   private apiKey: string;
 
   constructor(baseUrl: string, apiKey: string) {
-    this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
+    this.baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
     this.apiKey = apiKey;
   }
 
@@ -24,8 +24,8 @@ export class RadarrClient {
   ): Promise<T> {
     const url = `${this.baseUrl}/api/v3${endpoint}`;
     const headers = {
-      'X-Api-Key': this.apiKey,
-      'Content-Type': 'application/json',
+      "X-Api-Key": this.apiKey,
+      "Content-Type": "application/json",
       ...options.headers,
     };
 
@@ -43,7 +43,11 @@ export class RadarrClient {
 
       return await response.json();
     } catch (error) {
-      throw new Error(`Radarr API request failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Radarr API request failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   }
 
@@ -56,7 +60,7 @@ export class RadarrClient {
 
   // Get all movies
   getMovies(): Promise<RadarrMovie[]> {
-    return this.makeRequest<RadarrMovie[]>('/movie');
+    return this.makeRequest<RadarrMovie[]>("/movie");
   }
 
   // Get specific movie by ID
@@ -80,8 +84,8 @@ export class RadarrClient {
       },
     };
 
-    return this.makeRequest<RadarrMovie>('/movie', {
-      method: 'POST',
+    return this.makeRequest<RadarrMovie>("/movie", {
+      method: "POST",
       body: JSON.stringify(payload),
     });
   }
@@ -89,7 +93,7 @@ export class RadarrClient {
   // Update a movie
   updateMovie(movie: RadarrMovie): Promise<RadarrMovie> {
     return this.makeRequest<RadarrMovie>(`/movie/${movie.id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(movie),
     });
   }
@@ -101,48 +105,48 @@ export class RadarrClient {
     addImportExclusion = false,
   ): Promise<void> {
     const params = new URLSearchParams();
-    if (deleteFiles) params.append('deleteFiles', 'true');
-    if (addImportExclusion) params.append('addImportExclusion', 'true');
+    if (deleteFiles) params.append("deleteFiles", "true");
+    if (addImportExclusion) params.append("addImportExclusion", "true");
 
     const queryString = params.toString();
-    const endpoint = `/movie/${id}${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/movie/${id}${queryString ? `?${queryString}` : ""}`;
 
     await this.makeRequest<void>(endpoint, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
   // Get queue
   getQueue(): Promise<RadarrQueueItem[]> {
-    return this.makeRequest<RadarrQueueItem[]>('/queue');
+    return this.makeRequest<RadarrQueueItem[]>("/queue");
   }
 
   // Get quality profiles
   getQualityProfiles(): Promise<RadarrQualityProfile[]> {
-    return this.makeRequest<RadarrQualityProfile[]>('/qualityProfile');
+    return this.makeRequest<RadarrQualityProfile[]>("/qualityProfile");
   }
 
   // Get root folders
   getRootFolders(): Promise<RadarrRootFolder[]> {
-    return this.makeRequest<RadarrRootFolder[]>('/rootFolder');
+    return this.makeRequest<RadarrRootFolder[]>("/rootFolder");
   }
 
   // Get system status
   getSystemStatus(): Promise<RadarrSystemStatus> {
-    return this.makeRequest<RadarrSystemStatus>('/system/status');
+    return this.makeRequest<RadarrSystemStatus>("/system/status");
   }
 
   // Get health
   getHealth(): Promise<RadarrHealth[]> {
-    return this.makeRequest<RadarrHealth[]>('/health');
+    return this.makeRequest<RadarrHealth[]>("/health");
   }
 
   // Refresh movie
   async refreshMovie(id: number): Promise<void> {
-    await this.makeRequest<void>('/command', {
-      method: 'POST',
+    await this.makeRequest<void>("/command", {
+      method: "POST",
       body: JSON.stringify({
-        name: 'RefreshMovie',
+        name: "RefreshMovie",
         movieId: id,
       }),
     });
@@ -150,20 +154,20 @@ export class RadarrClient {
 
   // Refresh all movies
   async refreshAllMovies(): Promise<void> {
-    await this.makeRequest<void>('/command', {
-      method: 'POST',
+    await this.makeRequest<void>("/command", {
+      method: "POST",
       body: JSON.stringify({
-        name: 'RefreshMovie',
+        name: "RefreshMovie",
       }),
     });
   }
 
   // Search for movie releases
   async searchMovieReleases(id: number): Promise<void> {
-    await this.makeRequest<void>('/command', {
-      method: 'POST',
+    await this.makeRequest<void>("/command", {
+      method: "POST",
       body: JSON.stringify({
-        name: 'MoviesSearch',
+        name: "MoviesSearch",
         movieIds: [id],
       }),
     });
@@ -171,10 +175,10 @@ export class RadarrClient {
 
   // Scan disk for movies
   async diskScan(): Promise<void> {
-    await this.makeRequest<void>('/command', {
-      method: 'POST',
+    await this.makeRequest<void>("/command", {
+      method: "POST",
       body: JSON.stringify({
-        name: 'RescanMovie',
+        name: "RescanMovie",
       }),
     });
   }

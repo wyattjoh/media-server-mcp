@@ -334,7 +334,7 @@ export interface RadarrRootFolder {
 export interface RadarrAddMovieOptions {
   title: string;
   qualityProfileId: number;
-  minimumAvailability: 'tba' | 'announced' | 'inCinemas' | 'released' | 'preDB';
+  minimumAvailability: "tba" | "announced" | "inCinemas" | "released" | "preDB";
   monitored: boolean | undefined;
   tmdbId: number;
   year: number;

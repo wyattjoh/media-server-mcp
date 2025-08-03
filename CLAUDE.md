@@ -31,7 +31,7 @@ The codebase follows a **layered architecture**:
 
 1. **MCP Server Layer** (`src/index.ts`): Main server that handles MCP protocol communication
 2. **Tool Layer** (`src/tools/`): MCP tool definitions and handlers that bridge MCP and API clients
-3. **Client Layer** (`src/clients/`): HTTP API clients for Radarr and Sonarr services  
+3. **Client Layer** (`src/clients/`): HTTP API clients for Radarr and Sonarr services
 4. **Type Layer** (`src/types/`): TypeScript definitions for all interfaces
 
 ### Key Architectural Decisions
@@ -51,6 +51,7 @@ The codebase follows a **layered architecture**:
 ### HTTP Client Pattern
 
 Both `RadarrClient` and `SonarrClient` follow the same pattern:
+
 - Single `makeRequest<T>()` method handles all HTTP communication
 - Individual methods (`getMovies()`, `addMovie()`, etc.) are thin wrappers that call `makeRequest`
 - Methods that only call `makeRequest` without `await` should NOT be marked `async`

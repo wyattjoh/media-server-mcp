@@ -21,17 +21,20 @@ A Model Context Protocol (MCP) server that provides tools for interacting with R
 ### Setup
 
 1. Clone this repository:
+
 ```bash
 git clone <repository-url>
 cd media-server-mcp
 ```
 
 2. Create environment configuration:
+
 ```bash
 cp .env.example .env
 ```
 
 3. Configure your environment variables in `.env`:
+
 ```bash
 RADARR_URL=http://localhost:7878
 RADARR_API_KEY=your-radarr-api-key
@@ -40,6 +43,7 @@ SONARR_API_KEY=your-sonarr-api-key
 ```
 
 4. Run the server:
+
 ```bash
 deno run --allow-all src/index.ts
 ```
@@ -48,11 +52,11 @@ deno run --allow-all src/index.ts
 
 ### Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `RADARR_URL` | Base URL of your Radarr instance | Optional* |
+| Variable         | Description                       | Required  |
+| ---------------- | --------------------------------- | --------- |
+| `RADARR_URL`     | Base URL of your Radarr instance  | Optional* |
 | `RADARR_API_KEY` | API key for Radarr authentication | Optional* |
-| `SONARR_URL` | Base URL of your Sonarr instance | Optional* |
+| `SONARR_URL`     | Base URL of your Sonarr instance  | Optional* |
 | `SONARR_API_KEY` | API key for Sonarr authentication | Optional* |
 
 *At least one service (Radarr or Sonarr) must be configured.
@@ -60,11 +64,13 @@ deno run --allow-all src/index.ts
 ### Finding API Keys
 
 #### Radarr
+
 1. Open Radarr web interface
 2. Go to Settings → General
 3. Find "API Key" in the Security section
 
 #### Sonarr
+
 1. Open Sonarr web interface
 2. Go to Settings → General
 3. Find "API Key" in the Security section
@@ -74,6 +80,7 @@ deno run --allow-all src/index.ts
 ### Radarr Tools
 
 #### Movie Management
+
 - `radarr_search_movie` - Search for movies in The Movie Database
 - `radarr_add_movie` - Add a movie to your library
 - `radarr_get_movies` - List all movies in your library
@@ -81,10 +88,12 @@ deno run --allow-all src/index.ts
 - `radarr_delete_movie` - Remove a movie from your library
 
 #### Queue and Downloads
+
 - `radarr_get_queue` - View current download queue
 - `radarr_search_movie_releases` - Search for releases of a specific movie
 
 #### System Management
+
 - `radarr_get_quality_profiles` - List available quality profiles
 - `radarr_get_root_folders` - List configured root folders
 - `radarr_get_system_status` - Get system information
@@ -94,6 +103,7 @@ deno run --allow-all src/index.ts
 ### Sonarr Tools
 
 #### Series Management
+
 - `sonarr_search_series` - Search for TV series
 - `sonarr_add_series` - Add a TV series to your library
 - `sonarr_get_series` - List all series in your library
@@ -101,6 +111,7 @@ deno run --allow-all src/index.ts
 - `sonarr_delete_series` - Remove a series from your library
 
 #### Episode Management
+
 - `sonarr_get_episodes` - Get episodes for a series
 - `sonarr_update_episode_monitoring` - Change episode monitoring status
 - `sonarr_get_calendar` - View upcoming episodes
@@ -108,9 +119,11 @@ deno run --allow-all src/index.ts
 - `sonarr_search_season` - Search for episodes of a specific season
 
 #### Queue and Downloads
+
 - `sonarr_get_queue` - View current download queue
 
 #### System Management
+
 - `sonarr_get_quality_profiles` - List available quality profiles
 - `sonarr_get_root_folders` - List configured root folders
 - `sonarr_get_system_status` - Get system information
@@ -120,6 +133,7 @@ deno run --allow-all src/index.ts
 ## Usage Examples
 
 ### Adding a Movie
+
 ```json
 {
   "tool": "radarr_add_movie",
@@ -137,6 +151,7 @@ deno run --allow-all src/index.ts
 ```
 
 ### Adding a TV Series
+
 ```json
 {
   "tool": "sonarr_add_series",
@@ -153,6 +168,7 @@ deno run --allow-all src/index.ts
 ```
 
 ### Searching for Content
+
 ```json
 {
   "tool": "radarr_search_movie",
@@ -165,6 +181,7 @@ deno run --allow-all src/index.ts
 ## Development
 
 ### Project Structure
+
 ```
 src/
 ├── index.ts              # Main MCP server
@@ -181,6 +198,7 @@ src/
 ```
 
 ### Available Scripts
+
 ```bash
 # Development with hot reload
 deno task dev
@@ -207,16 +225,19 @@ The server will test connections to configured services on startup and log the r
 ### Common Issues
 
 #### Connection Refused
+
 - Verify Radarr/Sonarr URLs are correct and accessible
 - Check that the services are running
 - Ensure no firewall blocking the connections
 
 #### Unauthorized/403 Errors
+
 - Verify API keys are correct
 - Check that API keys haven't expired
 - Ensure API access is enabled in service settings
 
 #### Tools Not Available
+
 - Check environment variables are properly set
 - Ensure at least one service is configured
 - Verify the service is responding to API calls
