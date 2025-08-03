@@ -227,6 +227,15 @@ export interface RadarrQueueItem {
   id: number;
 }
 
+export interface RadarrQueueResponse {
+  page: number;
+  pageSize: number;
+  sortKey: string;
+  sortDirection: string;
+  totalRecords: number;
+  records: RadarrQueueItem[];
+}
+
 export interface RadarrSearchResult {
   title: string;
   originalTitle?: string;

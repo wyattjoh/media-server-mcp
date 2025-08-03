@@ -32,26 +32,19 @@ export interface IMDBMovieDetails {
   readonly website: string | undefined;
 }
 
-// Cast member interface
+// Cast member interface - represents any cast member from the API
 export interface IMDBCastMember {
   readonly id: string;
-  readonly name: string;
-  readonly character: string | undefined;
-  readonly image: string | undefined;
-}
-
-// Director interface
-export interface IMDBDirector {
-  readonly id: string;
-  readonly name: string;
-  readonly image: string | undefined;
-}
-
-// Writer interface
-export interface IMDBWriter {
-  readonly id: string;
-  readonly name: string;
-  readonly image: string | undefined;
+  readonly url: string;
+  readonly fullName: string;
+  readonly primaryImage: string | undefined;
+  readonly thumbnails: Array<{
+    readonly url: string;
+    readonly width: number;
+    readonly height: number;
+  }>;
+  readonly job: string; // "actor", "director", "writer", "producer", etc.
+  readonly characters: string[] | undefined; // For actors
 }
 
 // Top movie interface
@@ -59,32 +52,6 @@ export interface IMDBTopMovie {
   readonly id: string;
   readonly rank: string;
   readonly title: string;
-  readonly year: string | undefined;
-  readonly image: string | undefined;
-  readonly crew: string | undefined;
-  readonly imDbRating: string | undefined;
-  readonly imDbRatingCount: string | undefined;
-}
-
-// Popular movie interface
-export interface IMDBPopularMovie {
-  readonly id: string;
-  readonly rank: string;
-  readonly title: string;
-  readonly fullTitle: string | undefined;
-  readonly year: string | undefined;
-  readonly image: string | undefined;
-  readonly crew: string | undefined;
-  readonly imDbRating: string | undefined;
-  readonly imDbRatingCount: string | undefined;
-}
-
-// Popular TV show interface
-export interface IMDBPopularTVShow {
-  readonly id: string;
-  readonly rank: string;
-  readonly title: string;
-  readonly fullTitle: string | undefined;
   readonly year: string | undefined;
   readonly image: string | undefined;
   readonly crew: string | undefined;
@@ -106,27 +73,11 @@ export interface IMDBTopMoviesResponse {
   readonly errorMessage: string | undefined;
 }
 
-// Popular movies response wrapper
-export interface IMDBPopularMoviesResponse {
-  readonly items: IMDBPopularMovie[];
-  readonly errorMessage: string | undefined;
-}
+// Popular movies response (direct array from API)
+export type IMDBPopularMoviesResponse = IMDBMovieDetails[];
 
-// Popular TV shows response wrapper
-export interface IMDBPopularTVShowsResponse {
-  readonly items: IMDBPopularTVShow[];
-  readonly errorMessage: string | undefined;
-}
+// Popular TV shows response (direct array from API)
+export type IMDBPopularTVShowsResponse = IMDBMovieDetails[];
 
-// Cast response wrapper
-export interface IMDBCastResponse {
-  readonly imDbId: string;
-  readonly title: string;
-  readonly fullTitle: string | undefined;
-  readonly type: string;
-  readonly year: string | undefined;
-  readonly actors: IMDBCastMember[];
-  readonly directors: IMDBDirector[];
-  readonly writers: IMDBWriter[];
-  readonly errorMessage: string | undefined;
-}
+// Cast response - API returns a flat array of cast members
+export type IMDBCastResponse = IMDBCastMember[];

@@ -447,6 +447,15 @@ export interface SonarrRootFolder {
   }>;
 }
 
+export interface SonarrQueueResponse {
+  page: number;
+  pageSize: number;
+  sortKey: string;
+  sortDirection: string;
+  totalRecords: number;
+  records: SonarrQueueItem[];
+}
+
 export interface SonarrAddSeriesOptions {
   title: string;
   qualityProfileId: number;

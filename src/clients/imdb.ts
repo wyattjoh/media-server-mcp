@@ -1,9 +1,7 @@
 import type {
   IMDBCastResponse,
   IMDBMovieDetails,
-  IMDBPopularMovie,
   IMDBPopularMoviesResponse,
-  IMDBPopularTVShow,
   IMDBPopularTVShowsResponse,
   IMDBSearchResponse,
   IMDBTopMovie,
@@ -131,24 +129,19 @@ export async function getPopularMovies(
   limit?: number,
   skip?: number,
 ): Promise<IMDBPopularMoviesResponse> {
-  const rawResponse = await makeRequest<IMDBPopularMovie[]>(
+  const rawResponse = await makeRequest<IMDBPopularMoviesResponse>(
     config,
     "/most-popular-movies",
   );
 
   // Handle pagination if requested
-  let items = rawResponse;
   if (limit !== undefined || skip !== undefined) {
     const startIndex = skip || 0;
     const endIndex = limit !== undefined ? startIndex + limit : undefined;
-    items = rawResponse.slice(startIndex, endIndex);
+    return rawResponse.slice(startIndex, endIndex);
   }
 
-  // Return response in expected wrapper format
-  return {
-    items,
-    errorMessage: undefined,
-  };
+  return rawResponse;
 }
 
 // Get most popular TV shows
@@ -157,24 +150,19 @@ export async function getPopularTVShows(
   limit?: number,
   skip?: number,
 ): Promise<IMDBPopularTVShowsResponse> {
-  const rawResponse = await makeRequest<IMDBPopularTVShow[]>(
+  const rawResponse = await makeRequest<IMDBPopularTVShowsResponse>(
     config,
     "/most-popular-tv",
   );
 
   // Handle pagination if requested
-  let items = rawResponse;
   if (limit !== undefined || skip !== undefined) {
     const startIndex = skip || 0;
     const endIndex = limit !== undefined ? startIndex + limit : undefined;
-    items = rawResponse.slice(startIndex, endIndex);
+    return rawResponse.slice(startIndex, endIndex);
   }
 
-  // Return response in expected wrapper format
-  return {
-    items,
-    errorMessage: undefined,
-  };
+  return rawResponse;
 }
 
 // Get cast information for a movie/show
@@ -189,16 +177,11 @@ export async function getCast(
     `/${imdbId}/cast`,
   );
 
+  // Handle pagination if requested
   if (limit !== undefined || skip !== undefined) {
     const startIndex = skip || 0;
     const endIndex = limit !== undefined ? startIndex + limit : undefined;
-
-    return {
-      ...response,
-      actors: response.actors.slice(startIndex, endIndex),
-      directors: response.directors.slice(startIndex, endIndex),
-      writers: response.writers.slice(startIndex, endIndex),
-    };
+    return response.slice(startIndex, endIndex);
   }
 
   return response;

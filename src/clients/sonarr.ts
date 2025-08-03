@@ -5,6 +5,7 @@ import type {
   SonarrHealth,
   SonarrQualityProfile,
   SonarrQueueItem,
+  SonarrQueueResponse,
   SonarrRootFolder,
   SonarrSearchResult,
   SonarrSeries,
@@ -251,15 +252,17 @@ export async function getQueue(
   limit?: number,
   skip?: number,
 ): Promise<SonarrQueueItem[]> {
-  const results = await makeRequest<SonarrQueueItem[]>(config, "/queue");
-
-  if (limit !== undefined || skip !== undefined) {
-    const startIndex = skip || 0;
-    const endIndex = limit !== undefined ? startIndex + limit : undefined;
-    return results.slice(startIndex, endIndex);
+  const params = new URLSearchParams();
+  if (limit !== undefined) params.append("pageSize", limit.toString());
+  if (skip !== undefined) {
+    params.append("page", Math.floor(skip / (limit || 20) + 1).toString());
   }
 
-  return results;
+  const queryString = params.toString();
+  const endpoint = `/queue${queryString ? `?${queryString}` : ""}`;
+
+  const response = await makeRequest<SonarrQueueResponse>(config, endpoint);
+  return response.records;
 }
 
 // Get quality profiles
