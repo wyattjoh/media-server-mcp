@@ -21,9 +21,13 @@ deno task dev
 deno task start
 ```
 
+## Development Best Practices
+
+- Always use `deno task fmt`, `deno task lint`, and `deno task check` after modifying or creating code to ensure that it's correct.
+
 ## Architecture Overview
 
-This is a **Model Context Protocol (MCP) server** that provides AI assistants with tools to manage Radarr (movies) and Sonarr (TV series) media servers through their APIs.
+This is a **Model Context Protocol (MCP) server** that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series) media servers, and IMDB data through their APIs.
 
 ### Core Architecture Pattern
 
@@ -31,14 +35,14 @@ The codebase follows a **layered architecture**:
 
 1. **MCP Server Layer** (`src/index.ts`): Main server that handles MCP protocol communication
 2. **Tool Layer** (`src/tools/`): MCP tool definitions and handlers that bridge MCP and API clients
-3. **Client Layer** (`src/clients/`): HTTP API clients for Radarr and Sonarr services
+3. **Client Layer** (`src/clients/`): HTTP API clients for Radarr, Sonarr, and IMDB services
 4. **Type Layer** (`src/types/`): TypeScript definitions for all interfaces
 
 ### Key Architectural Decisions
 
-**Separation of Tool Creation and Execution**: Tools are created as metadata-only definitions via `createRadarrTools()` and `createSonarrTools()` functions that don't require client instances. Tool execution happens separately through `handleRadarrTool()` and `handleSonarrTool()` functions that receive the client at runtime.
+**Separation of Tool Creation and Execution**: Tools are created as metadata-only definitions via `createRadarrTools()`, `createSonarrTools()`, and `createIMDBTools()` functions that don't require client instances. Tool execution happens separately through `handleRadarrTool()`, `handleSonarrTool()`, and `handleIMDBTool()` functions that receive the client at runtime.
 
-**Client Injection**: The main server class maintains optional client instances (`radarrClient`, `sonarrClient`) and injects them into tool handlers during execution, allowing the server to work with either or both services configured.
+**Client Injection**: The main server class maintains optional client instances (`radarrClient`, `sonarrClient`, `imdbClient`) and injects them into tool handlers during execution, allowing the server to work with any combination of services configured.
 
 **Environment-Based Configuration**: Service availability is determined by environment variables at startup. Missing configuration results in that service's tools being unavailable rather than failing the entire server.
 
@@ -46,15 +50,17 @@ The codebase follows a **layered architecture**:
 
 - **Strict TypeScript**: Uses `exactOptionalPropertyTypes: true` - optional properties must be explicitly `| undefined` rather than using `?:`
 - **Zod Validation**: All tool parameters use Zod schemas for runtime validation
-- **API Type Definitions**: Comprehensive interfaces for Radarr and Sonarr API responses in `src/types/`
+- **API Type Definitions**: Comprehensive interfaces for Radarr, Sonarr, and IMDB API responses in `src/types/`
 
 ### HTTP Client Pattern
 
-Both `RadarrClient` and `SonarrClient` follow the same pattern:
+All clients (`RadarrClient`, `SonarrClient`, and `IMDBClient`) follow the same pattern:
 
 - Single `makeRequest<T>()` method handles all HTTP communication
-- Individual methods (`getMovies()`, `addMovie()`, etc.) are thin wrappers that call `makeRequest`
+- Individual methods (`getMovies()`, `addMovie()`, `searchIMDB()`, etc.) are thin wrappers that call `makeRequest`
 - Methods that only call `makeRequest` without `await` should NOT be marked `async`
+
+**IMDB Client Specifics**: Uses RapidAPI headers (`X-RapidAPI-Key`, `X-RapidAPI-Host`) for authentication instead of direct API key headers.
 
 ### Error Handling Pattern
 
@@ -67,10 +73,17 @@ Both `RadarrClient` and `SonarrClient` follow the same pattern:
 At least one service must be configured:
 
 ```bash
+# Radarr Configuration (optional)
 RADARR_URL=http://localhost:7878
 RADARR_API_KEY=your-radarr-api-key
+
+# Sonarr Configuration (optional)
 SONARR_URL=http://localhost:8989  
 SONARR_API_KEY=your-sonarr-api-key
+
+# IMDB Configuration via RapidAPI (optional)
+IMDB_URL=https://imdb236.p.rapidapi.com/api/imdb
+RAPIDAPI_KEY=your-rapidapi-key
 ```
 
 ## Important Implementation Notes
@@ -78,4 +91,16 @@ SONARR_API_KEY=your-sonarr-api-key
 - The server tests API connections on startup but continues running even if services are unavailable
 - Tool execution happens through a routing system in the main server's `CallToolRequestSchema` handler
 - Each service's tools are only registered if that service is properly configured
-- All API clients use the same base URL + endpoint pattern with API key authentication via `X-Api-Key` header
+- Radarr and Sonarr clients use the same base URL + endpoint pattern with API key authentication via `X-Api-Key` header
+- IMDB client uses RapidAPI with `X-RapidAPI-Key` and `X-RapidAPI-Host` headers for authentication
+
+## IMDB Tools Available
+
+The following IMDB tools are available when `RAPIDAPI_KEY` is configured:
+
+- `imdb_search`: Search for movies and TV shows by title
+- `imdb_get_details`: Get detailed information about a movie/show using IMDB ID
+- `imdb_get_top_movies`: Retrieve IMDB Top 250 movies
+- `imdb_get_popular_movies`: Get currently popular movies
+- `imdb_get_popular_tv_shows`: Get currently popular TV shows
+- `imdb_get_cast`: Get cast and crew information for a movie/show

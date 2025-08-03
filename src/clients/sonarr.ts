@@ -61,19 +61,41 @@ async function makeRequest<T>(
 }
 
 // Search for series
-export function searchSeries(
+export async function searchSeries(
   config: SonarrConfig,
   term: string,
+  limit?: number,
+  skip?: number,
 ): Promise<SonarrSearchResult[]> {
-  return makeRequest<SonarrSearchResult[]>(
+  const results = await makeRequest<SonarrSearchResult[]>(
     config,
     `/series/lookup?term=${encodeURIComponent(term)}`,
   );
+
+  if (limit !== undefined || skip !== undefined) {
+    const startIndex = skip || 0;
+    const endIndex = limit !== undefined ? startIndex + limit : undefined;
+    return results.slice(startIndex, endIndex);
+  }
+
+  return results;
 }
 
 // Get all series
-export function getSeries(config: SonarrConfig): Promise<SonarrSeries[]> {
-  return makeRequest<SonarrSeries[]>(config, "/series");
+export async function getSeries(
+  config: SonarrConfig,
+  limit?: number,
+  skip?: number,
+): Promise<SonarrSeries[]> {
+  const results = await makeRequest<SonarrSeries[]>(config, "/series");
+
+  if (limit !== undefined || skip !== undefined) {
+    const startIndex = skip || 0;
+    const endIndex = limit !== undefined ? startIndex + limit : undefined;
+    return results.slice(startIndex, endIndex);
+  }
+
+  return results;
 }
 
 // Get specific series by ID
@@ -147,17 +169,27 @@ export async function deleteSeries(
 }
 
 // Get episodes for a series
-export function getEpisodes(
+export async function getEpisodes(
   config: SonarrConfig,
   seriesId: number,
   seasonNumber?: number,
+  limit?: number,
+  skip?: number,
 ): Promise<SonarrEpisode[]> {
   let endpoint = `/episode?seriesId=${seriesId}`;
   if (seasonNumber !== undefined) {
     endpoint += `&seasonNumber=${seasonNumber}`;
   }
 
-  return makeRequest<SonarrEpisode[]>(config, endpoint);
+  const results = await makeRequest<SonarrEpisode[]>(config, endpoint);
+
+  if (limit !== undefined || skip !== undefined) {
+    const startIndex = skip || 0;
+    const endIndex = limit !== undefined ? startIndex + limit : undefined;
+    return results.slice(startIndex, endIndex);
+  }
+
+  return results;
 }
 
 // Get specific episode by ID
@@ -184,12 +216,14 @@ export async function updateEpisodeMonitoring(
 }
 
 // Get calendar
-export function getCalendar(
+export async function getCalendar(
   config: SonarrConfig,
   start?: string,
   end?: string,
   includeSeries = false,
   includeEpisodeFile = false,
+  limit?: number,
+  skip?: number,
 ): Promise<SonarrCalendarItem[]> {
   const params = new URLSearchParams();
   if (start) params.append("start", start);
@@ -200,12 +234,32 @@ export function getCalendar(
   const queryString = params.toString();
   const endpoint = `/calendar${queryString ? `?${queryString}` : ""}`;
 
-  return makeRequest<SonarrCalendarItem[]>(config, endpoint);
+  const results = await makeRequest<SonarrCalendarItem[]>(config, endpoint);
+
+  if (limit !== undefined || skip !== undefined) {
+    const startIndex = skip || 0;
+    const endIndex = limit !== undefined ? startIndex + limit : undefined;
+    return results.slice(startIndex, endIndex);
+  }
+
+  return results;
 }
 
 // Get queue
-export function getQueue(config: SonarrConfig): Promise<SonarrQueueItem[]> {
-  return makeRequest<SonarrQueueItem[]>(config, "/queue");
+export async function getQueue(
+  config: SonarrConfig,
+  limit?: number,
+  skip?: number,
+): Promise<SonarrQueueItem[]> {
+  const results = await makeRequest<SonarrQueueItem[]>(config, "/queue");
+
+  if (limit !== undefined || skip !== undefined) {
+    const startIndex = skip || 0;
+    const endIndex = limit !== undefined ? startIndex + limit : undefined;
+    return results.slice(startIndex, endIndex);
+  }
+
+  return results;
 }
 
 // Get quality profiles
@@ -313,11 +367,16 @@ export async function diskScan(config: SonarrConfig): Promise<void> {
 }
 
 // Test connection
-export async function testConnection(config: SonarrConfig): Promise<boolean> {
+export async function testConnection(
+  config: SonarrConfig,
+): Promise<{ success: boolean; error?: string }> {
   try {
     await getSystemStatus(config);
-    return true;
-  } catch {
-    return false;
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }

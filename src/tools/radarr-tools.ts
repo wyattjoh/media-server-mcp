@@ -6,6 +6,7 @@ import type { MCPToolResult } from "../types/mcp.ts";
 import {
   RadarrAddMovieSchema,
   RadarrMovieIdSchema,
+  RadarrPaginatedSchema,
   RadarrSearchSchema,
 } from "../types/mcp.ts";
 
@@ -20,6 +21,14 @@ export function createRadarrTools(): Tool[] {
           term: {
             type: "string",
             description: "Movie title to search for",
+          },
+          limit: {
+            type: "number",
+            description: "Maximum number of results to return",
+          },
+          skip: {
+            type: "number",
+            description: "Number of results to skip (for pagination)",
           },
         },
         required: ["term"],
@@ -88,7 +97,16 @@ export function createRadarrTools(): Tool[] {
       description: "Get all movies in the Radarr library",
       inputSchema: {
         type: "object",
-        properties: {},
+        properties: {
+          limit: {
+            type: "number",
+            description: "Maximum number of results to return",
+          },
+          skip: {
+            type: "number",
+            description: "Number of results to skip (for pagination)",
+          },
+        },
       },
     },
     {
@@ -134,7 +152,16 @@ export function createRadarrTools(): Tool[] {
       description: "Get the download queue",
       inputSchema: {
         type: "object",
-        properties: {},
+        properties: {
+          limit: {
+            type: "number",
+            description: "Maximum number of results to return",
+          },
+          skip: {
+            type: "number",
+            description: "Number of results to skip (for pagination)",
+          },
+        },
       },
     },
     {
@@ -208,8 +235,13 @@ export async function handleRadarrTool(
   try {
     switch (name) {
       case "radarr_search_movie": {
-        const { term } = RadarrSearchSchema.parse(args);
-        const results = await radarrClient.searchMovie(config, term);
+        const { term, limit, skip } = RadarrSearchSchema.parse(args);
+        const results = await radarrClient.searchMovie(
+          config,
+          term,
+          limit,
+          skip,
+        );
         return {
           content: [{
             type: "text",
@@ -236,7 +268,8 @@ export async function handleRadarrTool(
       }
 
       case "radarr_get_movies": {
-        const results = await radarrClient.getMovies(config);
+        const { limit, skip } = RadarrPaginatedSchema.parse(args);
+        const results = await radarrClient.getMovies(config, limit, skip);
         return {
           content: [{
             type: "text",
@@ -277,7 +310,8 @@ export async function handleRadarrTool(
       }
 
       case "radarr_get_queue": {
-        const results = await radarrClient.getQueue(config);
+        const { limit, skip } = RadarrPaginatedSchema.parse(args);
+        const results = await radarrClient.getQueue(config, limit, skip);
         return {
           content: [{
             type: "text",

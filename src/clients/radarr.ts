@@ -59,19 +59,41 @@ async function makeRequest<T>(
 }
 
 // Search for movies
-export function searchMovie(
+export async function searchMovie(
   config: RadarrConfig,
   term: string,
+  limit?: number,
+  skip?: number,
 ): Promise<RadarrSearchResult[]> {
-  return makeRequest<RadarrSearchResult[]>(
+  const results = await makeRequest<RadarrSearchResult[]>(
     config,
     `/movie/lookup?term=${encodeURIComponent(term)}`,
   );
+
+  if (limit !== undefined || skip !== undefined) {
+    const startIndex = skip || 0;
+    const endIndex = limit !== undefined ? startIndex + limit : undefined;
+    return results.slice(startIndex, endIndex);
+  }
+
+  return results;
 }
 
 // Get all movies
-export function getMovies(config: RadarrConfig): Promise<RadarrMovie[]> {
-  return makeRequest<RadarrMovie[]>(config, "/movie");
+export async function getMovies(
+  config: RadarrConfig,
+  limit?: number,
+  skip?: number,
+): Promise<RadarrMovie[]> {
+  const results = await makeRequest<RadarrMovie[]>(config, "/movie");
+
+  if (limit !== undefined || skip !== undefined) {
+    const startIndex = skip || 0;
+    const endIndex = limit !== undefined ? startIndex + limit : undefined;
+    return results.slice(startIndex, endIndex);
+  }
+
+  return results;
 }
 
 // Get specific movie by ID
@@ -138,8 +160,20 @@ export async function deleteMovie(
 }
 
 // Get queue
-export function getQueue(config: RadarrConfig): Promise<RadarrQueueItem[]> {
-  return makeRequest<RadarrQueueItem[]>(config, "/queue");
+export async function getQueue(
+  config: RadarrConfig,
+  limit?: number,
+  skip?: number,
+): Promise<RadarrQueueItem[]> {
+  const results = await makeRequest<RadarrQueueItem[]>(config, "/queue");
+
+  if (limit !== undefined || skip !== undefined) {
+    const startIndex = skip || 0;
+    const endIndex = limit !== undefined ? startIndex + limit : undefined;
+    return results.slice(startIndex, endIndex);
+  }
+
+  return results;
 }
 
 // Get quality profiles
@@ -217,11 +251,16 @@ export async function diskScan(config: RadarrConfig): Promise<void> {
 }
 
 // Test connection
-export async function testConnection(config: RadarrConfig): Promise<boolean> {
+export async function testConnection(
+  config: RadarrConfig,
+): Promise<{ success: boolean; error?: string }> {
   try {
     await getSystemStatus(config);
-    return true;
-  } catch {
-    return false;
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }

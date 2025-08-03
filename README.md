@@ -1,22 +1,24 @@
 # Media Server MCP
 
-A Model Context Protocol (MCP) server that provides tools for interacting with Radarr and Sonarr APIs. This allows AI assistants to manage your media library through natural language interactions.
+A Model Context Protocol (MCP) server that provides tools for interacting with Radarr, Sonarr, and IMDB APIs. This allows AI assistants to manage your media library and access movie/TV information through natural language interactions.
 
 ## Features
 
 - **Radarr Integration**: Search, add, manage, and monitor movies
 - **Sonarr Integration**: Search, add, manage, and monitor TV series
+- **IMDB Integration**: Search movies/shows, get details, cast info, and popular content
 - **Comprehensive API Coverage**: Access to most Radarr and Sonarr v3 API endpoints
 - **Type-Safe**: Built with TypeScript for reliable operations
-- **Flexible Configuration**: Support for either or both services
+- **Flexible Configuration**: Support for any combination of services
 
 ## Installation
 
 ### Prerequisites
 
 - [Deno](https://deno.land/) runtime
-- Running Radarr and/or Sonarr instances
-- API keys for your media servers
+- Running Radarr and/or Sonarr instances (optional)
+- API keys for your media servers (optional)
+- RapidAPI key for IMDB functionality (optional)
 
 ### Setup
 
@@ -36,30 +38,35 @@ cp .env.example .env
 3. Configure your environment variables in `.env`:
 
 ```bash
+# At least one service must be configured
 RADARR_URL=http://localhost:7878
 RADARR_API_KEY=your-radarr-api-key
 SONARR_URL=http://localhost:8989
 SONARR_API_KEY=your-sonarr-api-key
+IMDB_URL=https://imdb236.p.rapidapi.com/api/imdb
+RAPIDAPI_KEY=your-rapidapi-key
 ```
 
 4. Run the server:
 
 ```bash
-deno run --allow-all src/index.ts
+deno task start
 ```
 
 ## Configuration
 
 ### Environment Variables
 
-| Variable         | Description                       | Required  |
-| ---------------- | --------------------------------- | --------- |
-| `RADARR_URL`     | Base URL of your Radarr instance  | Optional* |
-| `RADARR_API_KEY` | API key for Radarr authentication | Optional* |
-| `SONARR_URL`     | Base URL of your Sonarr instance  | Optional* |
-| `SONARR_API_KEY` | API key for Sonarr authentication | Optional* |
+| Variable         | Description                         | Required  |
+| ---------------- | ----------------------------------- | --------- |
+| `RADARR_URL`     | Base URL of your Radarr instance    | Optional* |
+| `RADARR_API_KEY` | API key for Radarr authentication   | Optional* |
+| `SONARR_URL`     | Base URL of your Sonarr instance    | Optional* |
+| `SONARR_API_KEY` | API key for Sonarr authentication   | Optional* |
+| `IMDB_URL`       | Base URL of IMDB API service        | Optional* |
+| `RAPIDAPI_KEY`   | RapidAPI key for IMDB functionality | Optional* |
 
-*At least one service (Radarr or Sonarr) must be configured.
+*At least one service (Radarr, Sonarr, or IMDB) must be configured.
 
 ### Finding API Keys
 
@@ -74,6 +81,13 @@ deno run --allow-all src/index.ts
 1. Open Sonarr web interface
 2. Go to Settings → General
 3. Find "API Key" in the Security section
+
+#### IMDB (via RapidAPI)
+
+1. Sign up at [RapidAPI](https://rapidapi.com/)
+2. Subscribe to an IMDB API (e.g., "IMDB API" by API Dojo)
+3. Copy the API's base URL (e.g., `https://imdb-api1.p.rapidapi.com`)
+4. Copy your RapidAPI key from the dashboard
 
 ## Available Tools
 
@@ -130,6 +144,20 @@ deno run --allow-all src/index.ts
 - `sonarr_get_health` - Check system health
 - `sonarr_refresh_series` - Refresh series metadata
 
+### IMDB Tools
+
+#### Search and Discovery
+
+- `imdb_search` - Search for movies and TV shows on IMDB
+- `imdb_get_top_movies` - Get IMDB Top 250 movies
+- `imdb_get_popular_movies` - Get currently popular movies
+- `imdb_get_popular_tv_shows` - Get currently popular TV shows
+
+#### Detailed Information
+
+- `imdb_get_details` - Get detailed information about a movie or TV show
+- `imdb_get_cast` - Get cast and crew information for a movie or TV show
+
 ## Usage Examples
 
 ### Adding a Movie
@@ -178,6 +206,39 @@ deno run --allow-all src/index.ts
 }
 ```
 
+### IMDB Examples
+
+#### Searching IMDB
+
+```json
+{
+  "tool": "imdb_search",
+  "arguments": {
+    "query": "The Dark Knight"
+  }
+}
+```
+
+#### Getting Movie Details
+
+```json
+{
+  "tool": "imdb_get_details",
+  "arguments": {
+    "imdbId": "tt0468569"
+  }
+}
+```
+
+#### Getting Top Movies
+
+```json
+{
+  "tool": "imdb_get_top_movies",
+  "arguments": {}
+}
+```
+
 ## Development
 
 ### Project Structure
@@ -187,13 +248,16 @@ src/
 ├── index.ts              # Main MCP server
 ├── clients/
 │   ├── radarr.ts         # Radarr API client
-│   └── sonarr.ts         # Sonarr API client
+│   ├── sonarr.ts         # Sonarr API client
+│   └── imdb.ts           # IMDB API client
 ├── tools/
 │   ├── radarr-tools.ts   # Radarr MCP tools
-│   └── sonarr-tools.ts   # Sonarr MCP tools
+│   ├── sonarr-tools.ts   # Sonarr MCP tools
+│   └── imdb-tools.ts     # IMDB MCP tools
 └── types/
     ├── radarr.ts         # Radarr type definitions
     ├── sonarr.ts         # Sonarr type definitions
+    ├── imdb.ts           # IMDB type definitions
     └── mcp.ts            # MCP-specific types
 ```
 
@@ -266,5 +330,6 @@ MIT License - see LICENSE file for details.
 ## Acknowledgments
 
 - Built on the [Model Context Protocol](https://modelcontextprotocol.io/)
-- Integrates with [Radarr](https://radarr.video/) and [Sonarr](https://sonarr.tv/)
+- Integrates with [Radarr](https://radarr.video/), [Sonarr](https://sonarr.tv/), and [IMDB](https://www.imdb.com/)
+- Uses [RapidAPI](https://rapidapi.com/) for IMDB data access
 - Uses the Deno runtime for modern JavaScript/TypeScript execution

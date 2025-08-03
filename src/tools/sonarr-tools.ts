@@ -8,8 +8,10 @@ import {
   SonarrCalendarSchema,
   SonarrEpisodesSchema,
   SonarrMonitorEpisodeSchema,
+  SonarrQueuePaginatedSchema,
   SonarrSearchSchema,
   SonarrSeriesIdSchema,
+  SonarrSeriesPaginatedSchema,
 } from "../types/mcp.ts";
 
 export function createSonarrTools(): Tool[] {
@@ -23,6 +25,14 @@ export function createSonarrTools(): Tool[] {
           term: {
             type: "string",
             description: "TV series title to search for",
+          },
+          limit: {
+            type: "number",
+            description: "Maximum number of results to return",
+          },
+          skip: {
+            type: "number",
+            description: "Number of results to skip (for pagination)",
           },
         },
         required: ["term"],
@@ -101,7 +111,16 @@ export function createSonarrTools(): Tool[] {
       description: "Get all TV series in the Sonarr library",
       inputSchema: {
         type: "object",
-        properties: {},
+        properties: {
+          limit: {
+            type: "number",
+            description: "Maximum number of results to return",
+          },
+          skip: {
+            type: "number",
+            description: "Number of results to skip (for pagination)",
+          },
+        },
       },
     },
     {
@@ -156,6 +175,14 @@ export function createSonarrTools(): Tool[] {
             type: "number",
             description: "Specific season number (optional)",
           },
+          limit: {
+            type: "number",
+            description: "Maximum number of results to return",
+          },
+          skip: {
+            type: "number",
+            description: "Number of results to skip (for pagination)",
+          },
         },
         required: ["seriesId"],
       },
@@ -203,6 +230,14 @@ export function createSonarrTools(): Tool[] {
             description: "Whether to include episode file information",
             default: false,
           },
+          limit: {
+            type: "number",
+            description: "Maximum number of results to return",
+          },
+          skip: {
+            type: "number",
+            description: "Number of results to skip (for pagination)",
+          },
         },
       },
     },
@@ -211,7 +246,16 @@ export function createSonarrTools(): Tool[] {
       description: "Get the download queue",
       inputSchema: {
         type: "object",
-        properties: {},
+        properties: {
+          limit: {
+            type: "number",
+            description: "Maximum number of results to return",
+          },
+          skip: {
+            type: "number",
+            description: "Number of results to skip (for pagination)",
+          },
+        },
       },
     },
     {
@@ -303,8 +347,13 @@ export async function handleSonarrTool(
   try {
     switch (name) {
       case "sonarr_search_series": {
-        const { term } = SonarrSearchSchema.parse(args);
-        const results = await sonarrClient.searchSeries(config, term);
+        const { term, limit, skip } = SonarrSearchSchema.parse(args);
+        const results = await sonarrClient.searchSeries(
+          config,
+          term,
+          limit,
+          skip,
+        );
         return {
           content: [{
             type: "text",
@@ -341,7 +390,8 @@ export async function handleSonarrTool(
       }
 
       case "sonarr_get_series": {
-        const results = await sonarrClient.getSeries(config);
+        const { limit, skip } = SonarrSeriesPaginatedSchema.parse(args);
+        const results = await sonarrClient.getSeries(config, limit, skip);
         return {
           content: [{
             type: "text",
@@ -382,11 +432,14 @@ export async function handleSonarrTool(
       }
 
       case "sonarr_get_episodes": {
-        const { seriesId, seasonNumber } = SonarrEpisodesSchema.parse(args);
+        const { seriesId, seasonNumber, limit, skip } = SonarrEpisodesSchema
+          .parse(args);
         const results = await sonarrClient.getEpisodes(
           config,
           seriesId,
           seasonNumber,
+          limit,
+          skip,
         );
         return {
           content: [{
@@ -415,7 +468,7 @@ export async function handleSonarrTool(
       }
 
       case "sonarr_get_calendar": {
-        const { start, end, includeSeries, includeEpisodeFile } =
+        const { start, end, includeSeries, includeEpisodeFile, limit, skip } =
           SonarrCalendarSchema.parse(args);
         const results = await sonarrClient.getCalendar(
           config,
@@ -423,6 +476,8 @@ export async function handleSonarrTool(
           end,
           includeSeries,
           includeEpisodeFile,
+          limit,
+          skip,
         );
         return {
           content: [{
@@ -433,7 +488,8 @@ export async function handleSonarrTool(
       }
 
       case "sonarr_get_queue": {
-        const results = await sonarrClient.getQueue(config);
+        const { limit, skip } = SonarrQueuePaginatedSchema.parse(args);
+        const results = await sonarrClient.getQueue(config, limit, skip);
         return {
           content: [{
             type: "text",

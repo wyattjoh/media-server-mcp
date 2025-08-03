@@ -19,15 +19,22 @@ import {
   createSonarrConfig,
   testConnection as testSonarrConnection,
 } from "./clients/sonarr.ts";
+import {
+  createIMDBConfig,
+  testConnection as testIMDBConnection,
+} from "./clients/imdb.ts";
 import type { RadarrConfig } from "./clients/radarr.ts";
 import type { SonarrConfig } from "./clients/sonarr.ts";
+import type { IMDBConfig } from "./clients/imdb.ts";
 import { createRadarrTools, handleRadarrTool } from "./tools/radarr-tools.ts";
 import { createSonarrTools, handleSonarrTool } from "./tools/sonarr-tools.ts";
+import { createIMDBTools, handleIMDBTool } from "./tools/imdb-tools.ts";
 
 interface ServerState {
   server: Server;
   radarrConfig?: RadarrConfig;
   sonarrConfig?: SonarrConfig;
+  imdbConfig?: IMDBConfig;
 }
 
 function createServer(): ServerState {
@@ -64,9 +71,16 @@ function loadConfig(state: ServerState): void {
     state.sonarrConfig = createSonarrConfig(sonarrUrl, sonarrApiKey);
   }
 
-  if (!state.radarrConfig && !state.sonarrConfig) {
+  // Load IMDB configuration
+  const imdbUrl = Deno.env.get("IMDB_URL");
+  const rapidApiKey = Deno.env.get("RAPIDAPI_KEY");
+  if (imdbUrl && rapidApiKey) {
+    state.imdbConfig = createIMDBConfig(imdbUrl, rapidApiKey);
+  }
+
+  if (!state.radarrConfig && !state.sonarrConfig && !state.imdbConfig) {
     throw new Error(
-      "At least one of Radarr or Sonarr must be configured. Please set RADARR_URL/RADARR_API_KEY or SONARR_URL/SONARR_API_KEY environment variables.",
+      "At least one service must be configured. Please set RADARR_URL/RADARR_API_KEY, SONARR_URL/SONARR_API_KEY, or IMDB_URL/RAPIDAPI_KEY environment variables.",
     );
   }
 }
@@ -81,6 +95,10 @@ function setupHandlers(state: ServerState): void {
 
     if (state.sonarrConfig) {
       tools.push(...createSonarrTools());
+    }
+
+    if (state.imdbConfig) {
+      tools.push(...createIMDBTools());
     }
 
     return { tools };
@@ -116,6 +134,17 @@ function setupHandlers(state: ServerState): void {
           return await handleSonarrTool(name, args, state.sonarrConfig);
         }
 
+        // Handle IMDB tools
+        if (name.startsWith("imdb_")) {
+          if (!state.imdbConfig) {
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              "IMDB is not configured",
+            );
+          }
+          return await handleIMDBTool(name, args, state.imdbConfig);
+        }
+
         throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
       } catch (error) {
         if (error instanceof McpError) {
@@ -146,11 +175,11 @@ async function runServer(state: ServerState): Promise<void> {
   // Test connections before starting
   if (state.radarrConfig) {
     try {
-      const connected = await testRadarrConnection(state.radarrConfig);
-      if (connected) {
+      const result = await testRadarrConnection(state.radarrConfig);
+      if (result.success) {
         console.error("[INFO] Successfully connected to Radarr");
       } else {
-        console.error("[WARNING] Failed to connect to Radarr");
+        console.error("[WARNING] Failed to connect to Radarr:", result.error);
       }
     } catch (error) {
       console.error(
@@ -162,15 +191,31 @@ async function runServer(state: ServerState): Promise<void> {
 
   if (state.sonarrConfig) {
     try {
-      const connected = await testSonarrConnection(state.sonarrConfig);
-      if (connected) {
+      const result = await testSonarrConnection(state.sonarrConfig);
+      if (result.success) {
         console.error("[INFO] Successfully connected to Sonarr");
       } else {
-        console.error("[WARNING] Failed to connect to Sonarr");
+        console.error("[WARNING] Failed to connect to Sonarr:", result.error);
       }
     } catch (error) {
       console.error(
         "[WARNING] Sonarr connection test failed:",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
+  if (state.imdbConfig) {
+    try {
+      const result = await testIMDBConnection(state.imdbConfig);
+      if (result.success) {
+        console.error("[INFO] Successfully connected to IMDB");
+      } else {
+        console.error("[WARNING] Failed to connect to IMDB:", result.error);
+      }
+    } catch (error) {
+      console.error(
+        "[WARNING] IMDB connection test failed:",
         error instanceof Error ? error.message : String(error),
       );
     }

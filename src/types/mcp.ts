@@ -19,12 +19,26 @@ export interface MediaServerConfig {
     url: string;
     apiKey: string;
   };
+  imdb?: {
+    url: string;
+    apiKey: string;
+  };
 }
+
+// Common pagination schema
+export const PaginationSchema = z.object({
+  limit: z.number().optional().describe(
+    "Maximum number of results to return",
+  ),
+  skip: z.number().optional().describe(
+    "Number of results to skip (for pagination)",
+  ),
+});
 
 // Zod schemas for tool parameters
 export const RadarrSearchSchema = z.object({
   term: z.string().describe("Movie title to search for"),
-});
+}).merge(PaginationSchema);
 
 export const RadarrAddMovieSchema = z.object({
   tmdbId: z.number().describe("The Movie Database ID"),
@@ -56,9 +70,11 @@ export const RadarrMovieIdSchema = z.object({
   id: z.number().describe("Movie ID in Radarr"),
 });
 
+export const RadarrPaginatedSchema = PaginationSchema;
+
 export const SonarrSearchSchema = z.object({
   term: z.string().describe("TV series title to search for"),
-});
+}).merge(PaginationSchema);
 
 export const SonarrAddSeriesSchema = z.object({
   tvdbId: z.number().describe("The TVDB ID"),
@@ -100,7 +116,7 @@ export const SonarrEpisodesSchema = z.object({
   seasonNumber: z.number().optional().describe(
     "Specific season number (optional)",
   ),
-});
+}).merge(PaginationSchema);
 
 export const SonarrCalendarSchema = z.object({
   start: z.string().optional().describe("Start date (ISO format, optional)"),
@@ -109,7 +125,7 @@ export const SonarrCalendarSchema = z.object({
     .describe("Whether to include series information"),
   includeEpisodeFile: z.boolean().optional().default(false)
     .describe("Whether to include episode file information"),
-});
+}).merge(PaginationSchema);
 
 export const SonarrMonitorEpisodeSchema = z.object({
   episodeIds: z.array(z.number()).describe("Episode IDs to monitor/unmonitor"),
@@ -118,10 +134,33 @@ export const SonarrMonitorEpisodeSchema = z.object({
   ),
 });
 
+// Sonarr pagination schemas
+export const SonarrPaginatedSchema = PaginationSchema;
+
+export const SonarrSeriesPaginatedSchema = PaginationSchema;
+
+export const SonarrQueuePaginatedSchema = PaginationSchema;
+
+// IMDB Zod schemas
+export const IMDBSearchSchema = z.object({
+  query: z.string().describe("Search query for movies/TV shows"),
+}).merge(PaginationSchema);
+
+export const IMDBIdSchema = z.object({
+  imdbId: z.string().describe("IMDB ID (e.g., tt1234567)"),
+});
+
+export const IMDBCastSchema = z.object({
+  imdbId: z.string().describe("IMDB ID (e.g., tt1234567)"),
+}).merge(PaginationSchema);
+
+export const IMDBPaginatedSchema = PaginationSchema;
+
 // Type exports for tool parameter types
 export type RadarrSearchParams = z.infer<typeof RadarrSearchSchema>;
 export type RadarrAddMovieParams = z.infer<typeof RadarrAddMovieSchema>;
 export type RadarrMovieIdParams = z.infer<typeof RadarrMovieIdSchema>;
+export type RadarrPaginatedParams = z.infer<typeof RadarrPaginatedSchema>;
 
 export type SonarrSearchParams = z.infer<typeof SonarrSearchSchema>;
 export type SonarrAddSeriesParams = z.infer<typeof SonarrAddSeriesSchema>;
@@ -131,3 +170,15 @@ export type SonarrCalendarParams = z.infer<typeof SonarrCalendarSchema>;
 export type SonarrMonitorEpisodeParams = z.infer<
   typeof SonarrMonitorEpisodeSchema
 >;
+export type SonarrPaginatedParams = z.infer<typeof SonarrPaginatedSchema>;
+export type SonarrSeriesPaginatedParams = z.infer<
+  typeof SonarrSeriesPaginatedSchema
+>;
+export type SonarrQueuePaginatedParams = z.infer<
+  typeof SonarrQueuePaginatedSchema
+>;
+
+export type IMDBSearchParams = z.infer<typeof IMDBSearchSchema>;
+export type IMDBIdParams = z.infer<typeof IMDBIdSchema>;
+export type IMDBCastParams = z.infer<typeof IMDBCastSchema>;
+export type IMDBPaginatedParams = z.infer<typeof IMDBPaginatedSchema>;
