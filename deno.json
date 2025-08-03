@@ -1,16 +1,18 @@
 {
   "name": "@wyattjoh/media-server-mcp",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "exports": "./src/index.ts",
   "tasks": {
     "dev": "deno run --allow-all --watch src/index.ts",
     "start": "deno run --allow-all src/index.ts",
     "check": "deno check **/*.ts",
     "fmt": "deno fmt",
-    "lint": "deno lint"
+    "lint": "deno lint",
+    "build": "deno compile --allow-read --allow-write --allow-env --allow-run --allow-net --output=media-server-mcp src/index.ts"
   },
   "imports": {
     "@modelcontextprotocol/sdk": "npm:@modelcontextprotocol/sdk@^1.0.0",
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.5",
     "zod": "npm:zod@^3.22.0"
   },
   "compilerOptions": {
@@ -31,6 +33,7 @@
     "proseWrap": "preserve"
   },
   "lint": {
+    "include": ["src/"],
     "rules": {
       "tags": ["recommended"]
     }

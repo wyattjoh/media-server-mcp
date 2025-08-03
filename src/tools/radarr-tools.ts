@@ -1,6 +1,7 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { RadarrClient } from "../clients/radarr.ts";
+import type { RadarrConfig } from "../clients/radarr.ts";
+import * as radarrClient from "../clients/radarr.ts";
 import type { MCPToolResult } from "../types/mcp.ts";
 import {
   RadarrAddMovieSchema,
@@ -202,13 +203,13 @@ export function createRadarrTools(): Tool[] {
 export async function handleRadarrTool(
   name: string,
   args: unknown,
-  client: RadarrClient,
+  config: RadarrConfig,
 ): Promise<MCPToolResult> {
   try {
     switch (name) {
       case "radarr_search_movie": {
         const { term } = RadarrSearchSchema.parse(args);
-        const results = await client.searchMovie(term);
+        const results = await radarrClient.searchMovie(config, term);
         return {
           content: [{
             type: "text",
@@ -225,7 +226,7 @@ export async function handleRadarrTool(
           monitored: parsed.monitored ?? undefined,
           searchForMovie: parsed.searchForMovie ?? undefined,
         };
-        const result = await client.addMovie(params);
+        const result = await radarrClient.addMovie(config, params);
         return {
           content: [{
             type: "text",
@@ -235,7 +236,7 @@ export async function handleRadarrTool(
       }
 
       case "radarr_get_movies": {
-        const results = await client.getMovies();
+        const results = await radarrClient.getMovies(config);
         return {
           content: [{
             type: "text",
@@ -246,7 +247,7 @@ export async function handleRadarrTool(
 
       case "radarr_get_movie": {
         const { id } = RadarrMovieIdSchema.parse(args);
-        const result = await client.getMovie(id);
+        const result = await radarrClient.getMovie(config, id);
         return {
           content: [{
             type: "text",
@@ -261,7 +262,8 @@ export async function handleRadarrTool(
           addImportExclusion: z.boolean().optional().default(false),
         }).parse(args);
 
-        await client.deleteMovie(
+        await radarrClient.deleteMovie(
+          config,
           parsed.id,
           parsed.deleteFiles,
           parsed.addImportExclusion,
@@ -275,7 +277,7 @@ export async function handleRadarrTool(
       }
 
       case "radarr_get_queue": {
-        const results = await client.getQueue();
+        const results = await radarrClient.getQueue(config);
         return {
           content: [{
             type: "text",
@@ -285,7 +287,7 @@ export async function handleRadarrTool(
       }
 
       case "radarr_get_quality_profiles": {
-        const results = await client.getQualityProfiles();
+        const results = await radarrClient.getQualityProfiles(config);
         return {
           content: [{
             type: "text",
@@ -295,7 +297,7 @@ export async function handleRadarrTool(
       }
 
       case "radarr_get_root_folders": {
-        const results = await client.getRootFolders();
+        const results = await radarrClient.getRootFolders(config);
         return {
           content: [{
             type: "text",
@@ -306,7 +308,7 @@ export async function handleRadarrTool(
 
       case "radarr_refresh_movie": {
         const { id } = RadarrMovieIdSchema.parse(args);
-        await client.refreshMovie(id);
+        await radarrClient.refreshMovie(config, id);
         return {
           content: [{
             type: "text",
@@ -317,7 +319,7 @@ export async function handleRadarrTool(
 
       case "radarr_search_movie_releases": {
         const { id } = RadarrMovieIdSchema.parse(args);
-        await client.searchMovieReleases(id);
+        await radarrClient.searchMovieReleases(config, id);
         return {
           content: [{
             type: "text",
@@ -327,7 +329,7 @@ export async function handleRadarrTool(
       }
 
       case "radarr_get_system_status": {
-        const result = await client.getSystemStatus();
+        const result = await radarrClient.getSystemStatus(config);
         return {
           content: [{
             type: "text",
@@ -337,7 +339,7 @@ export async function handleRadarrTool(
       }
 
       case "radarr_get_health": {
-        const results = await client.getHealth();
+        const results = await radarrClient.getHealth(config);
         return {
           content: [{
             type: "text",

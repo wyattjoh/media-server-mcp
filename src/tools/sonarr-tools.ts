@@ -1,6 +1,7 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { SonarrClient } from "../clients/sonarr.ts";
+import type { SonarrConfig } from "../clients/sonarr.ts";
+import * as sonarrClient from "../clients/sonarr.ts";
 import type { MCPToolResult } from "../types/mcp.ts";
 import {
   SonarrAddSeriesSchema,
@@ -297,13 +298,13 @@ export function createSonarrTools(): Tool[] {
 export async function handleSonarrTool(
   name: string,
   args: unknown,
-  client: SonarrClient,
+  config: SonarrConfig,
 ): Promise<MCPToolResult> {
   try {
     switch (name) {
       case "sonarr_search_series": {
         const { term } = SonarrSearchSchema.parse(args);
-        const results = await client.searchSeries(term);
+        const results = await sonarrClient.searchSeries(config, term);
         return {
           content: [{
             type: "text",
@@ -330,7 +331,7 @@ export async function handleSonarrTool(
             }
             : undefined,
         };
-        const result = await client.addSeries(params);
+        const result = await sonarrClient.addSeries(config, params);
         return {
           content: [{
             type: "text",
@@ -340,7 +341,7 @@ export async function handleSonarrTool(
       }
 
       case "sonarr_get_series": {
-        const results = await client.getSeries();
+        const results = await sonarrClient.getSeries(config);
         return {
           content: [{
             type: "text",
@@ -351,7 +352,7 @@ export async function handleSonarrTool(
 
       case "sonarr_get_series_by_id": {
         const { id } = SonarrSeriesIdSchema.parse(args);
-        const result = await client.getSeriesById(id);
+        const result = await sonarrClient.getSeriesById(config, id);
         return {
           content: [{
             type: "text",
@@ -366,7 +367,8 @@ export async function handleSonarrTool(
           addImportExclusion: z.boolean().optional().default(false),
         }).parse(args);
 
-        await client.deleteSeries(
+        await sonarrClient.deleteSeries(
+          config,
           parsed.id,
           parsed.deleteFiles,
           parsed.addImportExclusion,
@@ -381,7 +383,11 @@ export async function handleSonarrTool(
 
       case "sonarr_get_episodes": {
         const { seriesId, seasonNumber } = SonarrEpisodesSchema.parse(args);
-        const results = await client.getEpisodes(seriesId, seasonNumber);
+        const results = await sonarrClient.getEpisodes(
+          config,
+          seriesId,
+          seasonNumber,
+        );
         return {
           content: [{
             type: "text",
@@ -394,7 +400,11 @@ export async function handleSonarrTool(
         const { episodeIds, monitored } = SonarrMonitorEpisodeSchema.parse(
           args,
         );
-        await client.updateEpisodeMonitoring(episodeIds, monitored);
+        await sonarrClient.updateEpisodeMonitoring(
+          config,
+          episodeIds,
+          monitored,
+        );
         return {
           content: [{
             type: "text",
@@ -407,7 +417,8 @@ export async function handleSonarrTool(
       case "sonarr_get_calendar": {
         const { start, end, includeSeries, includeEpisodeFile } =
           SonarrCalendarSchema.parse(args);
-        const results = await client.getCalendar(
+        const results = await sonarrClient.getCalendar(
+          config,
           start,
           end,
           includeSeries,
@@ -422,7 +433,7 @@ export async function handleSonarrTool(
       }
 
       case "sonarr_get_queue": {
-        const results = await client.getQueue();
+        const results = await sonarrClient.getQueue(config);
         return {
           content: [{
             type: "text",
@@ -432,7 +443,7 @@ export async function handleSonarrTool(
       }
 
       case "sonarr_get_quality_profiles": {
-        const results = await client.getQualityProfiles();
+        const results = await sonarrClient.getQualityProfiles(config);
         return {
           content: [{
             type: "text",
@@ -442,7 +453,7 @@ export async function handleSonarrTool(
       }
 
       case "sonarr_get_root_folders": {
-        const results = await client.getRootFolders();
+        const results = await sonarrClient.getRootFolders(config);
         return {
           content: [{
             type: "text",
@@ -453,7 +464,7 @@ export async function handleSonarrTool(
 
       case "sonarr_refresh_series": {
         const { id } = SonarrSeriesIdSchema.parse(args);
-        await client.refreshSeries(id);
+        await sonarrClient.refreshSeries(config, id);
         return {
           content: [{
             type: "text",
@@ -464,7 +475,7 @@ export async function handleSonarrTool(
 
       case "sonarr_search_series_episodes": {
         const { id } = SonarrSeriesIdSchema.parse(args);
-        await client.searchSeriesEpisodes(id);
+        await sonarrClient.searchSeriesEpisodes(config, id);
         return {
           content: [{
             type: "text",
@@ -479,7 +490,11 @@ export async function handleSonarrTool(
           seasonNumber: z.number(),
         }).parse(args);
 
-        await client.searchSeason(parsed.seriesId, parsed.seasonNumber);
+        await sonarrClient.searchSeason(
+          config,
+          parsed.seriesId,
+          parsed.seasonNumber,
+        );
         return {
           content: [{
             type: "text",
@@ -490,7 +505,7 @@ export async function handleSonarrTool(
       }
 
       case "sonarr_get_system_status": {
-        const result = await client.getSystemStatus();
+        const result = await sonarrClient.getSystemStatus(config);
         return {
           content: [{
             type: "text",
@@ -500,7 +515,7 @@ export async function handleSonarrTool(
       }
 
       case "sonarr_get_health": {
-        const results = await client.getHealth();
+        const results = await sonarrClient.getHealth(config);
         return {
           content: [{
             type: "text",
