@@ -15,9 +15,6 @@ Deno.test("createIMDBTools - contains expected tool names", () => {
   const expectedTools = [
     "imdb_search",
     "imdb_get_details",
-    "imdb_get_top_movies",
-    "imdb_get_popular_movies",
-    "imdb_get_popular_tv_shows",
     "imdb_get_cast",
   ];
 

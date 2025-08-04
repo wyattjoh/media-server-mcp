@@ -7,8 +7,10 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import {
   CallToolRequestSchema,
   ErrorCode,
+  ListResourcesRequestSchema,
   ListToolsRequestSchema,
   McpError,
+  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import deno from "../deno.json" with { type: "json" };
 import {
@@ -29,6 +31,18 @@ import type { IMDBConfig } from "./clients/imdb.ts";
 import { createRadarrTools, handleRadarrTool } from "./tools/radarr-tools.ts";
 import { createSonarrTools, handleSonarrTool } from "./tools/sonarr-tools.ts";
 import { createIMDBTools, handleIMDBTool } from "./tools/imdb-tools.ts";
+import {
+  createRadarrResources,
+  handleRadarrResource,
+} from "./resources/radarr-resources.ts";
+import {
+  createSonarrResources,
+  handleSonarrResource,
+} from "./resources/sonarr-resources.ts";
+import {
+  createIMDBResources,
+  handleIMDBResource,
+} from "./resources/imdb-resources.ts";
 
 interface ServerState {
   server: Server;
@@ -46,6 +60,10 @@ function createServer(): ServerState {
     {
       capabilities: {
         tools: {},
+        resources: {
+          subscribe: true,
+          listChanged: true,
+        },
       },
     },
   );
@@ -104,6 +122,24 @@ function setupHandlers(state: ServerState): void {
     return { tools };
   });
 
+  state.server.setRequestHandler(ListResourcesRequestSchema, () => {
+    const resources = [];
+
+    if (state.radarrConfig) {
+      resources.push(...createRadarrResources());
+    }
+
+    if (state.sonarrConfig) {
+      resources.push(...createSonarrResources());
+    }
+
+    if (state.imdbConfig) {
+      resources.push(...createIMDBResources());
+    }
+
+    return { resources };
+  });
+
   state.server.setRequestHandler(
     CallToolRequestSchema,
     async (
@@ -154,6 +190,97 @@ function setupHandlers(state: ServerState): void {
         throw new McpError(
           ErrorCode.InternalError,
           `Tool execution failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    },
+  );
+
+  state.server.setRequestHandler(
+    ReadResourceRequestSchema,
+    async (
+      request,
+    ): Promise<
+      {
+        contents: Array<
+          {
+            uri: string;
+            mimeType?: string | undefined;
+            text?: string | undefined;
+          }
+        >;
+      }
+    > => {
+      const { uri } = request.params;
+
+      try {
+        // Handle Radarr resources
+        if (uri.startsWith("radarr://")) {
+          if (!state.radarrConfig) {
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              "Radarr is not configured",
+            );
+          }
+          const result = await handleRadarrResource(uri, state.radarrConfig);
+          return {
+            contents: [{
+              uri,
+              mimeType: "application/json",
+              text: result.content[0]?.text,
+            }],
+          };
+        }
+
+        // Handle Sonarr resources
+        if (uri.startsWith("sonarr://")) {
+          if (!state.sonarrConfig) {
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              "Sonarr is not configured",
+            );
+          }
+          const result = await handleSonarrResource(uri, state.sonarrConfig);
+          return {
+            contents: [{
+              uri,
+              mimeType: "application/json",
+              text: result.content[0]?.text,
+            }],
+          };
+        }
+
+        // Handle IMDB resources
+        if (uri.startsWith("imdb://")) {
+          if (!state.imdbConfig) {
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              "IMDB is not configured",
+            );
+          }
+          const result = await handleIMDBResource(uri, state.imdbConfig);
+          return {
+            contents: [{
+              uri,
+              mimeType: "application/json",
+              text: result.content[0]?.text,
+            }],
+          };
+        }
+
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `Unknown resource: ${uri}`,
+        );
+      } catch (error) {
+        if (error instanceof McpError) {
+          throw error;
+        }
+
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Resource read failed: ${
             error instanceof Error ? error.message : String(error)
           }`,
         );

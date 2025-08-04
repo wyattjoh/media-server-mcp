@@ -15,16 +15,9 @@ Deno.test("createRadarrTools - contains expected tool names", () => {
   const expectedTools = [
     "radarr_search_movie",
     "radarr_add_movie",
-    "radarr_get_movies",
-    "radarr_get_movie",
     "radarr_delete_movie",
-    "radarr_get_queue",
-    "radarr_get_quality_profiles",
-    "radarr_get_root_folders",
     "radarr_refresh_movie",
     "radarr_search_movie_releases",
-    "radarr_get_system_status",
-    "radarr_get_health",
   ];
 
   for (const expectedTool of expectedTools) {

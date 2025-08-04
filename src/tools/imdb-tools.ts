@@ -5,7 +5,6 @@ import type { MCPToolResult } from "../types/mcp.ts";
 import {
   IMDBCastSchema,
   IMDBIdSchema,
-  IMDBPaginatedSchema,
   IMDBSearchSchema,
 } from "../types/mcp.ts";
 
@@ -45,57 +44,6 @@ export function createIMDBTools(): Tool[] {
           },
         },
         required: ["imdbId"],
-      },
-    },
-    {
-      name: "imdb_get_top_movies",
-      description: "Get IMDB Top 250 movies",
-      inputSchema: {
-        type: "object",
-        properties: {
-          limit: {
-            type: "number",
-            description: "Maximum number of results to return",
-          },
-          skip: {
-            type: "number",
-            description: "Number of results to skip (for pagination)",
-          },
-        },
-      },
-    },
-    {
-      name: "imdb_get_popular_movies",
-      description: "Get most popular movies currently",
-      inputSchema: {
-        type: "object",
-        properties: {
-          limit: {
-            type: "number",
-            description: "Maximum number of results to return",
-          },
-          skip: {
-            type: "number",
-            description: "Number of results to skip (for pagination)",
-          },
-        },
-      },
-    },
-    {
-      name: "imdb_get_popular_tv_shows",
-      description: "Get most popular TV shows currently",
-      inputSchema: {
-        type: "object",
-        properties: {
-          limit: {
-            type: "number",
-            description: "Maximum number of results to return",
-          },
-          skip: {
-            type: "number",
-            description: "Number of results to skip (for pagination)",
-          },
-        },
       },
     },
     {
@@ -148,39 +96,6 @@ export async function handleIMDBTool(
           content: [{
             type: "text",
             text: JSON.stringify(result, null, 2),
-          }],
-        };
-      }
-
-      case "imdb_get_top_movies": {
-        const { limit, skip } = IMDBPaginatedSchema.parse(args);
-        const results = await imdbClient.getTopMovies(config, limit, skip);
-        return {
-          content: [{
-            type: "text",
-            text: JSON.stringify(results, null, 2),
-          }],
-        };
-      }
-
-      case "imdb_get_popular_movies": {
-        const { limit, skip } = IMDBPaginatedSchema.parse(args);
-        const results = await imdbClient.getPopularMovies(config, limit, skip);
-        return {
-          content: [{
-            type: "text",
-            text: JSON.stringify(results, null, 2),
-          }],
-        };
-      }
-
-      case "imdb_get_popular_tv_shows": {
-        const { limit, skip } = IMDBPaginatedSchema.parse(args);
-        const results = await imdbClient.getPopularTVShows(config, limit, skip);
-        return {
-          content: [{
-            type: "text",
-            text: JSON.stringify(results, null, 2),
           }],
         };
       }

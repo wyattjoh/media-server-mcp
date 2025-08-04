@@ -15,20 +15,11 @@ Deno.test("createSonarrTools - contains expected tool names", () => {
   const expectedTools = [
     "sonarr_search_series",
     "sonarr_add_series",
-    "sonarr_get_series",
-    "sonarr_get_series_by_id",
     "sonarr_delete_series",
-    "sonarr_get_episodes",
     "sonarr_update_episode_monitoring",
-    "sonarr_get_calendar",
-    "sonarr_get_queue",
-    "sonarr_get_quality_profiles",
-    "sonarr_get_root_folders",
     "sonarr_refresh_series",
     "sonarr_search_series_episodes",
     "sonarr_search_season",
-    "sonarr_get_system_status",
-    "sonarr_get_health",
   ];
 
   for (const expectedTool of expectedTools) {
