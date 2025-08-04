@@ -7,6 +7,7 @@ import type {
   IMDBTopMovie,
   IMDBTopMoviesResponse,
 } from "../types/imdb.ts";
+import type { PaginatedResponse } from "../types/mcp.ts";
 
 export interface IMDBConfig {
   readonly baseUrl: string;
@@ -102,24 +103,28 @@ export async function getTopMovies(
   config: IMDBConfig,
   limit?: number,
   skip?: number,
-): Promise<IMDBTopMoviesResponse> {
+): Promise<PaginatedResponse<IMDBTopMoviesResponse>> {
   const rawResponse = await makeRequest<IMDBTopMovie[]>(
     config,
     "/top250-movies",
   );
 
-  // Handle pagination if requested
-  let items = rawResponse;
-  if (limit !== undefined || skip !== undefined) {
-    const startIndex = skip || 0;
-    const endIndex = limit !== undefined ? startIndex + limit : undefined;
-    items = rawResponse.slice(startIndex, endIndex);
-  }
+  const total = rawResponse.length;
+  const startIndex = skip || 0;
+  const endIndex = limit !== undefined ? startIndex + limit : undefined;
+  const paginatedItems = rawResponse.slice(startIndex, endIndex);
 
-  // Return response in expected wrapper format
-  return {
-    items,
+  const response: IMDBTopMoviesResponse = {
+    items: paginatedItems,
     errorMessage: undefined,
+  };
+
+  return {
+    data: response,
+    total,
+    returned: paginatedItems.length,
+    skip: startIndex,
+    limit,
   };
 }
 
@@ -128,20 +133,24 @@ export async function getPopularMovies(
   config: IMDBConfig,
   limit?: number,
   skip?: number,
-): Promise<IMDBPopularMoviesResponse> {
+): Promise<PaginatedResponse<IMDBPopularMoviesResponse>> {
   const rawResponse = await makeRequest<IMDBPopularMoviesResponse>(
     config,
     "/most-popular-movies",
   );
 
-  // Handle pagination if requested
-  if (limit !== undefined || skip !== undefined) {
-    const startIndex = skip || 0;
-    const endIndex = limit !== undefined ? startIndex + limit : undefined;
-    return rawResponse.slice(startIndex, endIndex);
-  }
+  const total = rawResponse.length;
+  const startIndex = skip || 0;
+  const endIndex = limit !== undefined ? startIndex + limit : undefined;
+  const paginatedResults = rawResponse.slice(startIndex, endIndex);
 
-  return rawResponse;
+  return {
+    data: paginatedResults,
+    total,
+    returned: paginatedResults.length,
+    skip: startIndex,
+    limit,
+  };
 }
 
 // Get most popular TV shows
@@ -149,20 +158,24 @@ export async function getPopularTVShows(
   config: IMDBConfig,
   limit?: number,
   skip?: number,
-): Promise<IMDBPopularTVShowsResponse> {
+): Promise<PaginatedResponse<IMDBPopularTVShowsResponse>> {
   const rawResponse = await makeRequest<IMDBPopularTVShowsResponse>(
     config,
     "/most-popular-tv",
   );
 
-  // Handle pagination if requested
-  if (limit !== undefined || skip !== undefined) {
-    const startIndex = skip || 0;
-    const endIndex = limit !== undefined ? startIndex + limit : undefined;
-    return rawResponse.slice(startIndex, endIndex);
-  }
+  const total = rawResponse.length;
+  const startIndex = skip || 0;
+  const endIndex = limit !== undefined ? startIndex + limit : undefined;
+  const paginatedResults = rawResponse.slice(startIndex, endIndex);
 
-  return rawResponse;
+  return {
+    data: paginatedResults,
+    total,
+    returned: paginatedResults.length,
+    skip: startIndex,
+    limit,
+  };
 }
 
 // Get cast information for a movie/show
@@ -171,20 +184,24 @@ export async function getCast(
   imdbId: string,
   limit?: number,
   skip?: number,
-): Promise<IMDBCastResponse> {
+): Promise<PaginatedResponse<IMDBCastResponse>> {
   const response = await makeRequest<IMDBCastResponse>(
     config,
     `/${imdbId}/cast`,
   );
 
-  // Handle pagination if requested
-  if (limit !== undefined || skip !== undefined) {
-    const startIndex = skip || 0;
-    const endIndex = limit !== undefined ? startIndex + limit : undefined;
-    return response.slice(startIndex, endIndex);
-  }
+  const total = response.length;
+  const startIndex = skip || 0;
+  const endIndex = limit !== undefined ? startIndex + limit : undefined;
+  const paginatedResults = response.slice(startIndex, endIndex);
 
-  return response;
+  return {
+    data: paginatedResults,
+    total,
+    returned: paginatedResults.length,
+    skip: startIndex,
+    limit,
+  };
 }
 
 // Test connection to IMDB API

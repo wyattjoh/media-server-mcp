@@ -9,6 +9,15 @@ export interface MCPToolResult {
   isError?: boolean;
 }
 
+// Generic pagination response interface
+export interface PaginatedResponse<T> {
+  data: T;
+  total: number;
+  returned: number;
+  skip: number;
+  limit: number | undefined;
+}
+
 // Configuration interfaces
 export interface MediaServerConfig {
   radarr?: {

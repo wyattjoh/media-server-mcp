@@ -9,6 +9,7 @@ import type {
   RadarrSearchResult,
   RadarrSystemStatus,
 } from "../types/radarr.ts";
+import type { PaginatedResponse } from "../types/mcp.ts";
 
 export interface RadarrConfig {
   readonly baseUrl: string;
@@ -65,19 +66,24 @@ export async function searchMovie(
   term: string,
   limit?: number,
   skip?: number,
-): Promise<RadarrSearchResult[]> {
+): Promise<PaginatedResponse<RadarrSearchResult[]>> {
   const results = await makeRequest<RadarrSearchResult[]>(
     config,
     `/movie/lookup?term=${encodeURIComponent(term)}`,
   );
 
-  if (limit !== undefined || skip !== undefined) {
-    const startIndex = skip || 0;
-    const endIndex = limit !== undefined ? startIndex + limit : undefined;
-    return results.slice(startIndex, endIndex);
-  }
+  const total = results.length;
+  const startIndex = skip || 0;
+  const endIndex = limit !== undefined ? startIndex + limit : undefined;
+  const paginatedResults = results.slice(startIndex, endIndex);
 
-  return results;
+  return {
+    data: paginatedResults,
+    total,
+    returned: paginatedResults.length,
+    skip: startIndex,
+    limit,
+  };
 }
 
 // Get all movies
@@ -85,16 +91,21 @@ export async function getMovies(
   config: RadarrConfig,
   limit?: number,
   skip?: number,
-): Promise<RadarrMovie[]> {
+): Promise<PaginatedResponse<RadarrMovie[]>> {
   const results = await makeRequest<RadarrMovie[]>(config, "/movie");
 
-  if (limit !== undefined || skip !== undefined) {
-    const startIndex = skip || 0;
-    const endIndex = limit !== undefined ? startIndex + limit : undefined;
-    return results.slice(startIndex, endIndex);
-  }
+  const total = results.length;
+  const startIndex = skip || 0;
+  const endIndex = limit !== undefined ? startIndex + limit : undefined;
+  const paginatedResults = results.slice(startIndex, endIndex);
 
-  return results;
+  return {
+    data: paginatedResults,
+    total,
+    returned: paginatedResults.length,
+    skip: startIndex,
+    limit,
+  };
 }
 
 // Get specific movie by ID

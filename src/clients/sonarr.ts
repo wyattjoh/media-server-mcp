@@ -11,6 +11,7 @@ import type {
   SonarrSeries,
   SonarrSystemStatus,
 } from "../types/sonarr.ts";
+import type { PaginatedResponse } from "../types/mcp.ts";
 
 export interface SonarrConfig {
   readonly baseUrl: string;
@@ -67,19 +68,24 @@ export async function searchSeries(
   term: string,
   limit?: number,
   skip?: number,
-): Promise<SonarrSearchResult[]> {
+): Promise<PaginatedResponse<SonarrSearchResult[]>> {
   const results = await makeRequest<SonarrSearchResult[]>(
     config,
     `/series/lookup?term=${encodeURIComponent(term)}`,
   );
 
-  if (limit !== undefined || skip !== undefined) {
-    const startIndex = skip || 0;
-    const endIndex = limit !== undefined ? startIndex + limit : undefined;
-    return results.slice(startIndex, endIndex);
-  }
+  const total = results.length;
+  const startIndex = skip || 0;
+  const endIndex = limit !== undefined ? startIndex + limit : undefined;
+  const paginatedResults = results.slice(startIndex, endIndex);
 
-  return results;
+  return {
+    data: paginatedResults,
+    total,
+    returned: paginatedResults.length,
+    skip: startIndex,
+    limit,
+  };
 }
 
 // Get all series
@@ -87,16 +93,21 @@ export async function getSeries(
   config: SonarrConfig,
   limit?: number,
   skip?: number,
-): Promise<SonarrSeries[]> {
+): Promise<PaginatedResponse<SonarrSeries[]>> {
   const results = await makeRequest<SonarrSeries[]>(config, "/series");
 
-  if (limit !== undefined || skip !== undefined) {
-    const startIndex = skip || 0;
-    const endIndex = limit !== undefined ? startIndex + limit : undefined;
-    return results.slice(startIndex, endIndex);
-  }
+  const total = results.length;
+  const startIndex = skip || 0;
+  const endIndex = limit !== undefined ? startIndex + limit : undefined;
+  const paginatedResults = results.slice(startIndex, endIndex);
 
-  return results;
+  return {
+    data: paginatedResults,
+    total,
+    returned: paginatedResults.length,
+    skip: startIndex,
+    limit,
+  };
 }
 
 // Get specific series by ID
@@ -176,7 +187,7 @@ export async function getEpisodes(
   seasonNumber?: number,
   limit?: number,
   skip?: number,
-): Promise<SonarrEpisode[]> {
+): Promise<PaginatedResponse<SonarrEpisode[]>> {
   let endpoint = `/episode?seriesId=${seriesId}`;
   if (seasonNumber !== undefined) {
     endpoint += `&seasonNumber=${seasonNumber}`;
@@ -184,13 +195,18 @@ export async function getEpisodes(
 
   const results = await makeRequest<SonarrEpisode[]>(config, endpoint);
 
-  if (limit !== undefined || skip !== undefined) {
-    const startIndex = skip || 0;
-    const endIndex = limit !== undefined ? startIndex + limit : undefined;
-    return results.slice(startIndex, endIndex);
-  }
+  const total = results.length;
+  const startIndex = skip || 0;
+  const endIndex = limit !== undefined ? startIndex + limit : undefined;
+  const paginatedResults = results.slice(startIndex, endIndex);
 
-  return results;
+  return {
+    data: paginatedResults,
+    total,
+    returned: paginatedResults.length,
+    skip: startIndex,
+    limit,
+  };
 }
 
 // Get specific episode by ID
@@ -225,7 +241,7 @@ export async function getCalendar(
   includeEpisodeFile = false,
   limit?: number,
   skip?: number,
-): Promise<SonarrCalendarItem[]> {
+): Promise<PaginatedResponse<SonarrCalendarItem[]>> {
   const params = new URLSearchParams();
   if (start) params.append("start", start);
   if (end) params.append("end", end);
@@ -237,13 +253,18 @@ export async function getCalendar(
 
   const results = await makeRequest<SonarrCalendarItem[]>(config, endpoint);
 
-  if (limit !== undefined || skip !== undefined) {
-    const startIndex = skip || 0;
-    const endIndex = limit !== undefined ? startIndex + limit : undefined;
-    return results.slice(startIndex, endIndex);
-  }
+  const total = results.length;
+  const startIndex = skip || 0;
+  const endIndex = limit !== undefined ? startIndex + limit : undefined;
+  const paginatedResults = results.slice(startIndex, endIndex);
 
-  return results;
+  return {
+    data: paginatedResults,
+    total,
+    returned: paginatedResults.length,
+    skip: startIndex,
+    limit,
+  };
 }
 
 // Get queue
