@@ -29,6 +29,7 @@ deno task start
 - Always use `deno task fmt`, `deno task lint`, and `deno task check` after modifying or creating code to ensure that it's correct.
 - Run `deno test --allow-net` to verify all tests pass before committing changes.
 - Tests are organized by layer: `tests/clients/`, `tests/tools/`, `tests/resources/`, and `tests/server_test.ts`.
+- After changing any of the available MCP tools or resources, evaluate if you need to update the README.md and CLAUDE.md to be reflective of those changes.
 
 ### File Naming Conventions
 
@@ -187,16 +188,69 @@ TMDB_API_KEY=your-tmdb-api-key
 - `tmdb_search_movies`: Search for movies on TMDB by title
 - `tmdb_search_tv`: Search for TV shows on TMDB by title
 - `tmdb_search_multi`: Search for movies, TV shows, and people in a single request
+- `tmdb_get_popular_movies`: Get popular movies
 - `tmdb_discover_movies`: Discover movies based on various criteria (genre, year, rating, etc.)
 - `tmdb_discover_tv`: Discover TV shows based on various criteria
+
+#### Trending Content
+
+- `tmdb_get_trending`: Get trending movies, TV shows, or people by time window (day/week)
+
+#### Movie Lists
+
+- `tmdb_get_now_playing_movies`: Get movies currently playing in theaters
+- `tmdb_get_top_rated_movies`: Get top rated movies
+- `tmdb_get_upcoming_movies`: Get upcoming movie releases
+
+#### TV Show Lists
+
+- `tmdb_get_popular_tv`: Get popular TV shows
+- `tmdb_get_top_rated_tv`: Get top rated TV shows
+- `tmdb_get_on_the_air_tv`: Get TV shows currently on the air
+- `tmdb_get_airing_today_tv`: Get TV shows airing today
+
+#### Content Details
+
+- `tmdb_get_movie_details`: Get detailed information about a specific movie
+- `tmdb_get_tv_details`: Get detailed information about a specific TV show
+
+#### Recommendations and Similar Content
+
+- `tmdb_get_movie_recommendations`: Get movie recommendations based on a specific movie
+- `tmdb_get_tv_recommendations`: Get TV show recommendations based on a specific show
+- `tmdb_get_similar_movies`: Get movies similar to a specific movie
+- `tmdb_get_similar_tv`: Get TV shows similar to a specific show
+
+#### People Discovery
+
+- `tmdb_search_people`: Search for people (actors, directors, etc.)
+- `tmdb_get_popular_people`: Get popular people in the entertainment industry
+- `tmdb_get_person_details`: Get detailed information about a specific person
+- `tmdb_get_person_movie_credits`: Get a person's movie credits
+- `tmdb_get_person_tv_credits`: Get a person's TV show credits
+
+#### Collections and Keywords
+
+- `tmdb_search_collections`: Search for movie collections
+- `tmdb_get_collection_details`: Get details about a specific movie collection
+- `tmdb_search_keywords`: Search for keywords
+- `tmdb_get_movies_by_keyword`: Get movies associated with a specific keyword
+
+#### Certifications and Watch Providers
+
+- `tmdb_get_certifications`: Get movie or TV certifications by country
+- `tmdb_get_watch_providers`: Get watch provider information for a movie or TV show
 
 #### External ID Integration
 
 - `tmdb_find_by_external_id`: Find TMDB content by external ID (IMDB ID, TVDB ID, etc.)
 
-#### Metadata and Reference
+#### Configuration and Metadata
 
 - `tmdb_get_genres`: Get list of available genres for movies or TV shows
+- `tmdb_get_configuration`: Get TMDB API configuration including image base URLs
+- `tmdb_get_countries`: Get list of countries used in TMDB
+- `tmdb_get_languages`: Get list of languages used in TMDB
 
 ## Tool Implementation Pattern
 

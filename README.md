@@ -173,7 +173,7 @@ Add to your MCP servers configuration using the JSR package:
 
 - `radarr_search_movie` - Search for movies in The Movie Database
 - `radarr_add_movie` - Add a movie to your library
-- `radarr_get_movies` - List all movies in your library
+- `radarr_get_movies` - List all movies in your library (supports filtering by title, genres, year range, monitored status, file availability, quality profile, tags, minimum availability, IMDB ID, and TMDB ID)
 - `radarr_get_movie` - Get details of a specific movie
 - `radarr_delete_movie` - Remove a movie from your library
 
@@ -195,7 +195,7 @@ Add to your MCP servers configuration using the JSR package:
 
 - `sonarr_search_series` - Search for TV series
 - `sonarr_add_series` - Add a TV series to your library
-- `sonarr_get_series` - List all series in your library
+- `sonarr_get_series` - List all series in your library (supports filtering by title, genres, year range, monitored status, network, series type, quality profile, tags, status, IMDB ID, and TMDB ID)
 - `sonarr_get_series_by_id` - Get details of a specific series
 - `sonarr_delete_series` - Remove a series from your library
 
@@ -231,16 +231,69 @@ Add to your MCP servers configuration using the JSR package:
 - `tmdb_search_movies` - Search for movies on TMDB by title
 - `tmdb_search_tv` - Search for TV shows on TMDB by title
 - `tmdb_search_multi` - Search for movies, TV shows, and people in a single request
+- `tmdb_get_popular_movies` - Get popular movies
 - `tmdb_discover_movies` - Discover movies based on various criteria (genre, year, rating, etc.)
 - `tmdb_discover_tv` - Discover TV shows based on various criteria
+
+#### Trending Content
+
+- `tmdb_get_trending` - Get trending movies, TV shows, or people by time window (day/week)
+
+#### Movie Lists
+
+- `tmdb_get_now_playing_movies` - Get movies currently playing in theaters
+- `tmdb_get_top_rated_movies` - Get top rated movies
+- `tmdb_get_upcoming_movies` - Get upcoming movie releases
+
+#### TV Show Lists
+
+- `tmdb_get_popular_tv` - Get popular TV shows
+- `tmdb_get_top_rated_tv` - Get top rated TV shows
+- `tmdb_get_on_the_air_tv` - Get TV shows currently on the air
+- `tmdb_get_airing_today_tv` - Get TV shows airing today
+
+#### Content Details
+
+- `tmdb_get_movie_details` - Get detailed information about a specific movie
+- `tmdb_get_tv_details` - Get detailed information about a specific TV show
+
+#### Recommendations and Similar Content
+
+- `tmdb_get_movie_recommendations` - Get movie recommendations based on a specific movie
+- `tmdb_get_tv_recommendations` - Get TV show recommendations based on a specific show
+- `tmdb_get_similar_movies` - Get movies similar to a specific movie
+- `tmdb_get_similar_tv` - Get TV shows similar to a specific show
+
+#### People Discovery
+
+- `tmdb_search_people` - Search for people (actors, directors, etc.)
+- `tmdb_get_popular_people` - Get popular people in the entertainment industry
+- `tmdb_get_person_details` - Get detailed information about a specific person
+- `tmdb_get_person_movie_credits` - Get a person's movie credits
+- `tmdb_get_person_tv_credits` - Get a person's TV show credits
+
+#### Collections and Keywords
+
+- `tmdb_search_collections` - Search for movie collections
+- `tmdb_get_collection_details` - Get details about a specific movie collection
+- `tmdb_search_keywords` - Search for keywords
+- `tmdb_get_movies_by_keyword` - Get movies associated with a specific keyword
+
+#### Certifications and Watch Providers
+
+- `tmdb_get_certifications` - Get movie or TV certifications by country
+- `tmdb_get_watch_providers` - Get watch provider information for a movie or TV show
 
 #### External ID Integration
 
 - `tmdb_find_by_external_id` - Find TMDB content by external ID (IMDB ID, TVDB ID, etc.)
 
-#### Metadata and Reference
+#### Configuration and Metadata
 
 - `tmdb_get_genres` - Get list of available genres for movies or TV shows
+- `tmdb_get_configuration` - Get TMDB API configuration including image base URLs
+- `tmdb_get_countries` - Get list of countries used in TMDB
+- `tmdb_get_languages` - Get list of languages used in TMDB
 
 ## Usage Examples
 

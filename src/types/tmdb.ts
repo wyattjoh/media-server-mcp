@@ -30,6 +30,13 @@ export const TMDBSearchMultiSchema = z.object({
   skip: z.number().min(0).optional(),
 });
 
+export const TMDBGetPopularMoviesSchema = z.object({
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
 export const TMDBDiscoverMoviesSchema = z.object({
   sort_by: z.string().optional(),
   page: z.number().min(1).max(1000).optional(),
@@ -80,6 +87,199 @@ export const TMDBGetGenresSchema = z.object({
   mediaType: z.enum(["movie", "tv"]),
   language: z.string().optional(),
 });
+
+// Trending content schema
+export const TMDBGetTrendingSchema = z.object({
+  mediaType: z.enum(["all", "movie", "tv", "person"]),
+  timeWindow: z.enum(["day", "week"]),
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+// Movie lists schemas
+export const TMDBGetNowPlayingMoviesSchema = z.object({
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  region: z.string().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+export const TMDBGetTopRatedMoviesSchema = z.object({
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  region: z.string().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+export const TMDBGetUpcomingMoviesSchema = z.object({
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  region: z.string().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+// TV lists schemas
+export const TMDBGetPopularTVSchema = z.object({
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+export const TMDBGetTopRatedTVSchema = z.object({
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+export const TMDBGetOnTheAirTVSchema = z.object({
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+export const TMDBGetAiringTodayTVSchema = z.object({
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  timezone: z.string().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+// Content details schemas
+export const TMDBGetMovieDetailsSchema = z.object({
+  movieId: z.number(),
+  language: z.string().optional(),
+  appendToResponse: z.string().optional(),
+});
+
+export const TMDBGetTVDetailsSchema = z.object({
+  tvId: z.number(),
+  language: z.string().optional(),
+  appendToResponse: z.string().optional(),
+});
+
+// Recommendations schemas
+export const TMDBGetMovieRecommendationsSchema = z.object({
+  movieId: z.number(),
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+export const TMDBGetTVRecommendationsSchema = z.object({
+  tvId: z.number(),
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+// Similar content schemas
+export const TMDBGetSimilarMoviesSchema = z.object({
+  movieId: z.number(),
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+export const TMDBGetSimilarTVSchema = z.object({
+  tvId: z.number(),
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+// People schemas
+export const TMDBSearchPeopleSchema = z.object({
+  query: z.string(),
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  include_adult: z.boolean().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+export const TMDBGetPopularPeopleSchema = z.object({
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+export const TMDBGetPersonDetailsSchema = z.object({
+  personId: z.number(),
+  language: z.string().optional(),
+  appendToResponse: z.string().optional(),
+});
+
+export const TMDBGetPersonMovieCreditsSchema = z.object({
+  personId: z.number(),
+  language: z.string().optional(),
+});
+
+export const TMDBGetPersonTVCreditsSchema = z.object({
+  personId: z.number(),
+  language: z.string().optional(),
+});
+
+// Collections and keywords schemas
+export const TMDBSearchCollectionsSchema = z.object({
+  query: z.string(),
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+export const TMDBGetCollectionDetailsSchema = z.object({
+  collectionId: z.number(),
+  language: z.string().optional(),
+});
+
+export const TMDBSearchKeywordsSchema = z.object({
+  query: z.string(),
+  page: z.number().min(1).max(1000).optional(),
+});
+
+export const TMDBGetMoviesByKeywordSchema = z.object({
+  keywordId: z.number(),
+  page: z.number().min(1).max(1000).optional(),
+  language: z.string().optional(),
+  include_adult: z.boolean().optional(),
+  limit: z.number().min(1).max(100).optional(),
+  skip: z.number().min(0).optional(),
+});
+
+// Certifications schema
+export const TMDBGetCertificationsSchema = z.object({
+  mediaType: z.enum(["movie", "tv"]),
+});
+
+// Watch providers schema
+export const TMDBGetWatchProvidersSchema = z.object({
+  mediaType: z.enum(["movie", "tv"]),
+  mediaId: z.number(),
+});
+
+// Configuration schemas
+export const TMDBGetConfigurationSchema = z.object({});
+
+export const TMDBGetCountriesSchema = z.object({
+  language: z.string().optional(),
+});
+
+export const TMDBGetLanguagesSchema = z.object({});
 
 // TMDB API response interfaces
 
@@ -388,3 +588,138 @@ export interface TMDBTVDetails extends TMDBTV {
   readonly tagline: string | undefined;
   readonly type: string;
 }
+
+// Person details interface
+export interface TMDBPersonDetails {
+  readonly id: number;
+  readonly name: string;
+  readonly adult: boolean;
+  readonly also_known_as: string[];
+  readonly biography: string;
+  readonly birthday: string | undefined;
+  readonly deathday: string | undefined;
+  readonly gender: number;
+  readonly homepage: string | undefined;
+  readonly imdb_id: string | undefined;
+  readonly known_for_department: string;
+  readonly place_of_birth: string | undefined;
+  readonly popularity: number;
+  readonly profile_path: string | undefined;
+}
+
+// Person credits interfaces
+export interface TMDBPersonMovieCredit {
+  readonly id: number;
+  readonly title: string;
+  readonly original_title: string;
+  readonly poster_path: string | undefined;
+  readonly release_date: string | undefined;
+  readonly vote_average: number;
+  readonly vote_count: number;
+  readonly character?: string;
+  readonly job?: string;
+  readonly department?: string;
+  readonly credit_id: string;
+}
+
+export interface TMDBPersonTVCredit {
+  readonly id: number;
+  readonly name: string;
+  readonly original_name: string;
+  readonly poster_path: string | undefined;
+  readonly first_air_date: string | undefined;
+  readonly vote_average: number;
+  readonly vote_count: number;
+  readonly character?: string;
+  readonly job?: string;
+  readonly department?: string;
+  readonly credit_id: string;
+  readonly episode_count?: number;
+}
+
+export interface TMDBPersonMovieCredits {
+  readonly cast: TMDBPersonMovieCredit[];
+  readonly crew: TMDBPersonMovieCredit[];
+}
+
+export interface TMDBPersonTVCredits {
+  readonly cast: TMDBPersonTVCredit[];
+  readonly crew: TMDBPersonTVCredit[];
+}
+
+// Collection details interface
+export interface TMDBCollectionDetails {
+  readonly id: number;
+  readonly name: string;
+  readonly overview: string;
+  readonly poster_path: string | undefined;
+  readonly backdrop_path: string | undefined;
+  readonly parts: TMDBMovie[];
+}
+
+// Keyword interface
+export interface TMDBKeyword {
+  readonly id: number;
+  readonly name: string;
+}
+
+// Keyword search response
+export interface TMDBKeywordSearchResponse {
+  readonly page: number;
+  readonly results: TMDBKeyword[];
+  readonly total_pages: number;
+  readonly total_results: number;
+}
+
+// Certifications response interfaces
+export interface TMDBCertification {
+  readonly certification: string;
+  readonly meaning: string;
+  readonly order: number;
+}
+
+export interface TMDBCertificationsResponse {
+  readonly certifications: {
+    [countryCode: string]: TMDBCertification[];
+  };
+}
+
+// Watch providers interfaces
+export interface TMDBWatchProvider {
+  readonly display_priority: number;
+  readonly logo_path: string;
+  readonly provider_id: number;
+  readonly provider_name: string;
+}
+
+export interface TMDBWatchProviderRegion {
+  readonly link: string;
+  readonly buy?: TMDBWatchProvider[];
+  readonly rent?: TMDBWatchProvider[];
+  readonly flatrate?: TMDBWatchProvider[];
+  readonly free?: TMDBWatchProvider[];
+}
+
+export interface TMDBWatchProvidersResponse {
+  readonly id: number;
+  readonly results: {
+    [countryCode: string]: TMDBWatchProviderRegion;
+  };
+}
+
+// Country interface
+export interface TMDBCountry {
+  readonly iso_3166_1: string;
+  readonly english_name: string;
+  readonly native_name: string;
+}
+
+// Language interface
+export interface TMDBLanguage {
+  readonly iso_639_1: string;
+  readonly english_name: string;
+  readonly name: string;
+}
+
+// People search response
+export type TMDBPeopleSearchResponse = TMDBSearchResponse<TMDBPerson>;
