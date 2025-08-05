@@ -126,6 +126,7 @@ export interface SonarrSeries {
   tvRageId?: number;
   tvMazeId?: number;
   imdbId?: string;
+  tmdbId?: number;
   titleSlug?: string;
   rootFolderPath?: string;
   folder?: string;
@@ -389,6 +390,7 @@ export interface SonarrQueueItem {
     tvRageId?: number;
     tvMazeId?: number;
     imdbId?: string;
+    tmdbId?: number;
     titleSlug?: string;
     certification?: string;
     genres?: string[];

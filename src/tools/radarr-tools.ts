@@ -204,6 +204,14 @@ export function createRadarrTools(): Tool[] {
                 type: "string",
                 description: "Filter by minimum availability status",
               },
+              imdbId: {
+                type: "string",
+                description: "Filter by IMDB ID",
+              },
+              tmdbId: {
+                type: "number",
+                description: "Filter by TMDB ID",
+              },
             },
           },
           sort: {

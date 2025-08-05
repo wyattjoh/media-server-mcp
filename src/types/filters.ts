@@ -20,6 +20,8 @@ export interface RadarrMovieFilters {
   qualityProfileId?: number | undefined;
   tags?: number[] | undefined;
   minimumAvailability?: string | undefined;
+  imdbId?: string | undefined;
+  tmdbId?: number | undefined;
 }
 
 // Radarr movie sort fields
@@ -43,6 +45,8 @@ export interface SonarrSeriesFilters {
   qualityProfileId?: number | undefined;
   tags?: number[] | undefined;
   status?: string | undefined;
+  imdbId?: string | undefined;
+  tmdbId?: number | undefined;
 }
 
 // Sonarr series sort fields
@@ -66,6 +70,8 @@ export const RadarrMovieFiltersSchema = z.object({
   qualityProfileId: z.number().optional(),
   tags: z.array(z.number()).optional(),
   minimumAvailability: z.string().optional(),
+  imdbId: z.string().optional(),
+  tmdbId: z.number().optional(),
 });
 
 export const RadarrMovieSortSchema = z.object({
@@ -91,6 +97,8 @@ export const SonarrSeriesFiltersSchema = z.object({
   qualityProfileId: z.number().optional(),
   tags: z.array(z.number()).optional(),
   status: z.string().optional(),
+  imdbId: z.string().optional(),
+  tmdbId: z.number().optional(),
 });
 
 export const SonarrSeriesSortSchema = z.object({

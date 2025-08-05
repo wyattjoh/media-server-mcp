@@ -152,6 +152,16 @@ export function applyRadarrMovieFilters(
   // Apply tags filter
   filtered = filterByTags(filtered, filters.tags);
 
+  // Apply IMDB ID filter
+  if (filters.imdbId !== undefined) {
+    filtered = filtered.filter((movie) => movie.imdbId === filters.imdbId);
+  }
+
+  // Apply TMDB ID filter
+  if (filters.tmdbId !== undefined) {
+    filtered = filtered.filter((movie) => movie.tmdbId === filters.tmdbId);
+  }
+
   return filtered;
 }
 
@@ -205,6 +215,16 @@ export function applySonarrSeriesFilters(
 
   // Apply tags filter
   filtered = filterByTags(filtered, filters.tags);
+
+  // Apply IMDB ID filter
+  if (filters.imdbId !== undefined) {
+    filtered = filtered.filter((s) => s.imdbId === filters.imdbId);
+  }
+
+  // Apply TMDB ID filter
+  if (filters.tmdbId !== undefined) {
+    filtered = filtered.filter((s) => s.tmdbId === filters.tmdbId);
+  }
 
   return filtered;
 }

@@ -256,6 +256,14 @@ export function createSonarrTools(): Tool[] {
                 type: "string",
                 description: "Filter by series status",
               },
+              imdbId: {
+                type: "string",
+                description: "Filter by IMDB ID",
+              },
+              tmdbId: {
+                type: "number",
+                description: "Filter by TMDB ID",
+              },
             },
           },
           sort: {

@@ -7,7 +7,6 @@ import type {
   SonarrQueueItem,
   SonarrQueueResponse,
   SonarrRootFolder,
-  SonarrSearchResult,
   SonarrSeries,
   SonarrSystemStatus,
 } from "../types/sonarr.ts";
@@ -110,8 +109,8 @@ export async function searchSeries(
   term: string,
   limit?: number,
   skip?: number,
-): Promise<PaginatedResponse<SonarrSearchResult[]>> {
-  const results = await makeRequest<SonarrSearchResult[]>(
+): Promise<PaginatedResponse<SonarrSeries[]>> {
+  const results = await makeRequest<SonarrSeries[]>(
     config,
     `/series/lookup?term=${encodeURIComponent(term)}`,
   );
