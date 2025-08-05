@@ -1,12 +1,13 @@
 # Media Server MCP
 
-A Model Context Protocol (MCP) server that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series) media servers, and access IMDB data through natural language interactions.
+A Model Context Protocol (MCP) server that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series) media servers, and access IMDB and TMDB data through natural language interactions.
 
 ## Features
 
 - **Radarr Integration**: Search, add, manage, and monitor movies
 - **Sonarr Integration**: Search, add, manage, and monitor TV series
-- **IMDB Integration**: Search movies/shows, get details, cast info, and popular content
+- **IMDB Integration**: Search movies/shows, get details, and cast info
+- **TMDB Integration**: Advanced movie/TV discovery, external ID lookup, and comprehensive metadata
 - **Flexible Configuration**: Each service is optional - configure any combination
 - **Type-Safe**: Built with TypeScript for reliable operations
 - **Easy Setup**: Install directly from JSR with a single deno run command
@@ -29,7 +30,8 @@ Add to your MCP servers configuration using the JSR package:
         "SONARR_URL": "http://localhost:8989",
         "SONARR_API_KEY": "your-sonarr-api-key",
         "IMDB_URL": "https://imdb236.p.rapidapi.com/api/imdb",
-        "RAPIDAPI_KEY": "your-rapidapi-key"
+        "RAPIDAPI_KEY": "your-rapidapi-key",
+        "TMDB_API_KEY": "your-tmdb-api-key"
       }
     }
   }
@@ -112,12 +114,31 @@ Add to your MCP servers configuration using the JSR package:
 }
 ```
 
+### Minimal TMDB-only Setup
+
+```json
+{
+  "mcpServers": {
+    "media-server": {
+      "command": "deno",
+      "args": ["run", "--allow-all", "jsr:@wyattjoh/media-server-mcp"],
+      "env": {
+        "TMDB_API_KEY": "your-tmdb-api-key"
+      }
+    }
+  }
+}
+```
+
 2. **Find your API keys**:
    - **Radarr**: Settings → General → Security → API Key
    - **Sonarr**: Settings → General → Security → API Key
    - **IMDB**: Sign up at [RapidAPI](https://rapidapi.com/), subscribe to an IMDB API service
+   - **TMDB**: Sign up at [TMDB](https://www.themoviedb.org/), go to Settings → API → Create API Key
 
-   **Important**: For IMDB, ensure your `IMDB_URL` includes the full path with `/api/imdb` at the end.
+   **Important**:
+   - For IMDB, ensure your `IMDB_URL` includes the full path with `/api/imdb` at the end.
+   - For TMDB, you'll need a free TMDB account and API key from their developer section.
 
 3. **Start using** - Ask your AI assistant to manage your media library!
 
@@ -133,8 +154,9 @@ Add to your MCP servers configuration using the JSR package:
 | `SONARR_API_KEY` | API key for Sonarr authentication   | Optional* |
 | `IMDB_URL`       | Base URL of IMDB API service        | Optional* |
 | `RAPIDAPI_KEY`   | RapidAPI key for IMDB functionality | Optional* |
+| `TMDB_API_KEY`   | TMDB API key for movie/TV metadata  | Optional* |
 
-*_At least one service (Radarr, Sonarr, or IMDB) must be configured._
+*_At least one service (Radarr, Sonarr, IMDB, or TMDB) must be configured._
 
 ### Example URLs
 
@@ -162,8 +184,7 @@ Add to your MCP servers configuration using the JSR package:
 
 #### System Management
 
-- `radarr_get_quality_profiles` - List available quality profiles
-- `radarr_get_root_folders` - List configured root folders
+- `radarr_get_configuration` - Get configuration including quality profiles, root folders, and tags
 - `radarr_get_system_status` - Get system information
 - `radarr_get_health` - Check system health
 - `radarr_refresh_movie` - Refresh movie metadata
@@ -192,25 +213,34 @@ Add to your MCP servers configuration using the JSR package:
 
 #### System Management
 
-- `sonarr_get_quality_profiles` - List available quality profiles
-- `sonarr_get_root_folders` - List configured root folders
+- `sonarr_get_configuration` - Get configuration including quality profiles and root folders
 - `sonarr_get_system_status` - Get system information
 - `sonarr_get_health` - Check system health
 - `sonarr_refresh_series` - Refresh series metadata
 
 ### IMDB Tools (when configured)
 
-#### Search and Discovery
-
-- `imdb_search` - Search for movies and TV shows on IMDB
-- `imdb_get_top_movies` - Get IMDB Top 250 movies
-- `imdb_get_popular_movies` - Get currently popular movies
-- `imdb_get_popular_tv_shows` - Get currently popular TV shows
-
-#### Detailed Information
-
+- `imdb_search` - Search for movies and TV shows by exact title on IMDB
 - `imdb_get_details` - Get detailed information about a movie or TV show
 - `imdb_get_cast` - Get cast and crew information for a movie or TV show
+
+### TMDB Tools (when configured)
+
+#### Search and Discovery
+
+- `tmdb_search_movies` - Search for movies on TMDB by title
+- `tmdb_search_tv` - Search for TV shows on TMDB by title
+- `tmdb_search_multi` - Search for movies, TV shows, and people in a single request
+- `tmdb_discover_movies` - Discover movies based on various criteria (genre, year, rating, etc.)
+- `tmdb_discover_tv` - Discover TV shows based on various criteria
+
+#### External ID Integration
+
+- `tmdb_find_by_external_id` - Find TMDB content by external ID (IMDB ID, TVDB ID, etc.)
+
+#### Metadata and Reference
+
+- `tmdb_get_genres` - Get list of available genres for movies or TV shows
 
 ## Usage Examples
 
@@ -220,9 +250,13 @@ With this MCP server configured, you can ask your AI assistant:
 
 - "Add the movie Inception to my Radarr library"
 - "Show me what TV series are in my Sonarr queue"
-- "Search IMDB for popular action movies from 2023"
+- "Search IMDB for The Matrix"
 - "What episodes of Breaking Bad are airing this week?"
 - "Add The Office to my TV library and monitor all seasons"
+- "Find movies on TMDB similar to The Dark Knight from 2020-2024"
+- "Discover highly-rated sci-fi TV shows on TMDB"
+- "Convert this IMDB ID to TMDB information"
+- "Get the Radarr system status and health"
 
 ### API Examples
 
@@ -268,6 +302,32 @@ With this MCP server configured, you can ask your AI assistant:
   "tool": "imdb_search",
   "arguments": {
     "query": "The Dark Knight"
+  }
+}
+```
+
+#### Discovering Movies on TMDB
+
+```json
+{
+  "tool": "tmdb_discover_movies",
+  "arguments": {
+    "with_genres": "28,878",
+    "vote_average_gte": 7.0,
+    "primary_release_year": 2023,
+    "sort_by": "popularity.desc"
+  }
+}
+```
+
+#### Finding by External ID
+
+```json
+{
+  "tool": "tmdb_find_by_external_id",
+  "arguments": {
+    "externalId": "tt0468569",
+    "externalSource": "imdb_id"
   }
 }
 ```
@@ -349,16 +409,23 @@ src/
 ├── clients/
 │   ├── radarr.ts         # Radarr API client
 │   ├── sonarr.ts         # Sonarr API client
-│   └── imdb.ts           # IMDB API client
+│   ├── imdb.ts           # IMDB API client
+│   └── tmdb.ts           # TMDB API client
 ├── tools/
 │   ├── radarr-tools.ts   # Radarr MCP tools
 │   ├── sonarr-tools.ts   # Sonarr MCP tools  
-│   └── imdb-tools.ts     # IMDB MCP tools
+│   ├── imdb-tools.ts     # IMDB MCP tools
+│   └── tmdb-tools.ts     # TMDB MCP tools
+├── utils/
+│   └── filters.ts        # Filtering and sorting utilities
 └── types/
     ├── radarr.ts         # Radarr type definitions
     ├── sonarr.ts         # Sonarr type definitions
     ├── imdb.ts           # IMDB type definitions
-    └── mcp.ts            # MCP-specific types
+    ├── tmdb.ts           # TMDB type definitions
+    ├── mcp.ts            # MCP-specific types
+    ├── filters.ts        # Filter and sort type definitions
+    └── validation.ts     # Validation utilities
 ```
 
 ## Contributing
@@ -371,11 +438,12 @@ src/
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License - see LICENSE.md file for details.
 
 ## Acknowledgments
 
 - Built on the [Model Context Protocol](https://modelcontextprotocol.io/)
-- Integrates with [Radarr](https://radarr.video/), [Sonarr](https://sonarr.tv/), and [IMDB](https://www.imdb.com/)
+- Integrates with [Radarr](https://radarr.video/), [Sonarr](https://sonarr.tv/), [IMDB](https://www.imdb.com/), and [TMDB](https://www.themoviedb.org/)
 - Uses [RapidAPI](https://rapidapi.com/) for IMDB data access
+- Uses [The Movie Database API](https://developers.themoviedb.org/3) for comprehensive movie and TV metadata
 - Uses the Deno runtime for modern JavaScript/TypeScript execution

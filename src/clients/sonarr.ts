@@ -12,6 +12,19 @@ import type {
   SonarrSystemStatus,
 } from "../types/sonarr.ts";
 import type { PaginatedResponse } from "../types/mcp.ts";
+import {
+  isValidationErrorArray,
+  ValidationException,
+} from "../types/validation.ts";
+import type {
+  SonarrSeriesFilters,
+  SonarrSeriesSortField,
+  SortOptions,
+} from "../types/filters.ts";
+import {
+  applySonarrSeriesFilters,
+  sortSonarrSeries,
+} from "../utils/filters.ts";
 
 export interface SonarrConfig {
   readonly baseUrl: string;
@@ -47,13 +60,42 @@ async function makeRequest<T>(
     });
 
     if (!response.ok) {
+      // Try to parse validation errors for 400 responses
+      if (response.status === 400) {
+        try {
+          const errorData = await response.json();
+          if (isValidationErrorArray(errorData)) {
+            throw new ValidationException(errorData);
+          }
+        } catch (parseError) {
+          // Re-throw if it's already a ValidationException
+          if (parseError instanceof ValidationException) {
+            throw parseError;
+          }
+          // Otherwise, fall back to standard error
+        }
+      }
+
       throw new Error(
-        `Sonarr API request failed: ${response.status} ${response.statusText}`,
+        `${response.status} ${response.statusText}`,
       );
+    }
+
+    const contentLength = response.headers.get("content-length");
+    const contentType = response.headers.get("content-type");
+
+    // Handle empty responses (like 204 No Content or 200 with no body)
+    if (contentLength === "0" || (!contentLength && !contentType)) {
+      return {} as T;
     }
 
     return await response.json();
   } catch (error) {
+    // Re-throw ValidationException as-is
+    if (error instanceof ValidationException) {
+      throw error;
+    }
+
     throw new Error(
       `Sonarr API request failed: ${
         error instanceof Error ? error.message : String(error)
@@ -93,13 +135,21 @@ export async function getSeries(
   config: SonarrConfig,
   limit?: number,
   skip?: number,
+  filters?: SonarrSeriesFilters,
+  sort?: SortOptions<SonarrSeriesSortField>,
 ): Promise<PaginatedResponse<SonarrSeries[]>> {
   const results = await makeRequest<SonarrSeries[]>(config, "/series");
 
-  const total = results.length;
+  // Apply filters
+  let filteredResults = applySonarrSeriesFilters(results, filters);
+
+  // Apply sorting
+  filteredResults = sortSonarrSeries(filteredResults, sort);
+
+  const total = filteredResults.length;
   const startIndex = skip || 0;
   const endIndex = limit !== undefined ? startIndex + limit : undefined;
-  const paginatedResults = results.slice(startIndex, endIndex);
+  const paginatedResults = filteredResults.slice(startIndex, endIndex);
 
   return {
     data: paginatedResults,
@@ -119,7 +169,7 @@ export function getSeriesById(
 }
 
 // Add a series
-export function addSeries(
+export async function addSeries(
   config: SonarrConfig,
   options: SonarrAddSeriesOptions,
 ): Promise<SonarrSeries> {
@@ -144,10 +194,29 @@ export function addSeries(
     },
   };
 
-  return makeRequest<SonarrSeries>(config, "/series", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  try {
+    return await makeRequest<SonarrSeries>(config, "/series", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    // Check if it's a validation error
+    if (error instanceof ValidationException) {
+      // Check for specific validation errors
+      const seriesExistsError = error.errors.find(
+        (e) => e.errorCode === "SeriesExistsValidator",
+      );
+      if (seriesExistsError) {
+        throw new Error(
+          `Series already exists in Sonarr library (TVDB ID: ${options.tvdbId})`,
+        );
+      }
+      // Re-throw other validation errors with formatted message
+      throw error;
+    }
+
+    throw error;
+  }
 }
 
 // Update a series

@@ -1,3 +1,43 @@
+import { z } from "zod";
+import { PaginationSchema } from "./mcp.ts";
+
+// Radarr tool schemas
+export const RadarrSearchSchema = z.object({
+  term: z.string().describe("Movie title to search for"),
+}).merge(PaginationSchema);
+
+export const RadarrAddMovieSchema = z.object({
+  tmdbId: z.number().describe("The Movie Database ID"),
+  title: z.string().describe("Movie title"),
+  year: z.number().describe("Movie release year"),
+  qualityProfileId: z.number().describe("Quality profile ID to use"),
+  rootFolderPath: z.string().describe(
+    "Root folder path where movie should be stored",
+  ),
+  minimumAvailability: z.enum([
+    "tba",
+    "announced",
+    "inCinemas",
+    "released",
+    "preDB",
+  ])
+    .describe("Minimum availability for monitoring"),
+  monitored: z.boolean().optional().default(true).describe(
+    "Whether to monitor the movie",
+  ),
+  searchForMovie: z.boolean().optional().default(true)
+    .describe("Whether to search for the movie immediately after adding"),
+  tags: z.array(z.number()).optional().describe(
+    "Tag IDs to apply to the movie",
+  ),
+});
+
+export const RadarrMovieIdSchema = z.object({
+  id: z.number().describe("Movie ID in Radarr"),
+});
+
+export const RadarrPaginatedSchema = PaginationSchema;
+
 export interface RadarrMovie {
   id?: number;
   title: string;

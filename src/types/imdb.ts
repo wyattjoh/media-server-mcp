@@ -1,35 +1,48 @@
-// IMDB API response interfaces
+import { z } from "zod";
+import { PaginationSchema } from "./mcp.ts";
 
-// Search result interface
+// IMDB tool schemas
+export const IMDBSearchSchema = z.object({
+  query: z.string().describe("Search query for movies/TV shows"),
+}).merge(PaginationSchema);
+
+export const IMDBIdSchema = z.object({
+  imdbId: z.string().describe("IMDB ID (e.g., tt1234567)"),
+});
+
+export const IMDBCastSchema = z.object({
+  imdbId: z.string().describe("IMDB ID (e.g., tt1234567)"),
+}).merge(PaginationSchema);
+
+export const IMDBPaginatedSchema = PaginationSchema;
+
+// Search result interface - matches actual API response
 export interface IMDBSearchResult {
   readonly id: string;
-  readonly title: string;
-  readonly year: string | undefined;
+  readonly primaryTitle: string;
+  readonly originalTitle: string;
+  readonly startYear: number | undefined;
   readonly type: string;
-  readonly poster: string | undefined;
+  readonly description: string | undefined;
+  readonly primaryImage: string | undefined;
+  readonly averageRating: number | undefined;
+  readonly genres: string[] | undefined;
 }
 
-// Detailed movie/show information
+// Detailed movie/show information - matches actual API response
 export interface IMDBMovieDetails {
   readonly id: string;
-  readonly title: string;
-  readonly year: string | undefined;
-  readonly rating: string | undefined;
-  readonly plot: string | undefined;
-  readonly director: string | undefined;
-  readonly writers: string | undefined;
-  readonly stars: string | undefined;
-  readonly genres: string | undefined;
-  readonly language: string | undefined;
-  readonly country: string | undefined;
-  readonly runtime: string | undefined;
-  readonly poster: string | undefined;
+  readonly primaryTitle: string;
+  readonly originalTitle: string;
+  readonly startYear: number | undefined;
   readonly type: string;
-  readonly imdbRating: string | undefined;
-  readonly imdbVotes: string | undefined;
-  readonly boxOffice: string | undefined;
-  readonly production: string | undefined;
-  readonly website: string | undefined;
+  readonly description: string | undefined;
+  readonly primaryImage: string | undefined;
+  readonly averageRating: number | undefined;
+  readonly genres: string[] | undefined;
+  readonly runtimeMinutes: number | undefined;
+  readonly contentRating: string | undefined;
+  readonly releaseDate: string | undefined;
 }
 
 // Cast member interface - represents any cast member from the API

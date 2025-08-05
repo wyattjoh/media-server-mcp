@@ -6,13 +6,14 @@ import {
   IMDBCastSchema,
   IMDBIdSchema,
   IMDBSearchSchema,
-} from "../types/mcp.ts";
+} from "../types/imdb.ts";
 
 export function createIMDBTools(): Tool[] {
   return [
     {
       name: "imdb_search",
-      description: "Search for movies and TV shows on IMDB",
+      description:
+        "Search IMDB for specific movies and TV shows by exact title. Use this when users provide a specific movie/show name to look up, or when searching for content to add to media libraries. For discovering popular, trending, or recent movies without a specific title, use the IMDB list resources instead.",
       inputSchema: {
         type: "object",
         properties: {
@@ -80,6 +81,19 @@ export async function handleIMDBTool(
     switch (name) {
       case "imdb_search": {
         const { query, limit, skip } = IMDBSearchSchema.parse(args);
+
+        // In search tool handler, detect discovery patterns and reject them
+        if (query.match(/\b(popular|trending|top|recent|best)\b/i)) {
+          return {
+            content: [{
+              type: "text",
+              text:
+                "For discovering popular, trending, or top movies, please use the IMDB popular movies resource instead of searching.",
+            }],
+            isError: true,
+          };
+        }
+
         const results = await imdbClient.searchIMDB(config, query, limit, skip);
         return {
           content: [{

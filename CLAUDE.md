@@ -28,11 +28,17 @@ deno task start
 
 - Always use `deno task fmt`, `deno task lint`, and `deno task check` after modifying or creating code to ensure that it's correct.
 - Run `deno test --allow-net` to verify all tests pass before committing changes.
-- Tests are organized by layer: `tests/clients/`, `tests/tools/`, and `tests/server_test.ts`.
+- Tests are organized by layer: `tests/clients/`, `tests/tools/`, `tests/resources/`, and `tests/server_test.ts`.
+
+### File Naming Conventions
+
+- **Source files**: Use kebab-case for all source files (e.g., `query-enhancer.ts`, `search-service.ts`)
+- **Test files**: Use kebab-case with `_test.ts` suffix (e.g., `query-enhancer_test.ts`, `search-service_test.ts`)
+- **Directory structure**: Tests mirror the source structure in the `tests/` directory
 
 ## Architecture Overview
 
-This is a **Model Context Protocol (MCP) server** that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series) media servers, and IMDB data through their APIs.
+This is a **Model Context Protocol (MCP) server** that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series) media servers, and access IMDB and TMDB data through their APIs.
 
 ### Core Architecture Pattern
 
@@ -40,14 +46,15 @@ The codebase follows a **layered architecture**:
 
 1. **MCP Server Layer** (`src/index.ts`): Main server that handles MCP protocol communication
 2. **Tool Layer** (`src/tools/`): MCP tool definitions and handlers that bridge MCP and API clients
-3. **Client Layer** (`src/clients/`): HTTP API clients for Radarr, Sonarr, and IMDB services
+3. **Client Layer** (`src/clients/`): HTTP API clients for Radarr, Sonarr, IMDB, and TMDB services
 4. **Type Layer** (`src/types/`): TypeScript definitions for all interfaces
+5. **Utilities Layer** (`src/utils/`): Shared utilities for filtering and data processing
 
 ### Key Architectural Decisions
 
-**Separation of Tool Creation and Execution**: Tools are created as metadata-only definitions via `createRadarrTools()`, `createSonarrTools()`, and `createIMDBTools()` functions that don't require client configurations. Tool execution happens separately through `handleRadarrTool()`, `handleSonarrTool()`, and `handleIMDBTool()` functions that receive the service configurations at runtime.
+**Separation of Tool Creation and Execution**: Tools are created as metadata-only definitions via `createRadarrTools()`, `createSonarrTools()`, `createIMDBTools()`, and `createTMDBTools()` functions that don't require client configurations. Tool execution happens separately through `handleRadarrTool()`, `handleSonarrTool()`, `handleIMDBTool()`, and `handleTMDBTool()` functions that receive the service configurations at runtime.
 
-**Configuration Injection**: The main server maintains optional service configurations (`radarrConfig`, `sonarrConfig`, `imdbConfig`) and injects them into tool handlers during execution, allowing the server to work with any combination of services configured.
+**Configuration Injection**: The main server maintains optional service configurations (`radarrConfig`, `sonarrConfig`, `imdbConfig`, `tmdbConfig`) and injects them into tool handlers during execution, allowing the server to work with any combination of services configured.
 
 **Environment-Based Configuration**: Service availability is determined by environment variables at startup. Missing configuration results in that service's tools being unavailable rather than failing the entire server.
 
@@ -55,19 +62,22 @@ The codebase follows a **layered architecture**:
 
 - **Strict TypeScript**: Uses `exactOptionalPropertyTypes: true` - optional properties must be explicitly `| undefined` rather than using `?:`
 - **Zod Validation**: All tool parameters use Zod schemas for runtime validation
-- **API Type Definitions**: Comprehensive interfaces for Radarr, Sonarr, and IMDB API responses in `src/types/`
+- **API Type Definitions**: Comprehensive interfaces for Radarr, Sonarr, IMDB, and TMDB API responses in `src/types/`
 
-### HTTP Client Pattern
+### Functional Architecture Pattern
 
-All clients use a **functional architecture** rather than classes:
+This codebase **ALWAYS** follows a **functional architecture** approach rather than classes:
 
-- **Configuration Objects**: Each service uses config objects (`RadarrConfig`, `SonarrConfig`, `IMDBConfig`) created by factory functions (`createRadarrConfig()`, `createSonarrConfig()`, `createIMDBConfig()`)
+- **No Classes**: All code should be implemented using functions, not classes. This applies to clients, services, utilities, and all other modules.
+- **Configuration Objects**: Each service uses config objects (`RadarrConfig`, `SonarrConfig`, `IMDBConfig`, `TMDBConfig`) created by factory functions (`createRadarrConfig()`, `createSonarrConfig()`, `createIMDBConfig()`, `createTMDBConfig()`)
 - **HTTP Communication**: Each client has a private `makeRequest<T>()` function that handles all HTTP communication
-- **Public Functions**: Individual functions (`getMovies()`, `addMovie()`, `searchIMDB()`, etc.) are exported functions that accept config objects and call `makeRequest`
+- **Public Functions**: Individual functions (`getMovies()`, `addMovie()`, `searchIMDB()`, `searchMovies()`, etc.) are exported functions that accept config objects and call `makeRequest`
 - **Async Patterns**: Functions that only call `makeRequest` without additional `await` should NOT be marked `async`
 - **Connection Testing**: Each client exports a `testConnection()` function that returns `{ success: boolean; error?: string }`
 
 **IMDB Client Specifics**: Uses RapidAPI headers (`X-RapidAPI-Key`, `X-RapidAPI-Host`) for authentication instead of direct API key headers.
+
+**TMDB Client Specifics**: Uses direct TMDB API with `Authorization: Bearer {api_key}` header authentication and includes a pagination utility function `toPaginatedResponse()` for consistent result formatting.
 
 ### Error Handling Pattern
 
@@ -91,7 +101,16 @@ SONARR_API_KEY=your-sonarr-api-key
 # IMDB Configuration via RapidAPI (optional)
 IMDB_URL=https://imdb236.p.rapidapi.com/api/imdb
 RAPIDAPI_KEY=your-rapidapi-key
+
+# TMDB Configuration (optional)
+TMDB_API_KEY=your-tmdb-api-key
 ```
+
+### API Key Acquisition
+
+- **Radarr/Sonarr**: Found in Settings → General → Security → API Key
+- **IMDB**: Requires RapidAPI account and subscription to an IMDB API service
+- **TMDB**: Free account at [TMDB](https://www.themoviedb.org/), then Settings → API → Create API Key
 
 ## Important Implementation Notes
 
@@ -100,14 +119,107 @@ RAPIDAPI_KEY=your-rapidapi-key
 - Each service's tools are only registered if that service is properly configured
 - Radarr and Sonarr use the same base URL + endpoint pattern with API key authentication via `X-Api-Key` header
 - IMDB uses RapidAPI with `X-RapidAPI-Key` and `X-RapidAPI-Host` headers for authentication
+- TMDB uses direct API access with `Authorization: Bearer {api_key}` header authentication
 
-## IMDB Tools Available
+## Available Tools by Service
 
-The following IMDB tools are available when `RAPIDAPI_KEY` is configured:
+### Radarr Tools (when `RADARR_URL` and `RADARR_API_KEY` are configured)
 
-- `imdb_search`: Search for movies and TV shows by title
+#### Movie Management
+
+- `radarr_search_movie`: Search for movies in The Movie Database via Radarr
+- `radarr_add_movie`: Add a movie to your library
+- `radarr_get_movies`: List all movies in your library
+- `radarr_get_movie`: Get details of a specific movie
+- `radarr_delete_movie`: Remove a movie from your library
+
+#### Queue and Downloads
+
+- `radarr_get_queue`: View current download queue
+- `radarr_search_movie_releases`: Search for releases of a specific movie
+
+#### System Management
+
+- `radarr_get_configuration`: Get Radarr configuration including quality profiles, root folders, and tags
+- `radarr_get_system_status`: Get system information
+- `radarr_get_health`: Check system health
+- `radarr_refresh_movie`: Refresh movie metadata
+
+### Sonarr Tools (when `SONARR_URL` and `SONARR_API_KEY` are configured)
+
+#### Series Management
+
+- `sonarr_search_series`: Search for TV series
+- `sonarr_add_series`: Add a TV series to your library
+- `sonarr_get_series`: List all series in your library
+- `sonarr_get_series_by_id`: Get details of a specific series
+- `sonarr_delete_series`: Remove a series from your library
+
+#### Episode Management
+
+- `sonarr_get_episodes`: Get episodes for a series
+- `sonarr_update_episode_monitoring`: Change episode monitoring status
+- `sonarr_get_calendar`: View upcoming episodes
+- `sonarr_search_series_episodes`: Search for all episodes of a series
+- `sonarr_search_season`: Search for episodes of a specific season
+
+#### Queue and Downloads
+
+- `sonarr_get_queue`: View current download queue
+
+#### System Management
+
+- `sonarr_get_configuration`: Get Sonarr configuration including quality profiles and root folders
+- `sonarr_get_system_status`: Get system information
+- `sonarr_get_health`: Check system health
+- `sonarr_refresh_series`: Refresh series metadata
+
+### IMDB Tools (when `IMDB_URL` and `RAPIDAPI_KEY` are configured)
+
+- `imdb_search`: Search for movies and TV shows by exact title (not for discovery - use resources for popular/trending content)
 - `imdb_get_details`: Get detailed information about a movie/show using IMDB ID
-- `imdb_get_top_movies`: Retrieve IMDB Top 250 movies
-- `imdb_get_popular_movies`: Get currently popular movies
-- `imdb_get_popular_tv_shows`: Get currently popular TV shows
 - `imdb_get_cast`: Get cast and crew information for a movie/show
+
+### TMDB Tools (when `TMDB_API_KEY` is configured)
+
+#### Search and Discovery
+
+- `tmdb_search_movies`: Search for movies on TMDB by title
+- `tmdb_search_tv`: Search for TV shows on TMDB by title
+- `tmdb_search_multi`: Search for movies, TV shows, and people in a single request
+- `tmdb_discover_movies`: Discover movies based on various criteria (genre, year, rating, etc.)
+- `tmdb_discover_tv`: Discover TV shows based on various criteria
+
+#### External ID Integration
+
+- `tmdb_find_by_external_id`: Find TMDB content by external ID (IMDB ID, TVDB ID, etc.)
+
+#### Metadata and Reference
+
+- `tmdb_get_genres`: Get list of available genres for movies or TV shows
+
+## Tool Implementation Pattern
+
+All tool files follow the same pattern:
+
+1. **Zod Schemas**: Define parameter validation schemas at the top
+2. **createXXXTools()**: Function that returns tool definitions (metadata only)
+3. **handleXXXTool()**: Function that handles tool execution with runtime configuration
+4. **Single File**: Both functions exported from the same file for consistency
+
+Example structure:
+
+```typescript
+// Zod schemas
+const SchemaName = z.object({...});
+
+// Tool creation (metadata only)
+export function createServiceTools(): Tool[] { ... }
+
+// Tool execution (with config injection)
+export async function handleServiceTool(
+  name: string,
+  args: unknown,
+  config: ServiceConfig,
+): Promise<MCPToolResult> { ... }
+```

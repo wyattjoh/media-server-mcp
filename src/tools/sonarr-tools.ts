@@ -8,7 +8,11 @@ import {
   SonarrMonitorEpisodeSchema,
   SonarrSearchSchema,
   SonarrSeriesIdSchema,
-} from "../types/mcp.ts";
+} from "../types/sonarr.ts";
+import {
+  SonarrSeriesFiltersSchema,
+  SonarrSeriesSortSchema,
+} from "../types/filters.ts";
 
 export function createSonarrTools(): Tool[] {
   return [
@@ -191,6 +195,214 @@ export function createSonarrTools(): Tool[] {
         required: ["seriesId", "seasonNumber"],
       },
     },
+    {
+      name: "sonarr_get_series",
+      description: "Get all TV series in the Sonarr library",
+      inputSchema: {
+        type: "object",
+        properties: {
+          limit: {
+            type: "number",
+            description: "Maximum number of results to return",
+          },
+          skip: {
+            type: "number",
+            description: "Number of results to skip (for pagination)",
+          },
+          filters: {
+            type: "object",
+            description: "Filter options for series",
+            properties: {
+              title: {
+                type: "string",
+                description:
+                  "Filter by title (partial match, case-insensitive)",
+              },
+              genres: {
+                type: "array",
+                items: { type: "string" },
+                description: "Filter by genres (matches any)",
+              },
+              yearFrom: {
+                type: "number",
+                description: "Filter by minimum year",
+              },
+              yearTo: {
+                type: "number",
+                description: "Filter by maximum year",
+              },
+              monitored: {
+                type: "boolean",
+                description: "Filter by monitored status",
+              },
+              network: {
+                type: "string",
+                description: "Filter by network (partial match)",
+              },
+              seriesType: {
+                type: "string",
+                description: "Filter by series type",
+              },
+              qualityProfileId: {
+                type: "number",
+                description: "Filter by quality profile ID",
+              },
+              tags: {
+                type: "array",
+                items: { type: "number" },
+                description: "Filter by tag IDs (matches any)",
+              },
+              status: {
+                type: "string",
+                description: "Filter by series status",
+              },
+            },
+          },
+          sort: {
+            type: "object",
+            description: "Sort options for series",
+            properties: {
+              field: {
+                type: "string",
+                enum: [
+                  "title",
+                  "year",
+                  "added",
+                  "sizeOnDisk",
+                  "qualityProfileId",
+                  "runtime",
+                  "episodeCount",
+                ],
+                description: "Field to sort by",
+              },
+              direction: {
+                type: "string",
+                enum: ["asc", "desc"],
+                description: "Sort direction",
+              },
+            },
+            required: ["field", "direction"],
+          },
+        },
+      },
+    },
+    {
+      name: "sonarr_get_series_by_id",
+      description: "Get details of a specific TV series",
+      inputSchema: {
+        type: "object",
+        properties: {
+          id: {
+            type: "number",
+            description: "Series ID in Sonarr",
+          },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "sonarr_get_episodes",
+      description: "Get episodes for a specific series",
+      inputSchema: {
+        type: "object",
+        properties: {
+          seriesId: {
+            type: "number",
+            description: "Series ID to get episodes for",
+          },
+          seasonNumber: {
+            type: "number",
+            description: "Specific season number (optional)",
+          },
+          limit: {
+            type: "number",
+            description: "Maximum number of results to return",
+          },
+          skip: {
+            type: "number",
+            description: "Number of results to skip (for pagination)",
+          },
+        },
+        required: ["seriesId"],
+      },
+    },
+    {
+      name: "sonarr_get_calendar",
+      description: "Get upcoming episodes calendar",
+      inputSchema: {
+        type: "object",
+        properties: {
+          start: {
+            type: "string",
+            description: "Start date (ISO format, optional)",
+          },
+          end: {
+            type: "string",
+            description: "End date (ISO format, optional)",
+          },
+          includeEpisodeFile: {
+            type: "boolean",
+            description: "Whether to include episode file information",
+            default: false,
+          },
+          includeSeries: {
+            type: "boolean",
+            description: "Whether to include series information",
+            default: false,
+          },
+          limit: {
+            type: "number",
+            description: "Maximum number of results to return",
+          },
+          skip: {
+            type: "number",
+            description: "Number of results to skip (for pagination)",
+          },
+        },
+      },
+    },
+    {
+      name: "sonarr_get_queue",
+      description: "Get the download queue",
+      inputSchema: {
+        type: "object",
+        properties: {
+          limit: {
+            type: "number",
+            description: "Maximum number of results to return",
+          },
+          skip: {
+            type: "number",
+            description: "Number of results to skip (for pagination)",
+          },
+        },
+      },
+    },
+    {
+      name: "sonarr_get_configuration",
+      description:
+        "Get Sonarr configuration including quality profiles and root folders",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
+    {
+      name: "sonarr_get_system_status",
+      description: "Get Sonarr system status",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
+    {
+      name: "sonarr_get_health",
+      description: "Get Sonarr health check results",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
   ];
 }
 
@@ -320,6 +532,145 @@ export async function handleSonarrTool(
             type: "text",
             text:
               `Search for series ${parsed.seriesId} season ${parsed.seasonNumber} initiated successfully`,
+          }],
+        };
+      }
+
+      case "sonarr_get_series": {
+        const parsed = z.object({
+          limit: z.number().optional(),
+          skip: z.number().optional(),
+          filters: SonarrSeriesFiltersSchema.optional(),
+          sort: SonarrSeriesSortSchema.optional(),
+        }).parse(args);
+        const results = await sonarrClient.getSeries(
+          config,
+          parsed.limit,
+          parsed.skip,
+          parsed.filters,
+          parsed.sort,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
+          }],
+        };
+      }
+
+      case "sonarr_get_series_by_id": {
+        const { id } = SonarrSeriesIdSchema.parse(args);
+        const result = await sonarrClient.getSeriesById(config, id);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }
+
+      case "sonarr_get_episodes": {
+        const parsed = z.object({
+          seriesId: z.number(),
+          seasonNumber: z.number().optional(),
+          limit: z.number().optional(),
+          skip: z.number().optional(),
+        }).parse(args);
+        const results = await sonarrClient.getEpisodes(
+          config,
+          parsed.seriesId,
+          parsed.seasonNumber,
+          parsed.limit,
+          parsed.skip,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
+          }],
+        };
+      }
+
+      case "sonarr_get_calendar": {
+        const parsed = z.object({
+          start: z.string().optional(),
+          end: z.string().optional(),
+          includeEpisodeFile: z.boolean().optional(),
+          includeSeries: z.boolean().optional(),
+          limit: z.number().optional(),
+          skip: z.number().optional(),
+        }).parse(args);
+        const results = await sonarrClient.getCalendar(
+          config,
+          parsed.start,
+          parsed.end,
+          parsed.includeEpisodeFile,
+          parsed.includeSeries,
+          parsed.limit,
+          parsed.skip,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
+          }],
+        };
+      }
+
+      case "sonarr_get_queue": {
+        const parsed = z.object({
+          limit: z.number().optional(),
+          skip: z.number().optional(),
+        }).parse(args);
+        const results = await sonarrClient.getQueue(
+          config,
+          parsed.limit,
+          parsed.skip,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
+          }],
+        };
+      }
+
+      case "sonarr_get_configuration": {
+        const [qualityProfiles, rootFolders] = await Promise.all([
+          sonarrClient.getQualityProfiles(config),
+          sonarrClient.getRootFolders(config),
+        ]);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(
+              {
+                qualityProfiles,
+                rootFolders,
+              },
+              null,
+              2,
+            ),
+          }],
+        };
+      }
+
+      case "sonarr_get_system_status": {
+        const result = await sonarrClient.getSystemStatus(config);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }
+
+      case "sonarr_get_health": {
+        const results = await sonarrClient.getHealth(config);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
           }],
         };
       }

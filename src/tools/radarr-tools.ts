@@ -7,7 +7,11 @@ import {
   RadarrAddMovieSchema,
   RadarrMovieIdSchema,
   RadarrSearchSchema,
-} from "../types/mcp.ts";
+} from "../types/radarr.ts";
+import {
+  RadarrMovieFiltersSchema,
+  RadarrMovieSortSchema,
+} from "../types/filters.ts";
 
 export function createRadarrTools(): Tool[] {
   return [
@@ -143,6 +147,148 @@ export function createRadarrTools(): Tool[] {
         required: ["id"],
       },
     },
+    {
+      name: "radarr_get_movies",
+      description: "Get all movies in the Radarr library",
+      inputSchema: {
+        type: "object",
+        properties: {
+          limit: {
+            type: "number",
+            description: "Maximum number of results to return",
+          },
+          skip: {
+            type: "number",
+            description: "Number of results to skip (for pagination)",
+          },
+          filters: {
+            type: "object",
+            description: "Filter options for movies",
+            properties: {
+              title: {
+                type: "string",
+                description:
+                  "Filter by title (partial match, case-insensitive)",
+              },
+              genres: {
+                type: "array",
+                items: { type: "string" },
+                description: "Filter by genres (matches any)",
+              },
+              yearFrom: {
+                type: "number",
+                description: "Filter by minimum year",
+              },
+              yearTo: {
+                type: "number",
+                description: "Filter by maximum year",
+              },
+              monitored: {
+                type: "boolean",
+                description: "Filter by monitored status",
+              },
+              hasFile: {
+                type: "boolean",
+                description: "Filter by file availability",
+              },
+              qualityProfileId: {
+                type: "number",
+                description: "Filter by quality profile ID",
+              },
+              tags: {
+                type: "array",
+                items: { type: "number" },
+                description: "Filter by tag IDs (matches any)",
+              },
+              minimumAvailability: {
+                type: "string",
+                description: "Filter by minimum availability status",
+              },
+            },
+          },
+          sort: {
+            type: "object",
+            description: "Sort options for movies",
+            properties: {
+              field: {
+                type: "string",
+                enum: [
+                  "title",
+                  "year",
+                  "added",
+                  "sizeOnDisk",
+                  "qualityProfileId",
+                  "runtime",
+                ],
+                description: "Field to sort by",
+              },
+              direction: {
+                type: "string",
+                enum: ["asc", "desc"],
+                description: "Sort direction",
+              },
+            },
+            required: ["field", "direction"],
+          },
+        },
+      },
+    },
+    {
+      name: "radarr_get_movie",
+      description: "Get details of a specific movie",
+      inputSchema: {
+        type: "object",
+        properties: {
+          id: {
+            type: "number",
+            description: "Movie ID in Radarr",
+          },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "radarr_get_queue",
+      description: "Get the download queue",
+      inputSchema: {
+        type: "object",
+        properties: {
+          limit: {
+            type: "number",
+            description: "Maximum number of results to return",
+          },
+          skip: {
+            type: "number",
+            description: "Number of results to skip (for pagination)",
+          },
+        },
+      },
+    },
+    {
+      name: "radarr_get_configuration",
+      description:
+        "Get Radarr configuration including quality profiles, and root folders",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
+    {
+      name: "radarr_get_system_status",
+      description: "Get Radarr system status",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
+    {
+      name: "radarr_get_health",
+      description: "Get Radarr health check results",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
   ];
 }
 
@@ -224,6 +370,97 @@ export async function handleRadarrTool(
           content: [{
             type: "text",
             text: `Search for movie ${id} releases initiated successfully`,
+          }],
+        };
+      }
+
+      case "radarr_get_movies": {
+        const parsed = z.object({
+          limit: z.number().optional(),
+          skip: z.number().optional(),
+          filters: RadarrMovieFiltersSchema.optional(),
+          sort: RadarrMovieSortSchema.optional(),
+        }).parse(args);
+        const results = await radarrClient.getMovies(
+          config,
+          parsed.limit,
+          parsed.skip,
+          parsed.filters,
+          parsed.sort,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
+          }],
+        };
+      }
+
+      case "radarr_get_movie": {
+        const { id } = RadarrMovieIdSchema.parse(args);
+        const result = await radarrClient.getMovie(config, id);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }
+
+      case "radarr_get_queue": {
+        const parsed = z.object({
+          limit: z.number().optional(),
+          skip: z.number().optional(),
+        }).parse(args);
+        const results = await radarrClient.getQueue(
+          config,
+          parsed.limit,
+          parsed.skip,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
+          }],
+        };
+      }
+
+      case "radarr_get_configuration": {
+        const [qualityProfiles, rootFolders] = await Promise.all([
+          radarrClient.getQualityProfiles(config),
+          radarrClient.getRootFolders(config),
+        ]);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(
+              {
+                qualityProfiles,
+                rootFolders,
+              },
+              null,
+              2,
+            ),
+          }],
+        };
+      }
+
+      case "radarr_get_system_status": {
+        const result = await radarrClient.getSystemStatus(config);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }
+
+      case "radarr_get_health": {
+        const results = await radarrClient.getHealth(config);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
           }],
         };
       }

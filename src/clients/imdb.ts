@@ -64,7 +64,58 @@ async function makeRequest<T>(
   }
 }
 
-// Search for movies/shows
+// Enhanced search interface
+export interface IMDBSearchOptions {
+  query?: string | undefined;
+  type?: "movie" | "tv" | undefined;
+  genre?: string | undefined;
+  minRating?: number | undefined;
+  maxYear?: number | undefined;
+  minYear?: number | undefined;
+  sortField?: "averageRating" | "startYear" | "id" | undefined;
+  sortOrder?: "ASC" | "DESC" | undefined;
+  limit?: number | undefined;
+}
+
+// Enhanced search for movies/shows with genre and filtering support
+export async function searchIMDBAdvanced(
+  config: IMDBConfig,
+  options: IMDBSearchOptions,
+): Promise<IMDBSearchResponse> {
+  const params = new URLSearchParams();
+
+  if (options.query) {
+    params.set("originalTitle", options.query);
+  }
+
+  if (options.type) {
+    params.set("type", options.type);
+  }
+
+  if (options.genre) {
+    params.set("genre", options.genre);
+  }
+
+  if (options.minYear) {
+    params.set(
+      "startYear",
+      `${options.minYear}-${options.maxYear || new Date().getFullYear()}`,
+    );
+  }
+
+  params.set("rows", String(options.limit || 25));
+  params.set("sortField", options.sortField || "averageRating");
+  params.set("sortOrder", options.sortOrder || "DESC");
+
+  const response = await makeRequest<IMDBSearchResponse>(
+    config,
+    `/search?${params.toString()}`,
+  );
+
+  return response;
+}
+
+// Original simple search for backward compatibility
 export async function searchIMDB(
   config: IMDBConfig,
   query: string,

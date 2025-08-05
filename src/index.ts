@@ -7,10 +7,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import {
   CallToolRequestSchema,
   ErrorCode,
-  ListResourcesRequestSchema,
   ListToolsRequestSchema,
   McpError,
-  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import deno from "../deno.json" with { type: "json" };
 import {
@@ -25,30 +23,25 @@ import {
   createIMDBConfig,
   testConnection as testIMDBConnection,
 } from "./clients/imdb.ts";
+import {
+  createTMDBConfig,
+  testConnection as testTMDBConnection,
+} from "./clients/tmdb.ts";
 import type { RadarrConfig } from "./clients/radarr.ts";
 import type { SonarrConfig } from "./clients/sonarr.ts";
 import type { IMDBConfig } from "./clients/imdb.ts";
+import type { TMDBConfig } from "./clients/tmdb.ts";
 import { createRadarrTools, handleRadarrTool } from "./tools/radarr-tools.ts";
 import { createSonarrTools, handleSonarrTool } from "./tools/sonarr-tools.ts";
 import { createIMDBTools, handleIMDBTool } from "./tools/imdb-tools.ts";
-import {
-  createRadarrResources,
-  handleRadarrResource,
-} from "./resources/radarr-resources.ts";
-import {
-  createSonarrResources,
-  handleSonarrResource,
-} from "./resources/sonarr-resources.ts";
-import {
-  createIMDBResources,
-  handleIMDBResource,
-} from "./resources/imdb-resources.ts";
+import { createTMDBTools, handleTMDBTool } from "./tools/tmdb-tools.ts";
 
 interface ServerState {
   server: Server;
   radarrConfig?: RadarrConfig;
   sonarrConfig?: SonarrConfig;
   imdbConfig?: IMDBConfig;
+  tmdbConfig?: TMDBConfig;
 }
 
 function createServer(): ServerState {
@@ -60,10 +53,6 @@ function createServer(): ServerState {
     {
       capabilities: {
         tools: {},
-        resources: {
-          subscribe: true,
-          listChanged: true,
-        },
       },
     },
   );
@@ -96,9 +85,18 @@ function loadConfig(state: ServerState): void {
     state.imdbConfig = createIMDBConfig(imdbUrl, rapidApiKey);
   }
 
-  if (!state.radarrConfig && !state.sonarrConfig && !state.imdbConfig) {
+  // Load TMDB configuration
+  const tmdbApiKey = Deno.env.get("TMDB_API_KEY");
+  if (tmdbApiKey) {
+    state.tmdbConfig = createTMDBConfig(tmdbApiKey);
+  }
+
+  if (
+    !state.radarrConfig && !state.sonarrConfig && !state.imdbConfig &&
+    !state.tmdbConfig
+  ) {
     throw new Error(
-      "At least one service must be configured. Please set RADARR_URL/RADARR_API_KEY, SONARR_URL/SONARR_API_KEY, or IMDB_URL/RAPIDAPI_KEY environment variables.",
+      "At least one service must be configured. Please set RADARR_URL/RADARR_API_KEY, SONARR_URL/SONARR_API_KEY, IMDB_URL/RAPIDAPI_KEY, or TMDB_API_KEY environment variables.",
     );
   }
 }
@@ -119,25 +117,11 @@ function setupHandlers(state: ServerState): void {
       tools.push(...createIMDBTools());
     }
 
+    if (state.tmdbConfig) {
+      tools.push(...createTMDBTools());
+    }
+
     return { tools };
-  });
-
-  state.server.setRequestHandler(ListResourcesRequestSchema, () => {
-    const resources = [];
-
-    if (state.radarrConfig) {
-      resources.push(...createRadarrResources());
-    }
-
-    if (state.sonarrConfig) {
-      resources.push(...createSonarrResources());
-    }
-
-    if (state.imdbConfig) {
-      resources.push(...createIMDBResources());
-    }
-
-    return { resources };
   });
 
   state.server.setRequestHandler(
@@ -181,6 +165,17 @@ function setupHandlers(state: ServerState): void {
           return await handleIMDBTool(name, args, state.imdbConfig);
         }
 
+        // Handle TMDB tools
+        if (name.startsWith("tmdb_")) {
+          if (!state.tmdbConfig) {
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              "TMDB is not configured",
+            );
+          }
+          return await handleTMDBTool(name, args, state.tmdbConfig);
+        }
+
         throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
       } catch (error) {
         if (error instanceof McpError) {
@@ -190,97 +185,6 @@ function setupHandlers(state: ServerState): void {
         throw new McpError(
           ErrorCode.InternalError,
           `Tool execution failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      }
-    },
-  );
-
-  state.server.setRequestHandler(
-    ReadResourceRequestSchema,
-    async (
-      request,
-    ): Promise<
-      {
-        contents: Array<
-          {
-            uri: string;
-            mimeType?: string | undefined;
-            text?: string | undefined;
-          }
-        >;
-      }
-    > => {
-      const { uri } = request.params;
-
-      try {
-        // Handle Radarr resources
-        if (uri.startsWith("radarr://")) {
-          if (!state.radarrConfig) {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              "Radarr is not configured",
-            );
-          }
-          const result = await handleRadarrResource(uri, state.radarrConfig);
-          return {
-            contents: [{
-              uri,
-              mimeType: "application/json",
-              text: result.content[0]?.text,
-            }],
-          };
-        }
-
-        // Handle Sonarr resources
-        if (uri.startsWith("sonarr://")) {
-          if (!state.sonarrConfig) {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              "Sonarr is not configured",
-            );
-          }
-          const result = await handleSonarrResource(uri, state.sonarrConfig);
-          return {
-            contents: [{
-              uri,
-              mimeType: "application/json",
-              text: result.content[0]?.text,
-            }],
-          };
-        }
-
-        // Handle IMDB resources
-        if (uri.startsWith("imdb://")) {
-          if (!state.imdbConfig) {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              "IMDB is not configured",
-            );
-          }
-          const result = await handleIMDBResource(uri, state.imdbConfig);
-          return {
-            contents: [{
-              uri,
-              mimeType: "application/json",
-              text: result.content[0]?.text,
-            }],
-          };
-        }
-
-        throw new McpError(
-          ErrorCode.InvalidRequest,
-          `Unknown resource: ${uri}`,
-        );
-      } catch (error) {
-        if (error instanceof McpError) {
-          throw error;
-        }
-
-        throw new McpError(
-          ErrorCode.InternalError,
-          `Resource read failed: ${
             error instanceof Error ? error.message : String(error)
           }`,
         );
@@ -343,6 +247,22 @@ async function runServer(state: ServerState): Promise<void> {
     } catch (error) {
       console.error(
         "[WARNING] IMDB connection test failed:",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
+  if (state.tmdbConfig) {
+    try {
+      const result = await testTMDBConnection(state.tmdbConfig);
+      if (result.success) {
+        console.error("[INFO] Successfully connected to TMDB");
+      } else {
+        console.error("[WARNING] Failed to connect to TMDB:", result.error);
+      }
+    } catch (error) {
+      console.error(
+        "[WARNING] TMDB connection test failed:",
         error instanceof Error ? error.message : String(error),
       );
     }
