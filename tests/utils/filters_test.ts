@@ -1,8 +1,6 @@
 import { assertEquals } from "jsr:@std/assert";
-import {
-  applyRadarrMovieFilters,
-  applySonarrSeriesFilters,
-} from "../../src/utils/filters.ts";
+import { applyRadarrMovieFilters } from "../../src/utils/filters/radarr.ts";
+import { applySonarrSeriesFilters } from "../../src/utils/filters/sonarr.ts";
 import type { RadarrMovie } from "../../src/types/radarr.ts";
 import type { SonarrSeries } from "../../src/types/sonarr.ts";
 

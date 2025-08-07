@@ -7,12 +7,10 @@ import {
   SonarrAddSeriesSchema,
   SonarrMonitorEpisodeSchema,
   SonarrSearchSchema,
-  SonarrSeriesIdSchema,
-} from "../types/sonarr.ts";
-import {
   SonarrSeriesFiltersSchema,
+  SonarrSeriesIdSchema,
   SonarrSeriesSortSchema,
-} from "../types/filters.ts";
+} from "../types/sonarr.ts";
 
 export function createSonarrTools(): Tool[] {
   return [

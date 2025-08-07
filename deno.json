@@ -1,6 +1,6 @@
 {
   "name": "@wyattjoh/media-server-mcp",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "license": "MIT",
   "exports": "./src/index.ts",
   "publish": {
@@ -11,12 +11,12 @@
       "deno.json",
       ".env.example"
     ],
-    "exclude": ["src/testdata/", "src/fixtures/", "tests/"]
+    "exclude": ["tests/"]
   },
   "tasks": {
     "dev": "deno run --allow-all --watch src/index.ts",
     "start": "deno run --allow-all src/index.ts",
-    "check": "deno check **/*.ts",
+    "check": "deno check",
     "fmt": "deno fmt",
     "lint": "deno lint",
     "build": "deno compile --allow-read --allow-write --allow-env --allow-run --allow-net --output=media-server-mcp src/index.ts",

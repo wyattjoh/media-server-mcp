@@ -20,27 +20,20 @@ import {
   testConnection as testSonarrConnection,
 } from "./clients/sonarr.ts";
 import {
-  createIMDBConfig,
-  testConnection as testIMDBConnection,
-} from "./clients/imdb.ts";
-import {
   createTMDBConfig,
   testConnection as testTMDBConnection,
 } from "./clients/tmdb.ts";
 import type { RadarrConfig } from "./clients/radarr.ts";
 import type { SonarrConfig } from "./clients/sonarr.ts";
-import type { IMDBConfig } from "./clients/imdb.ts";
 import type { TMDBConfig } from "./clients/tmdb.ts";
 import { createRadarrTools, handleRadarrTool } from "./tools/radarr-tools.ts";
 import { createSonarrTools, handleSonarrTool } from "./tools/sonarr-tools.ts";
-import { createIMDBTools, handleIMDBTool } from "./tools/imdb-tools.ts";
 import { createTMDBTools, handleTMDBTool } from "./tools/tmdb-tools.ts";
 
 interface ServerState {
   server: Server;
   radarrConfig?: RadarrConfig;
   sonarrConfig?: SonarrConfig;
-  imdbConfig?: IMDBConfig;
   tmdbConfig?: TMDBConfig;
 }
 
@@ -78,13 +71,6 @@ function loadConfig(state: ServerState): void {
     state.sonarrConfig = createSonarrConfig(sonarrUrl, sonarrApiKey);
   }
 
-  // Load IMDB configuration
-  const imdbUrl = Deno.env.get("IMDB_URL");
-  const rapidApiKey = Deno.env.get("RAPIDAPI_KEY");
-  if (imdbUrl && rapidApiKey) {
-    state.imdbConfig = createIMDBConfig(imdbUrl, rapidApiKey);
-  }
-
   // Load TMDB configuration
   const tmdbApiKey = Deno.env.get("TMDB_API_KEY");
   if (tmdbApiKey) {
@@ -92,11 +78,11 @@ function loadConfig(state: ServerState): void {
   }
 
   if (
-    !state.radarrConfig && !state.sonarrConfig && !state.imdbConfig &&
+    !state.radarrConfig && !state.sonarrConfig &&
     !state.tmdbConfig
   ) {
     throw new Error(
-      "At least one service must be configured. Please set RADARR_URL/RADARR_API_KEY, SONARR_URL/SONARR_API_KEY, IMDB_URL/RAPIDAPI_KEY, or TMDB_API_KEY environment variables.",
+      "At least one service must be configured. Please set RADARR_URL/RADARR_API_KEY, SONARR_URL/SONARR_API_KEY, or TMDB_API_KEY environment variables.",
     );
   }
 }
@@ -111,10 +97,6 @@ function setupHandlers(state: ServerState): void {
 
     if (state.sonarrConfig) {
       tools.push(...createSonarrTools());
-    }
-
-    if (state.imdbConfig) {
-      tools.push(...createIMDBTools());
     }
 
     if (state.tmdbConfig) {
@@ -152,17 +134,6 @@ function setupHandlers(state: ServerState): void {
             );
           }
           return await handleSonarrTool(name, args, state.sonarrConfig);
-        }
-
-        // Handle IMDB tools
-        if (name.startsWith("imdb_")) {
-          if (!state.imdbConfig) {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              "IMDB is not configured",
-            );
-          }
-          return await handleIMDBTool(name, args, state.imdbConfig);
         }
 
         // Handle TMDB tools
@@ -231,22 +202,6 @@ async function runServer(state: ServerState): Promise<void> {
     } catch (error) {
       console.error(
         "[WARNING] Sonarr connection test failed:",
-        error instanceof Error ? error.message : String(error),
-      );
-    }
-  }
-
-  if (state.imdbConfig) {
-    try {
-      const result = await testIMDBConnection(state.imdbConfig);
-      if (result.success) {
-        console.error("[INFO] Successfully connected to IMDB");
-      } else {
-        console.error("[WARNING] Failed to connect to IMDB:", result.error);
-      }
-    } catch (error) {
-      console.error(
-        "[WARNING] IMDB connection test failed:",
         error instanceof Error ? error.message : String(error),
       );
     }

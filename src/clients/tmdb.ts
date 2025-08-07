@@ -74,7 +74,7 @@ async function makeRequest<T>(
   }
 }
 
-// Find content by external ID (IMDB ID, TVDB ID, etc.)
+// Find content by external ID (TVDB ID, etc.)
 export function findByExternalId(
   config: TMDBConfig,
   externalId: string,

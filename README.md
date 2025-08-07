@@ -1,12 +1,11 @@
 # Media Server MCP
 
-A Model Context Protocol (MCP) server that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series) media servers, and access IMDB and TMDB data through natural language interactions.
+A Model Context Protocol (MCP) server that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series) media servers, and access TMDB data through natural language interactions.
 
 ## Features
 
 - **Radarr Integration**: Search, add, manage, and monitor movies
 - **Sonarr Integration**: Search, add, manage, and monitor TV series
-- **IMDB Integration**: Search movies/shows, get details, and cast info
 - **TMDB Integration**: Advanced movie/TV discovery, external ID lookup, and comprehensive metadata
 - **Flexible Configuration**: Each service is optional - configure any combination
 - **Type-Safe**: Built with TypeScript for reliable operations
@@ -29,8 +28,6 @@ Add to your MCP servers configuration using the JSR package:
         "RADARR_API_KEY": "your-radarr-api-key",
         "SONARR_URL": "http://localhost:8989",
         "SONARR_API_KEY": "your-sonarr-api-key",
-        "IMDB_URL": "https://imdb236.p.rapidapi.com/api/imdb",
-        "RAPIDAPI_KEY": "your-rapidapi-key",
         "TMDB_API_KEY": "your-tmdb-api-key"
       }
     }
@@ -97,23 +94,6 @@ Add to your MCP servers configuration using the JSR package:
 }
 ```
 
-### Minimal IMDB-only Setup
-
-```json
-{
-  "mcpServers": {
-    "media-server": {
-      "command": "deno",
-      "args": ["run", "--allow-all", "jsr:@wyattjoh/media-server-mcp"],
-      "env": {
-        "IMDB_URL": "https://imdb236.p.rapidapi.com/api/imdb",
-        "RAPIDAPI_KEY": "your-rapidapi-key"
-      }
-    }
-  }
-}
-```
-
 ### Minimal TMDB-only Setup
 
 ```json
@@ -133,11 +113,9 @@ Add to your MCP servers configuration using the JSR package:
 2. **Find your API keys**:
    - **Radarr**: Settings → General → Security → API Key
    - **Sonarr**: Settings → General → Security → API Key
-   - **IMDB**: Sign up at [RapidAPI](https://rapidapi.com/), subscribe to an IMDB API service
    - **TMDB**: Sign up at [TMDB](https://www.themoviedb.org/), go to Settings → API → Create API Key
 
    **Important**:
-   - For IMDB, ensure your `IMDB_URL` includes the full path with `/api/imdb` at the end.
    - For TMDB, you'll need a free TMDB account and API key from their developer section.
 
 3. **Start using** - Ask your AI assistant to manage your media library!
@@ -146,24 +124,21 @@ Add to your MCP servers configuration using the JSR package:
 
 ### Environment Variables
 
-| Variable         | Description                         | Required  |
-| ---------------- | ----------------------------------- | --------- |
-| `RADARR_URL`     | Base URL of your Radarr instance    | Optional* |
-| `RADARR_API_KEY` | API key for Radarr authentication   | Optional* |
-| `SONARR_URL`     | Base URL of your Sonarr instance    | Optional* |
-| `SONARR_API_KEY` | API key for Sonarr authentication   | Optional* |
-| `IMDB_URL`       | Base URL of IMDB API service        | Optional* |
-| `RAPIDAPI_KEY`   | RapidAPI key for IMDB functionality | Optional* |
-| `TMDB_API_KEY`   | TMDB API key for movie/TV metadata  | Optional* |
+| Variable         | Description                        | Required  |
+| ---------------- | ---------------------------------- | --------- |
+| `RADARR_URL`     | Base URL of your Radarr instance   | Optional* |
+| `RADARR_API_KEY` | API key for Radarr authentication  | Optional* |
+| `SONARR_URL`     | Base URL of your Sonarr instance   | Optional* |
+| `SONARR_API_KEY` | API key for Sonarr authentication  | Optional* |
+| `TMDB_API_KEY`   | TMDB API key for movie/TV metadata | Optional* |
 
-*_At least one service (Radarr, Sonarr, IMDB, or TMDB) must be configured._
+*_At least one service (Radarr, Sonarr, or TMDB) must be configured._
 
 ### Example URLs
 
 - **Local Radarr**: `http://localhost:7878`
 - **Local Sonarr**: `http://localhost:8989`
 - **Remote with custom port**: `https://radarr.yourdomain.com:443`
-- **IMDB via RapidAPI**: `https://imdb236.p.rapidapi.com/api/imdb` (must include `/api/imdb` path)
 
 ## Available Tools
 
@@ -173,7 +148,7 @@ Add to your MCP servers configuration using the JSR package:
 
 - `radarr_search_movie` - Search for movies in The Movie Database
 - `radarr_add_movie` - Add a movie to your library
-- `radarr_get_movies` - List all movies in your library (supports filtering by title, genres, year range, monitored status, file availability, quality profile, tags, minimum availability, IMDB ID, and TMDB ID)
+- `radarr_get_movies` - List all movies in your library (supports filtering by title, genres, year range, monitored status, file availability, quality profile, tags, minimum availability, and TMDB ID)
 - `radarr_get_movie` - Get details of a specific movie
 - `radarr_delete_movie` - Remove a movie from your library
 
@@ -195,7 +170,7 @@ Add to your MCP servers configuration using the JSR package:
 
 - `sonarr_search_series` - Search for TV series
 - `sonarr_add_series` - Add a TV series to your library
-- `sonarr_get_series` - List all series in your library (supports filtering by title, genres, year range, monitored status, network, series type, quality profile, tags, status, IMDB ID, and TMDB ID)
+- `sonarr_get_series` - List all series in your library (supports filtering by title, genres, year range, monitored status, network, series type, quality profile, tags, status, and TMDB ID)
 - `sonarr_get_series_by_id` - Get details of a specific series
 - `sonarr_delete_series` - Remove a series from your library
 
@@ -217,12 +192,6 @@ Add to your MCP servers configuration using the JSR package:
 - `sonarr_get_system_status` - Get system information
 - `sonarr_get_health` - Check system health
 - `sonarr_refresh_series` - Refresh series metadata
-
-### IMDB Tools (when configured)
-
-- `imdb_search` - Search for movies and TV shows by exact title on IMDB
-- `imdb_get_details` - Get detailed information about a movie or TV show
-- `imdb_get_cast` - Get cast and crew information for a movie or TV show
 
 ### TMDB Tools (when configured)
 
@@ -286,7 +255,7 @@ Add to your MCP servers configuration using the JSR package:
 
 #### External ID Integration
 
-- `tmdb_find_by_external_id` - Find TMDB content by external ID (IMDB ID, TVDB ID, etc.)
+- `tmdb_find_by_external_id` - Find TMDB content by external ID (TVDB ID, etc.)
 
 #### Configuration and Metadata
 
@@ -303,12 +272,10 @@ With this MCP server configured, you can ask your AI assistant:
 
 - "Add the movie Inception to my Radarr library"
 - "Show me what TV series are in my Sonarr queue"
-- "Search IMDB for The Matrix"
 - "What episodes of Breaking Bad are airing this week?"
 - "Add The Office to my TV library and monitor all seasons"
 - "Find movies on TMDB similar to The Dark Knight from 2020-2024"
 - "Discover highly-rated sci-fi TV shows on TMDB"
-- "Convert this IMDB ID to TMDB information"
 - "Get the Radarr system status and health"
 
 ### API Examples
@@ -348,17 +315,6 @@ With this MCP server configured, you can ask your AI assistant:
 }
 ```
 
-#### Searching IMDB
-
-```json
-{
-  "tool": "imdb_search",
-  "arguments": {
-    "query": "The Dark Knight"
-  }
-}
-```
-
 #### Discovering Movies on TMDB
 
 ```json
@@ -369,18 +325,6 @@ With this MCP server configured, you can ask your AI assistant:
     "vote_average_gte": 7.0,
     "primary_release_year": 2023,
     "sort_by": "popularity.desc"
-  }
-}
-```
-
-#### Finding by External ID
-
-```json
-{
-  "tool": "tmdb_find_by_external_id",
-  "arguments": {
-    "externalId": "tt0468569",
-    "externalSource": "imdb_id"
   }
 }
 ```
@@ -405,7 +349,6 @@ With this MCP server configured, you can ask your AI assistant:
 
 - Verify API keys are correct and haven't expired
 - Check that API access is enabled in service settings
-- For IMDB, ensure RapidAPI subscription is active
 
 ### Debug Mode
 
@@ -462,19 +405,16 @@ src/
 ├── clients/
 │   ├── radarr.ts         # Radarr API client
 │   ├── sonarr.ts         # Sonarr API client
-│   ├── imdb.ts           # IMDB API client
 │   └── tmdb.ts           # TMDB API client
 ├── tools/
 │   ├── radarr-tools.ts   # Radarr MCP tools
 │   ├── sonarr-tools.ts   # Sonarr MCP tools  
-│   ├── imdb-tools.ts     # IMDB MCP tools
 │   └── tmdb-tools.ts     # TMDB MCP tools
 ├── utils/
 │   └── filters.ts        # Filtering and sorting utilities
 └── types/
     ├── radarr.ts         # Radarr type definitions
     ├── sonarr.ts         # Sonarr type definitions
-    ├── imdb.ts           # IMDB type definitions
     ├── tmdb.ts           # TMDB type definitions
     ├── mcp.ts            # MCP-specific types
     ├── filters.ts        # Filter and sort type definitions
@@ -496,7 +436,6 @@ MIT License - see LICENSE.md file for details.
 ## Acknowledgments
 
 - Built on the [Model Context Protocol](https://modelcontextprotocol.io/)
-- Integrates with [Radarr](https://radarr.video/), [Sonarr](https://sonarr.tv/), [IMDB](https://www.imdb.com/), and [TMDB](https://www.themoviedb.org/)
-- Uses [RapidAPI](https://rapidapi.com/) for IMDB data access
+- Integrates with [Radarr](https://radarr.video/), [Sonarr](https://sonarr.tv/), and [TMDB](https://www.themoviedb.org/)
 - Uses [The Movie Database API](https://developers.themoviedb.org/3) for comprehensive movie and TV metadata
 - Uses the Deno runtime for modern JavaScript/TypeScript execution

@@ -5,13 +5,11 @@ import * as radarrClient from "../clients/radarr.ts";
 import type { MCPToolResult } from "../types/mcp.ts";
 import {
   RadarrAddMovieSchema,
+  RadarrMovieFiltersSchema,
   RadarrMovieIdSchema,
+  RadarrMovieSortSchema,
   RadarrSearchSchema,
 } from "../types/radarr.ts";
-import {
-  RadarrMovieFiltersSchema,
-  RadarrMovieSortSchema,
-} from "../types/filters.ts";
 
 export function createRadarrTools(): Tool[] {
   return [

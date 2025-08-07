@@ -13,13 +13,16 @@ import type { PaginatedResponse } from "../types/mcp.ts";
 import {
   isValidationErrorArray,
   ValidationException,
-} from "../types/validation.ts";
+} from "../utils/validation.ts";
 import type {
   RadarrMovieFilters,
   RadarrMovieSortField,
-  SortOptions,
-} from "../types/filters.ts";
-import { applyRadarrMovieFilters, sortRadarrMovies } from "../utils/filters.ts";
+} from "../types/radarr.ts";
+import type { SortOptions } from "../types/filters.ts";
+import {
+  applyRadarrMovieFilters,
+  sortRadarrMovies,
+} from "../utils/filters/radarr.ts";
 
 export interface RadarrConfig {
   readonly baseUrl: string;

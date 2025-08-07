@@ -14,16 +14,16 @@ import type { PaginatedResponse } from "../types/mcp.ts";
 import {
   isValidationErrorArray,
   ValidationException,
-} from "../types/validation.ts";
+} from "../utils/validation.ts";
 import type {
   SonarrSeriesFilters,
   SonarrSeriesSortField,
-  SortOptions,
-} from "../types/filters.ts";
+} from "../types/sonarr.ts";
+import type { SortOptions } from "../types/filters.ts";
 import {
   applySonarrSeriesFilters,
   sortSonarrSeries,
-} from "../utils/filters.ts";
+} from "../utils/filters/sonarr.ts";
 
 export interface SonarrConfig {
   readonly baseUrl: string;

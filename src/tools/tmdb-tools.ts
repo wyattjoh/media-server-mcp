@@ -44,13 +44,13 @@ export function createTMDBTools(): Tool[] {
     {
       name: "tmdb_find_by_external_id",
       description:
-        "Find TMDB content by external ID (IMDB ID, TVDB ID, etc.). Perfect for converting IMDB IDs to TMDB data.",
+        "Find TMDB content by external ID (TVDB ID, etc.) from other databases.",
       inputSchema: {
         type: "object",
         properties: {
           externalId: {
             type: "string",
-            description: "External ID (e.g., IMDB ID like 'tt1234567')",
+            description: "External ID (e.g., 'tt1234567' for movie/TV IDs)",
           },
           externalSource: {
             type: "string",

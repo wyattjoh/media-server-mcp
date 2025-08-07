@@ -14,7 +14,7 @@ Deno.test("Environment configuration - validates service requirements", () => {
   // Test that at least one service configuration is required
   const emptyRadarr = {};
   const emptySonarr = {};
-  const emptyIMDB = undefined;
+  const emptyTMDB = {};
 
   // This simulates the validation logic that should exist
   const hasRadarr = Boolean(
@@ -25,11 +25,11 @@ Deno.test("Environment configuration - validates service requirements", () => {
     emptySonarr && "SONARR_URL" in emptySonarr &&
       "SONARR_API_KEY" in emptySonarr,
   );
-  const hasIMDB = Boolean(
-    emptyIMDB && "IMDB_URL" in emptyIMDB && "RAPIDAPI_KEY" in emptyIMDB,
+  const hasTMDB = Boolean(
+    emptyTMDB && "TMDB_API_KEY" in emptyTMDB,
   );
 
-  const hasAtLeastOneService = hasRadarr || hasSonarr || hasIMDB;
+  const hasAtLeastOneService = hasRadarr || hasSonarr || hasTMDB;
 
   assertEquals(hasAtLeastOneService, false);
 });
@@ -56,14 +56,4 @@ Deno.test("Environment configuration - detects valid Sonarr config", () => {
     sonarrConfig.SONARR_URL && sonarrConfig.SONARR_API_KEY,
   );
   assertEquals(hasSonarr, true);
-});
-
-Deno.test("Environment configuration - detects valid IMDB config", () => {
-  const imdbConfig = {
-    IMDB_URL: "https://imdb-api.example.com",
-    RAPIDAPI_KEY: "test-key",
-  };
-
-  const hasIMDB = Boolean(imdbConfig.IMDB_URL && imdbConfig.RAPIDAPI_KEY);
-  assertEquals(hasIMDB, true);
 });
