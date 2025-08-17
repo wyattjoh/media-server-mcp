@@ -2,6 +2,15 @@
 
 A Model Context Protocol (MCP) server that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series) media servers, and access TMDB data through natural language interactions.
 
+## Packages
+
+This is a monorepo containing the following packages:
+
+- **[@wyattjoh/media-server-mcp](packages/media-server-mcp/)** - The main MCP server
+- **[@wyattjoh/radarr](packages/radarr/)** - Radarr API client library
+- **[@wyattjoh/sonarr](packages/sonarr/)** - Sonarr API client library
+- **[@wyattjoh/tmdb](packages/tmdb/)** - TMDB API client library
+
 ## Features
 
 - **Radarr Integration**: Search, add, manage, and monitor movies
@@ -45,7 +54,7 @@ Add to your MCP servers configuration using the JSR package:
       "args": [
         "run",
         "--allow-all",
-        "https://raw.githubusercontent.com/wyattjoh/media-server-mcp/main/src/index.ts"
+        "https://raw.githubusercontent.com/wyattjoh/media-server-mcp/main/packages/media-server-mcp/src/index.ts"
       ],
       "env": {
         "RADARR_URL": "http://localhost:7878",

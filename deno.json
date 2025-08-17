@@ -1,31 +1,15 @@
 {
-  "name": "@wyattjoh/media-server-mcp",
-  "version": "0.6.0",
-  "license": "MIT",
-  "exports": "./src/index.ts",
-  "publish": {
-    "include": [
-      "LICENSE",
-      "README.md",
-      "src/**/*.ts",
-      "deno.json",
-      ".env.example"
-    ],
-    "exclude": ["tests/"]
-  },
+  "workspace": [
+    "packages/radarr",
+    "packages/sonarr",
+    "packages/tmdb",
+    "packages/media-server-mcp"
+  ],
   "tasks": {
-    "dev": "deno run --allow-all --watch src/index.ts",
-    "start": "deno run --allow-all src/index.ts",
-    "check": "deno check",
-    "fmt": "deno fmt",
-    "lint": "deno lint",
-    "build": "deno compile --allow-read --allow-write --allow-env --allow-run --allow-net --output=media-server-mcp src/index.ts",
+    "dev": "deno run --allow-all --watch packages/media-server-mcp/src/index.ts",
+    "start": "deno run --allow-all packages/media-server-mcp/src/index.ts",
+    "build": "deno compile --allow-read --allow-write --allow-env --allow-run --allow-net --output=media-server-mcp packages/media-server-mcp/src/index.ts",
     "test": "deno test --allow-net"
-  },
-  "imports": {
-    "@modelcontextprotocol/sdk": "npm:@modelcontextprotocol/sdk@^1.0.0",
-    "@std/dotenv": "jsr:@std/dotenv@^0.225.5",
-    "zod": "npm:zod@^3.22.0"
   },
   "compilerOptions": {
     "strict": true,
@@ -45,7 +29,7 @@
     "proseWrap": "preserve"
   },
   "lint": {
-    "include": ["src/"],
+    "include": ["packages/"],
     "rules": {
       "tags": ["recommended"]
     }

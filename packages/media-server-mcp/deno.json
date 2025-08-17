@@ -1,0 +1,31 @@
+{
+  "name": "@wyattjoh/media-server-mcp",
+  "version": "0.6.0",
+  "license": "MIT",
+  "exports": "./src/index.ts",
+  "publish": {
+    "include": [
+      "LICENSE",
+      "README.md",
+      "src/**/*.ts",
+      "deno.json",
+      ".env.example"
+    ],
+    "exclude": ["tests/"]
+  },
+  "tasks": {
+    "build": "deno compile --allow-read --allow-write --allow-env --allow-run --allow-net --output=media-server-mcp src/index.ts"
+  },
+  "imports": {
+    "@modelcontextprotocol/sdk": "npm:@modelcontextprotocol/sdk@^1.0.0",
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.5",
+    "zod": "npm:zod@^3.22.0",
+    "@wyattjoh/radarr": "../radarr/mod.ts",
+    "@wyattjoh/sonarr": "../sonarr/mod.ts",
+    "@wyattjoh/tmdb": "../tmdb/mod.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wyattjoh/media-server-mcp.git"
+  }
+}

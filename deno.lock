@@ -561,10 +561,29 @@
     "https://deno.land/std@0.208.0/fmt/colors.ts": "34b3f77432925eb72cf0bfb351616949746768620b8e5ead66da532f93d10ba2"
   },
   "workspace": {
-    "dependencies": [
-      "jsr:@std/dotenv@~0.225.5",
-      "npm:@modelcontextprotocol/sdk@1",
-      "npm:zod@^3.22.0"
-    ]
+    "members": {
+      "packages/media-server-mcp": {
+        "dependencies": [
+          "jsr:@std/dotenv@~0.225.5",
+          "npm:@modelcontextprotocol/sdk@1",
+          "npm:zod@^3.22.0"
+        ]
+      },
+      "packages/radarr": {
+        "dependencies": [
+          "npm:zod@^3.22.0"
+        ]
+      },
+      "packages/sonarr": {
+        "dependencies": [
+          "npm:zod@^3.22.0"
+        ]
+      },
+      "packages/tmdb": {
+        "dependencies": [
+          "npm:zod@^3.22.0"
+        ]
+      }
+    }
   }
 }

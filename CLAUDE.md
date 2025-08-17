@@ -6,13 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Type checking - Always run before committing
-deno task check
+deno check
 
 # Linting - Always run before committing  
-deno task lint
+deno lint
 
 # Code formatting
-deno task fmt
+deno fmt
 
 # Run tests
 deno test --allow-net
@@ -24,18 +24,29 @@ deno task dev
 deno task start
 ```
 
+## Monorepo Structure
+
+This repository is organized as a Deno workspace with the following packages:
+
+- **packages/radarr/** - `@wyattjoh/radarr` - Radarr API client library
+- **packages/sonarr/** - `@wyattjoh/sonarr` - Sonarr API client library
+- **packages/tmdb/** - `@wyattjoh/tmdb` - TMDB API client library
+- **packages/media-server-mcp/** - `@wyattjoh/media-server-mcp` - Main MCP server
+
+Each package is independently publishable and has its own `deno.json` configuration.
+
 ## Development Best Practices
 
 - Always use `deno task fmt`, `deno task lint`, and `deno task check` after modifying or creating code to ensure that it's correct.
 - Run `deno test --allow-net` to verify all tests pass before committing changes.
-- Tests are organized by layer: `tests/clients/`, `tests/tools/`, `tests/resources/`, and `tests/server_test.ts`.
+- Tests are organized by layer in `packages/media-server-mcp/tests/`: `tests/clients/`, `tests/tools/`, and `tests/server_test.ts`.
 - After changing any of the available MCP tools or resources, evaluate if you need to update the README.md and CLAUDE.md to be reflective of those changes.
 
 ### File Naming Conventions
 
 - **Source files**: Use kebab-case for all source files (e.g., `query-enhancer.ts`, `search-service.ts`)
 - **Test files**: Use kebab-case with `_test.ts` suffix (e.g., `query-enhancer_test.ts`, `search-service_test.ts`)
-- **Directory structure**: Tests mirror the source structure in the `tests/` directory
+- **Directory structure**: Tests mirror the source structure in the `packages/media-server-mcp/tests/` directory
 
 ## Architecture Overview
 
@@ -45,11 +56,11 @@ This is a **Model Context Protocol (MCP) server** that provides AI assistants wi
 
 The codebase follows a **layered architecture**:
 
-1. **MCP Server Layer** (`src/index.ts`): Main server that handles MCP protocol communication
-2. **Tool Layer** (`src/tools/`): MCP tool definitions and handlers that bridge MCP and API clients
-3. **Client Layer** (`src/clients/`): HTTP API clients for Radarr, Sonarr, and TMDB services
-4. **Type Layer** (`src/types/`): TypeScript definitions for all interfaces
-5. **Utilities Layer** (`src/utils/`): Shared utilities for filtering and data processing
+1. **MCP Server Layer** (`packages/media-server-mcp/src/index.ts`): Main server that handles MCP protocol communication
+2. **Tool Layer** (`packages/media-server-mcp/src/tools/`): MCP tool definitions and handlers that bridge MCP and API clients
+3. **Client Packages** (`packages/{radarr,sonarr,tmdb}/`): Standalone client libraries for each service
+4. **Type Definitions**: Each package contains its own TypeScript definitions
+5. **Shared Components**: Client packages include filtering and validation utilities
 
 ### Key Architectural Decisions
 
