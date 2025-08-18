@@ -16,7 +16,8 @@ This is a monorepo containing the following packages:
 - **Radarr Integration**: Search, add, manage, and monitor movies
 - **Sonarr Integration**: Search, add, manage, and monitor TV series
 - **TMDB Integration**: Advanced movie/TV discovery, external ID lookup, and comprehensive metadata
-- **Flexible Configuration**: Each service is optional - configure any combination
+- **Tool Configuration System**: Reduce tool clutter with 6 profiles (18-70 tools) and branch-based filtering
+- **Flexible Service Configuration**: Each service is optional - configure any combination
 - **Type-Safe**: Built with TypeScript for reliable operations
 - **Easy Setup**: Install directly from JSR with a single deno run command
 
@@ -37,7 +38,8 @@ Add to your MCP servers configuration using the JSR package:
         "RADARR_API_KEY": "your-radarr-api-key",
         "SONARR_URL": "http://localhost:8989",
         "SONARR_API_KEY": "your-sonarr-api-key",
-        "TMDB_API_KEY": "your-tmdb-api-key"
+        "TMDB_API_KEY": "your-tmdb-api-key",
+        "TOOL_PROFILE": "default"
       }
     }
   }
@@ -148,6 +150,160 @@ Add to your MCP servers configuration using the JSR package:
 - **Local Radarr**: `http://localhost:7878`
 - **Local Sonarr**: `http://localhost:8989`
 - **Remote with custom port**: `https://radarr.yourdomain.com:443`
+
+## Tool Configuration System
+
+The Media Server MCP includes a powerful tool filtering system that allows you to control which tools are exposed to your AI assistant. This helps reduce tool clutter and focus on the functionality you need.
+
+### Tool Organization
+
+Tools are organized into **6 logical branches**:
+
+| Branch                    | Description                                  | Tool Count | Purpose                        |
+| ------------------------- | -------------------------------------------- | ---------- | ------------------------------ |
+| **`discovery-add`**       | Core discovery and adding functionality      | 18 tools   | Finding and adding new content |
+| **`library-management`**  | Managing existing content                    | 11 tools   | Organizing your library        |
+| **`system-maintenance`**  | Health checks and maintenance                | 10 tools   | System administration          |
+| **`download-management`** | Queue and download operations                | 7 tools    | Download monitoring            |
+| **`metadata-enrichment`** | Advanced TMDB research features              | 16 tools   | Deep content research          |
+| **`advanced-search`**     | External ID lookups and specialized searches | 7 tools    | Power user features            |
+
+### Predefined Profiles
+
+Choose from **6 predefined profiles** that combine different tool branches:
+
+| Profile                 | Branches Included                      | Total Tools | Best For                                    |
+| ----------------------- | -------------------------------------- | ----------- | ------------------------------------------- |
+| **`default`** (default) | `discovery-add`                        | 18 tools    | Most users - essential discovery and adding |
+| **`minimal`**           | `discovery-add`                        | 18 tools    | Same as default                             |
+| **`curator`**           | `discovery-add` + `library-management` | 29 tools    | Managing existing content                   |
+| **`maintainer`**        | `curator` + `system-maintenance`       | 39 tools    | System administrators                       |
+| **`power-user`**        | All except `advanced-search`           | 63 tools    | Advanced users                              |
+| **`full`**              | All branches                           | 70 tools    | Complete functionality                      |
+
+### Configuration Methods
+
+#### 1. Environment Variables (Recommended)
+
+Add these variables to your MCP server configuration:
+
+```json
+{
+  "mcpServers": {
+    "media-server": {
+      "command": "deno",
+      "args": ["run", "--allow-all", "jsr:@wyattjoh/media-server-mcp"],
+      "env": {
+        "RADARR_URL": "http://localhost:7878",
+        "RADARR_API_KEY": "your-radarr-api-key",
+        "TOOL_PROFILE": "curator",
+        "TOOL_BRANCHES": "download-management"
+      }
+    }
+  }
+}
+```
+
+**Available Environment Variables:**
+
+| Variable           | Description                                       | Example Values                             |
+| ------------------ | ------------------------------------------------- | ------------------------------------------ |
+| `TOOL_PROFILE`     | Select a predefined profile                       | `default`, `curator`, `power-user`, `full` |
+| `TOOL_BRANCHES`    | Add specific branches (comma-separated)           | `library-management,system-maintenance`    |
+| `TOOL_EXCLUDE`     | Exclude specific tools (comma-separated)          | `radarr_delete_movie,sonarr_delete_series` |
+| `TOOL_INCLUDE`     | Include specific tools (overrides other settings) | `radarr_get_health,sonarr_get_health`      |
+| `TOOL_CONFIG_PATH` | Path to JSON configuration file                   | `./tools.config.json`                      |
+
+#### 2. JSON Configuration File
+
+For advanced configuration, create a JSON file and reference it with `TOOL_CONFIG_PATH`:
+
+```json
+{
+  "toolProfile": "curator",
+  "enabledBranches": ["download-management", "system-maintenance"],
+  "customOverrides": {
+    "exclude": [
+      "radarr_delete_movie",
+      "sonarr_delete_series"
+    ],
+    "include": [
+      "radarr_get_health",
+      "sonarr_get_health"
+    ]
+  }
+}
+```
+
+### Configuration Precedence
+
+Settings are applied in this order (later settings override earlier ones):
+
+1. **Default Profile**: `discovery-add` tools only (18 tools)
+2. **JSON Configuration File**: Applied if `TOOL_CONFIG_PATH` is set
+3. **Environment Variables**: Override JSON settings
+4. **Custom Overrides**: `TOOL_EXCLUDE` and `TOOL_INCLUDE` applied last
+
+### Common Configuration Examples
+
+#### Minimal Setup (Default)
+
+```bash
+# No tool configuration needed - uses default profile
+# Result: 18 essential discovery and add tools
+```
+
+#### Content Curator
+
+```bash
+TOOL_PROFILE=curator
+# Result: 29 tools (discovery + library management)
+```
+
+#### System Administrator
+
+```bash
+TOOL_PROFILE=maintainer
+TOOL_INCLUDE=radarr_disk_scan,sonarr_disk_scan
+# Result: 41 tools (maintainer profile + disk scanning)
+```
+
+#### Power User with Restrictions
+
+```bash
+TOOL_PROFILE=power-user
+TOOL_EXCLUDE=radarr_delete_movie,sonarr_delete_series,sonarr_disk_scan
+# Result: 60 tools (power-user minus dangerous operations)
+```
+
+#### Discovery Only (TMDB + Search)
+
+```bash
+TOOL_PROFILE=default
+TOOL_EXCLUDE=radarr_add_movie,sonarr_add_series
+# Result: 16 tools (discovery without adding capabilities)
+```
+
+#### Full Access
+
+```bash
+TOOL_PROFILE=full
+# Result: 70 tools (all available functionality)
+```
+
+### Tool Configuration Debugging
+
+The server logs the active configuration on startup:
+
+```
+[INFO] Tool Configuration:
+  Profile: curator
+  Additional Branches: download-management
+  Excluded Tools: radarr_delete_movie, sonarr_delete_series
+  Total Enabled Tools: 36
+```
+
+This helps verify your configuration is working as expected.
 
 ## Available Tools
 
@@ -372,9 +528,20 @@ With this MCP server configured, you can ask your AI assistant:
 - Verify API keys are correct and haven't expired
 - Check that API access is enabled in service settings
 
+#### Tool Configuration Issues
+
+- **Too many/few tools**: Check your `TOOL_PROFILE` setting or use `TOOL_BRANCHES` to add specific functionality
+- **Missing expected tools**: Verify the tool is included in your profile/branches using the startup logs
+- **Invalid profile error**: Use one of the valid profiles: `default`, `minimal`, `curator`, `maintainer`, `power-user`, `full`
+- **JSON config not loading**: Check that `TOOL_CONFIG_PATH` points to a valid file and has correct JSON syntax
+
 ### Debug Mode
 
-Check MCP server logs for connection status on startup. The server will test each configured service and report connection results.
+Check MCP server logs for connection status and tool configuration on startup. The server will:
+
+- Test each configured service and report connection results
+- Log the active tool configuration showing profile, branches, and total tool count
+- Report any configuration parsing errors
 
 ## Development
 
