@@ -52,12 +52,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Page number (1-1000)",
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -67,20 +61,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.page,
           args.language,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -111,12 +91,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Page number (1-1000)",
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -126,20 +100,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.page,
           args.language,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -172,12 +132,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Page number (1-1000)",
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -187,20 +141,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.page,
           args.language,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -230,12 +170,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Page number (1-1000)",
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -244,20 +178,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.page,
           args.language,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -336,20 +256,12 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Region for release dates (ISO 3166-1)",
       ),
       year: z.number().optional().describe("Filter by release year"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
-        const { limit, skip, ...discoverOptions } = args;
-
         // Filter out undefined values
         const cleanedOptions: Record<string, string | number | boolean> = {};
-        Object.entries(discoverOptions).forEach(([key, value]) => {
+        Object.entries(args).forEach(([key, value]) => {
           if (value !== undefined) {
             cleanedOptions[key] = value;
           }
@@ -359,16 +271,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           config,
           cleanedOptions,
         );
-
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -441,36 +343,18 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       screened_theatrically: z.boolean().optional().describe(
         "Filter by theatrical screening",
       ),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
-        const { limit, skip, ...discoverOptions } = args;
-
         // Filter out undefined values
         const cleanedOptions: Record<string, string | number | boolean> = {};
-        Object.entries(discoverOptions).forEach(([key, value]) => {
+        Object.entries(args).forEach(([key, value]) => {
           if (value !== undefined) {
             cleanedOptions[key] = value;
           }
         });
 
         const result = await tmdbClient.discoverTV(config, cleanedOptions);
-
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -539,12 +423,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Page number (1-1000)",
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -555,20 +433,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.page,
           args.language,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -601,12 +465,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       region: z.string().optional().describe(
         "Region for release dates (ISO 3166-1)",
       ),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -616,20 +474,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.language,
           args.region,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -662,12 +506,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       region: z.string().optional().describe(
         "Region for release dates (ISO 3166-1)",
       ),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -677,20 +515,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.language,
           args.region,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -723,12 +547,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       region: z.string().optional().describe(
         "Region for release dates (ISO 3166-1)",
       ),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -738,20 +556,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.language,
           args.region,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -781,12 +585,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Page number (1-1000)",
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -795,20 +593,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.page,
           args.language,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -838,12 +622,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Page number (1-1000)",
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -852,20 +630,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.page,
           args.language,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -895,12 +659,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Page number (1-1000)",
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -909,20 +667,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.page,
           args.language,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -953,12 +697,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
       timezone: z.string().optional().describe("Timezone for air dates"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -968,20 +706,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.language,
           args.timezone,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -1080,12 +804,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Page number (1-1000)",
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -1095,20 +813,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.page,
           args.language,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -1139,12 +843,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Page number (1-1000)",
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -1154,20 +852,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.page,
           args.language,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -1198,12 +882,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Page number (1-1000)",
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -1213,20 +891,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.page,
           args.language,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -1257,12 +921,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Page number (1-1000)",
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -1272,20 +930,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.page,
           args.language,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -1317,12 +961,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
       include_adult: z.boolean().optional().describe("Include adult content"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -1333,20 +971,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.language,
           args.include_adult,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -1376,12 +1000,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Page number (1-1000)",
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -1390,20 +1008,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.page,
           args.language,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -1543,12 +1147,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Page number (1-1000)",
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -1558,20 +1156,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.page,
           args.language,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{
@@ -1675,12 +1259,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       ),
       language: z.string().optional().describe("Language code (e.g., 'en-US')"),
       include_adult: z.boolean().optional().describe("Include adult movies"),
-      limit: z.number().min(1).max(100).optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().min(0).optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
     },
     async (args) => {
       try {
@@ -1691,20 +1269,6 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
           args.language,
           args.include_adult,
         );
-
-        if (args.limit !== undefined || args.skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(
-            result,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(paginated, null, 2),
-            }],
-          };
-        }
 
         return {
           content: [{

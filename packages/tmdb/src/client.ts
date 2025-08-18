@@ -24,7 +24,6 @@ import type {
   TMDBTVSearchResponse,
   TMDBWatchProvidersResponse,
 } from "./types.ts";
-import type { PaginatedResponse } from "./shared-types.ts";
 
 export interface TMDBConfig {
   readonly baseUrl: string;
@@ -259,30 +258,6 @@ export function getTVCredits(
   tvId: number,
 ): Promise<TMDBCredits> {
   return makeRequest<TMDBCredits>(config, `/tv/${tvId}/credits`);
-}
-
-// Helper function to convert search results to paginated response
-export function toPaginatedResponse<T>(
-  searchResponse: {
-    page: number;
-    results: T[];
-    total_pages: number;
-    total_results: number;
-  },
-  limit?: number,
-  skip?: number,
-): PaginatedResponse<T[]> {
-  const startIndex = skip || 0;
-  const endIndex = limit !== undefined ? startIndex + limit : undefined;
-  const paginatedResults = searchResponse.results.slice(startIndex, endIndex);
-
-  return {
-    data: paginatedResults,
-    total: searchResponse.total_results,
-    returned: paginatedResults.length,
-    skip: startIndex,
-    limit,
-  };
 }
 
 // Get trending content (movies, TV shows, or people)
