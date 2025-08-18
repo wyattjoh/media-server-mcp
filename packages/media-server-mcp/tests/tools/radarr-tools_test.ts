@@ -15,7 +15,7 @@ Deno.test("createRadarrTools - registers tools without errors", () => {
   );
 
   // Should not throw
-  createRadarrTools(server, config);
+  createRadarrTools(server, config, () => true);
 });
 
 Deno.test("createRadarrTools - works with valid configuration", () => {
@@ -30,7 +30,7 @@ Deno.test("createRadarrTools - works with valid configuration", () => {
   );
 
   // Should not throw with valid configuration
-  createRadarrTools(server, config);
+  createRadarrTools(server, config, () => true);
 
   // Test passes if no error is thrown
   assertEquals(true, true);

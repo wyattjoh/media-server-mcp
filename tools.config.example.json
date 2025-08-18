@@ -1,0 +1,14 @@
+{
+  "toolProfile": "curator",
+  "enabledBranches": ["download-management"],
+  "customOverrides": {
+    "exclude": [
+      "radarr_delete_movie",
+      "sonarr_delete_series"
+    ],
+    "include": [
+      "radarr_get_health",
+      "sonarr_get_health"
+    ]
+  }
+}

@@ -23,6 +23,12 @@ import {
 import { createRadarrTools } from "./tools/radarr-tools.ts";
 import { createSonarrTools } from "./tools/sonarr-tools.ts";
 import { createTMDBTools } from "./tools/tmdb-tools.ts";
+import {
+  createToolFilter,
+  loadToolConfigFile,
+  logToolConfiguration,
+  parseToolConfig,
+} from "./tools/tool-filter.ts";
 
 interface ServerState {
   server: McpServer;
@@ -31,7 +37,7 @@ interface ServerState {
   tmdbConfig?: TMDBConfig;
 }
 
-function createServer(): ServerState {
+async function createServer(): Promise<ServerState> {
   const server = new McpServer(
     {
       name: "media-server-mcp",
@@ -46,7 +52,7 @@ function createServer(): ServerState {
 
   const state: ServerState = { server };
   loadConfig(state);
-  setupTools(state);
+  await setupTools(state);
   return state;
 }
 
@@ -81,20 +87,30 @@ function loadConfig(state: ServerState): void {
   }
 }
 
-function setupTools(state: ServerState): void {
+async function setupTools(state: ServerState): Promise<void> {
+  // Load tool configuration from file if specified
+  const configFileContent = await loadToolConfigFile();
+
+  // Parse tool configuration
+  const toolConfig = parseToolConfig(configFileContent);
+  const isToolEnabled = createToolFilter(toolConfig);
+
+  // Log tool configuration for debugging
+  logToolConfiguration(toolConfig);
+
   // Register Radarr tools if configured
   if (state.radarrConfig) {
-    createRadarrTools(state.server, state.radarrConfig);
+    createRadarrTools(state.server, state.radarrConfig, isToolEnabled);
   }
 
   // Register Sonarr tools if configured
   if (state.sonarrConfig) {
-    createSonarrTools(state.server, state.sonarrConfig);
+    createSonarrTools(state.server, state.sonarrConfig, isToolEnabled);
   }
 
   // Register TMDB tools if configured
   if (state.tmdbConfig) {
-    createTMDBTools(state.server, state.tmdbConfig);
+    createTMDBTools(state.server, state.tmdbConfig, isToolEnabled);
   }
 
   // Error handling will be handled by the MCP framework
@@ -161,7 +177,7 @@ async function runServer(state: ServerState): Promise<void> {
 
 async function main(): Promise<void> {
   try {
-    const serverState = createServer();
+    const serverState = await createServer();
     await runServer(serverState);
   } catch (error) {
     console.error(

@@ -15,7 +15,7 @@ Deno.test("createSonarrTools - registers tools without errors", () => {
   );
 
   // Should not throw
-  createSonarrTools(server, config);
+  createSonarrTools(server, config, () => true);
 });
 
 Deno.test("createSonarrTools - works with valid configuration", () => {
@@ -30,7 +30,7 @@ Deno.test("createSonarrTools - works with valid configuration", () => {
   );
 
   // Should not throw with valid configuration
-  createSonarrTools(server, config);
+  createSonarrTools(server, config, () => true);
 
   // Test passes if no error is thrown
   assertEquals(true, true);

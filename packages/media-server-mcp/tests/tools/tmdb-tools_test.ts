@@ -12,7 +12,7 @@ Deno.test("createTMDBTools - registers tools without errors", () => {
   const config = createTMDBConfig("test-api-key");
 
   // Should not throw
-  createTMDBTools(server, config);
+  createTMDBTools(server, config, () => true);
 });
 
 Deno.test("createTMDBTools - works with valid configuration", () => {
@@ -24,7 +24,7 @@ Deno.test("createTMDBTools - works with valid configuration", () => {
   const config = createTMDBConfig("test-api-key");
 
   // Should not throw with valid configuration
-  createTMDBTools(server, config);
+  createTMDBTools(server, config, () => true);
 
   // Test passes if no error is thrown
   assertEquals(true, true);
