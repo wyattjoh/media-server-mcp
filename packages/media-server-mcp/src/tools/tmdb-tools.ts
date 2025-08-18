@@ -988,8 +988,11 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
     TMDBGetMovieDetailsSchema.shape,
     async (args) => {
       try {
-        const { movieId, language: _language, appendToResponse: _appendToResponse } =
-          TMDBGetMovieDetailsSchema.parse(args);
+        const {
+          movieId,
+          language: _language,
+          appendToResponse: _appendToResponse,
+        } = TMDBGetMovieDetailsSchema.parse(args);
 
         const result = await tmdbClient.getMovieDetails(config, movieId);
 
@@ -1019,7 +1022,11 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
     TMDBGetTVDetailsSchema.shape,
     async (args) => {
       try {
-        const { tvId, language: _language, appendToResponse: _appendToResponse } = TMDBGetTVDetailsSchema
+        const {
+          tvId,
+          language: _language,
+          appendToResponse: _appendToResponse,
+        } = TMDBGetTVDetailsSchema
           .parse(args);
 
         const result = await tmdbClient.getTVDetails(config, tvId);

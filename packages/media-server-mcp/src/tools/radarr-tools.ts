@@ -406,38 +406,6 @@ export function createRadarrTools(
     },
   );
 
-  // radarr_get_queue
-  server.tool(
-    "radarr_get_queue",
-    "Get the download queue",
-    PaginationSchema.shape,
-    async (args) => {
-      try {
-        const parsed = PaginationSchema.parse(args);
-        const results = await radarrClient.getQueue(
-          config,
-          parsed.limit,
-          parsed.skip,
-        );
-        return {
-          content: [{
-            type: "text",
-            text: JSON.stringify(results, null, 2),
-          }],
-        };
-      } catch (error) {
-        return {
-          content: [{
-            type: "text",
-            text: `Error: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }],
-        };
-      }
-    },
-  );
-
   // radarr_get_configuration
   server.tool(
     "radarr_get_configuration",
@@ -453,60 +421,6 @@ export function createRadarrTools(
           qualityProfiles,
           rootFolders,
         };
-        return {
-          content: [{
-            type: "text",
-            text: JSON.stringify(result, null, 2),
-          }],
-        };
-      } catch (error) {
-        return {
-          content: [{
-            type: "text",
-            text: `Error: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }],
-        };
-      }
-    },
-  );
-
-  // radarr_get_system_status
-  server.tool(
-    "radarr_get_system_status",
-    "Get Radarr system status",
-    {},
-    async () => {
-      try {
-        const result = await radarrClient.getSystemStatus(config);
-        return {
-          content: [{
-            type: "text",
-            text: JSON.stringify(result, null, 2),
-          }],
-        };
-      } catch (error) {
-        return {
-          content: [{
-            type: "text",
-            text: `Error: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }],
-        };
-      }
-    },
-  );
-
-  // radarr_get_health
-  server.tool(
-    "radarr_get_health",
-    "Get Radarr health check results",
-    {},
-    async () => {
-      try {
-        const result = await radarrClient.getHealth(config);
         return {
           content: [{
             type: "text",
