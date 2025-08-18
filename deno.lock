@@ -568,21 +568,6 @@
           "npm:@modelcontextprotocol/sdk@1",
           "npm:zod@^3.22.0"
         ]
-      },
-      "packages/radarr": {
-        "dependencies": [
-          "npm:zod@^3.22.0"
-        ]
-      },
-      "packages/sonarr": {
-        "dependencies": [
-          "npm:zod@^3.22.0"
-        ]
-      },
-      "packages/tmdb": {
-        "dependencies": [
-          "npm:zod@^3.22.0"
-        ]
       }
     }
   }

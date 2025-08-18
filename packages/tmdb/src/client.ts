@@ -24,7 +24,7 @@ import type {
   TMDBTVSearchResponse,
   TMDBWatchProvidersResponse,
 } from "./types.ts";
-import type { PaginatedResponse } from "./mcp.ts";
+import type { PaginatedResponse } from "./shared-types.ts";
 
 export interface TMDBConfig {
   readonly baseUrl: string;

@@ -6,9 +6,6 @@
   "publish": {
     "include": ["LICENSE", "README.md", "mod.ts", "src/**/*.ts", "deno.json"]
   },
-  "imports": {
-    "zod": "npm:zod@^3.22.0"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/wyattjoh/media-server-mcp.git"

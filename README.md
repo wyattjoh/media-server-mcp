@@ -172,6 +172,9 @@ Add to your MCP servers configuration using the JSR package:
 - `radarr_get_system_status` - Get system information
 - `radarr_get_health` - Check system health
 - `radarr_refresh_movie` - Refresh movie metadata
+- `radarr_update_movie` - Update a movie's settings (quality profile, monitoring, etc.)
+- `radarr_refresh_all_movies` - Refresh metadata for all movies in the library
+- `radarr_disk_scan` - Rescan all movie folders for new/missing files
 
 ### Sonarr Tools (when configured)
 
@@ -186,10 +189,12 @@ Add to your MCP servers configuration using the JSR package:
 #### Episode Management
 
 - `sonarr_get_episodes` - Get episodes for a series
+- `sonarr_get_episode` - Get details of a specific episode by ID
 - `sonarr_update_episode_monitoring` - Change episode monitoring status
 - `sonarr_get_calendar` - View upcoming episodes
 - `sonarr_search_series_episodes` - Search for all episodes of a series
 - `sonarr_search_season` - Search for episodes of a specific season
+- `sonarr_search_episodes` - Search for specific episodes by IDs
 
 #### Queue and Downloads
 
@@ -201,6 +206,9 @@ Add to your MCP servers configuration using the JSR package:
 - `sonarr_get_system_status` - Get system information
 - `sonarr_get_health` - Check system health
 - `sonarr_refresh_series` - Refresh series metadata
+- `sonarr_update_series` - Update a series' settings (quality profile, monitoring, etc.)
+- `sonarr_refresh_all_series` - Refresh metadata for all series in the library
+- `sonarr_disk_scan` - Rescan all series folders for new/missing files
 
 ### TMDB Tools (when configured)
 
@@ -272,6 +280,11 @@ Add to your MCP servers configuration using the JSR package:
 - `tmdb_get_configuration` - Get TMDB API configuration including image base URLs
 - `tmdb_get_countries` - Get list of countries used in TMDB
 - `tmdb_get_languages` - Get list of languages used in TMDB
+
+#### Cast and Crew Information
+
+- `tmdb_get_movie_credits` - Get cast and crew for a movie
+- `tmdb_get_tv_credits` - Get cast and crew for a TV show
 
 ## Usage Examples
 

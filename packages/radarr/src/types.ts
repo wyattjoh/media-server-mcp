@@ -1,43 +1,4 @@
-import { z } from "zod";
-import { PaginationSchema } from "./mcp.ts";
 import type { SortOptions } from "./shared-types.ts";
-
-// Radarr tool schemas
-export const RadarrSearchSchema = z.object({
-  term: z.string().describe("Movie title to search for"),
-}).merge(PaginationSchema);
-
-export const RadarrAddMovieSchema = z.object({
-  tmdbId: z.number().describe("The Movie Database ID"),
-  title: z.string().describe("Movie title"),
-  year: z.number().describe("Movie release year"),
-  qualityProfileId: z.number().describe("Quality profile ID to use"),
-  rootFolderPath: z.string().describe(
-    "Root folder path where movie should be stored",
-  ),
-  minimumAvailability: z.enum([
-    "tba",
-    "announced",
-    "inCinemas",
-    "released",
-    "preDB",
-  ])
-    .describe("Minimum availability for monitoring"),
-  monitored: z.boolean().optional().default(true).describe(
-    "Whether to monitor the movie",
-  ),
-  searchForMovie: z.boolean().optional().default(true)
-    .describe("Whether to search for the movie immediately after adding"),
-  tags: z.array(z.number()).optional().describe(
-    "Tag IDs to apply to the movie",
-  ),
-});
-
-export const RadarrMovieIdSchema = z.object({
-  id: z.number().describe("Movie ID in Radarr"),
-});
-
-export const RadarrPaginatedSchema = PaginationSchema;
 
 // Radarr movie filter options
 export interface RadarrMovieFilters {
@@ -65,33 +26,6 @@ export type RadarrMovieSortField =
 
 // Radarr movie sort options
 export type RadarrMovieSortOptions = SortOptions<RadarrMovieSortField>;
-
-// Zod schemas for validation
-export const RadarrMovieFiltersSchema = z.object({
-  title: z.string().optional(),
-  genres: z.array(z.string()).optional(),
-  yearFrom: z.number().optional(),
-  yearTo: z.number().optional(),
-  monitored: z.boolean().optional(),
-  hasFile: z.boolean().optional(),
-  qualityProfileId: z.number().optional(),
-  tags: z.array(z.number()).optional(),
-  minimumAvailability: z.string().optional(),
-  imdbId: z.string().optional(),
-  tmdbId: z.number().optional(),
-});
-
-export const RadarrMovieSortSchema = z.object({
-  field: z.enum([
-    "title",
-    "year",
-    "added",
-    "sizeOnDisk",
-    "qualityProfileId",
-    "runtime",
-  ]),
-  direction: z.enum(["asc", "desc"]),
-});
 
 export interface RadarrMovie {
   id?: number;

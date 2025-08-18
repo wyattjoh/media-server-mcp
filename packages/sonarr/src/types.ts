@@ -1,76 +1,4 @@
-import { z } from "zod";
-import { PaginationSchema } from "./mcp.ts";
 import type { SortOptions } from "./shared-types.ts";
-
-// Sonarr tool schemas
-export const SonarrSearchSchema = z.object({
-  term: z.string().describe("TV series title to search for"),
-}).merge(PaginationSchema);
-
-export const SonarrAddSeriesSchema = z.object({
-  tvdbId: z.number().describe("The TVDB ID"),
-  title: z.string().describe("Series title"),
-  qualityProfileId: z.number().describe("Quality profile ID to use"),
-  rootFolderPath: z.string().describe(
-    "Root folder path where series should be stored",
-  ),
-  monitored: z.boolean().optional().default(true).describe(
-    "Whether to monitor the series",
-  ),
-  seasonFolder: z.boolean().optional().default(true).describe(
-    "Whether to use season folders",
-  ),
-  seriesType: z.enum(["standard", "daily", "anime"]).optional().default(
-    "standard",
-  )
-    .describe("Type of series"),
-  languageProfileId: z.number().optional().describe(
-    "Language profile ID to use",
-  ),
-  tags: z.array(z.number()).optional().describe(
-    "Tag IDs to apply to the series",
-  ),
-  seasons: z.array(z.object({
-    seasonNumber: z.number(),
-    monitored: z.boolean(),
-  })).optional().describe("Seasons to monitor"),
-  searchForMissingEpisodes: z.boolean().optional().default(false)
-    .describe("Whether to search for missing episodes after adding"),
-});
-
-export const SonarrSeriesIdSchema = z.object({
-  id: z.number().describe("Series ID in Sonarr"),
-});
-
-export const SonarrEpisodesSchema = z.object({
-  seriesId: z.number().describe("Series ID to get episodes for"),
-  seasonNumber: z.number().optional().describe(
-    "Specific season number (optional)",
-  ),
-}).merge(PaginationSchema);
-
-export const SonarrCalendarSchema = z.object({
-  start: z.string().optional().describe("Start date (ISO format, optional)"),
-  end: z.string().optional().describe("End date (ISO format, optional)"),
-  includeSeries: z.boolean().optional().default(false)
-    .describe("Whether to include series information"),
-  includeEpisodeFile: z.boolean().optional().default(false)
-    .describe("Whether to include episode file information"),
-}).merge(PaginationSchema);
-
-export const SonarrMonitorEpisodeSchema = z.object({
-  episodeIds: z.array(z.number()).describe("Episode IDs to monitor/unmonitor"),
-  monitored: z.boolean().describe(
-    "Whether to monitor or unmonitor the episodes",
-  ),
-});
-
-// Sonarr pagination schemas
-export const SonarrPaginatedSchema = PaginationSchema;
-
-export const SonarrSeriesPaginatedSchema = PaginationSchema;
-
-export const SonarrQueuePaginatedSchema = PaginationSchema;
 
 // Sonarr series filter options
 export interface SonarrSeriesFilters {
@@ -100,35 +28,6 @@ export type SonarrSeriesSortField =
 
 // Sonarr series sort options
 export type SonarrSeriesSortOptions = SortOptions<SonarrSeriesSortField>;
-
-// Zod schemas for validation
-export const SonarrSeriesFiltersSchema = z.object({
-  title: z.string().optional(),
-  genres: z.array(z.string()).optional(),
-  yearFrom: z.number().optional(),
-  yearTo: z.number().optional(),
-  monitored: z.boolean().optional(),
-  network: z.string().optional(),
-  seriesType: z.string().optional(),
-  qualityProfileId: z.number().optional(),
-  tags: z.array(z.number()).optional(),
-  status: z.string().optional(),
-  imdbId: z.string().optional(),
-  tmdbId: z.number().optional(),
-});
-
-export const SonarrSeriesSortSchema = z.object({
-  field: z.enum([
-    "title",
-    "year",
-    "added",
-    "sizeOnDisk",
-    "qualityProfileId",
-    "runtime",
-    "episodeCount",
-  ]),
-  direction: z.enum(["asc", "desc"]),
-});
 
 export interface SonarrSeries {
   id?: number;

@@ -2,14 +2,8 @@
 
 import "@std/dotenv/load";
 import process from "node:process";
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ErrorCode,
-  ListToolsRequestSchema,
-  McpError,
-} from "@modelcontextprotocol/sdk/types.js";
 import deno from "../deno.json" with { type: "json" };
 import {
   createRadarrConfig,
@@ -26,19 +20,19 @@ import {
   testConnection as testTMDBConnection,
   type TMDBConfig,
 } from "@wyattjoh/tmdb";
-import { createRadarrTools, handleRadarrTool } from "./tools/radarr-tools.ts";
-import { createSonarrTools, handleSonarrTool } from "./tools/sonarr-tools.ts";
-import { createTMDBTools, handleTMDBTool } from "./tools/tmdb-tools.ts";
+import { createRadarrTools } from "./tools/radarr-tools.ts";
+import { createSonarrTools } from "./tools/sonarr-tools.ts";
+import { createTMDBTools } from "./tools/tmdb-tools.ts";
 
 interface ServerState {
-  server: Server;
+  server: McpServer;
   radarrConfig?: RadarrConfig;
   sonarrConfig?: SonarrConfig;
   tmdbConfig?: TMDBConfig;
 }
 
 function createServer(): ServerState {
-  const server = new Server(
+  const server = new McpServer(
     {
       name: "media-server-mcp",
       version: deno.version,
@@ -52,7 +46,7 @@ function createServer(): ServerState {
 
   const state: ServerState = { server };
   loadConfig(state);
-  setupHandlers(state);
+  setupTools(state);
   return state;
 }
 
@@ -87,86 +81,23 @@ function loadConfig(state: ServerState): void {
   }
 }
 
-function setupHandlers(state: ServerState): void {
-  state.server.setRequestHandler(ListToolsRequestSchema, () => {
-    const tools = [];
+function setupTools(state: ServerState): void {
+  // Register Radarr tools if configured
+  if (state.radarrConfig) {
+    createRadarrTools(state.server, state.radarrConfig);
+  }
 
-    if (state.radarrConfig) {
-      tools.push(...createRadarrTools());
-    }
+  // Register Sonarr tools if configured
+  if (state.sonarrConfig) {
+    createSonarrTools(state.server, state.sonarrConfig);
+  }
 
-    if (state.sonarrConfig) {
-      tools.push(...createSonarrTools());
-    }
+  // Register TMDB tools if configured
+  if (state.tmdbConfig) {
+    createTMDBTools(state.server, state.tmdbConfig);
+  }
 
-    if (state.tmdbConfig) {
-      tools.push(...createTMDBTools());
-    }
-
-    return { tools };
-  });
-
-  state.server.setRequestHandler(
-    CallToolRequestSchema,
-    async (
-      request,
-    ): Promise<{ content: Array<{ type: string; text: string }> }> => {
-      const { name, arguments: args } = request.params;
-
-      try {
-        // Handle Radarr tools
-        if (name.startsWith("radarr_")) {
-          if (!state.radarrConfig) {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              "Radarr is not configured",
-            );
-          }
-          return await handleRadarrTool(name, args, state.radarrConfig);
-        }
-
-        // Handle Sonarr tools
-        if (name.startsWith("sonarr_")) {
-          if (!state.sonarrConfig) {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              "Sonarr is not configured",
-            );
-          }
-          return await handleSonarrTool(name, args, state.sonarrConfig);
-        }
-
-        // Handle TMDB tools
-        if (name.startsWith("tmdb_")) {
-          if (!state.tmdbConfig) {
-            throw new McpError(
-              ErrorCode.InvalidRequest,
-              "TMDB is not configured",
-            );
-          }
-          return await handleTMDBTool(name, args, state.tmdbConfig);
-        }
-
-        throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
-      } catch (error) {
-        if (error instanceof McpError) {
-          throw error;
-        }
-
-        throw new McpError(
-          ErrorCode.InternalError,
-          `Tool execution failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      }
-    },
-  );
-
-  // Error handling
-  state.server.onerror = (error) => {
-    console.error("[MCP Error]", error);
-  };
+  // Error handling will be handled by the MCP framework
 
   process.on("SIGINT", async () => {
     await state.server.close();

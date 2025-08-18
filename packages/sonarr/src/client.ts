@@ -12,7 +12,7 @@ import type {
   SonarrSeriesSortField,
   SonarrSystemStatus,
 } from "./types.ts";
-import type { PaginatedResponse } from "./mcp.ts";
+import type { PaginatedResponse } from "./shared-types.ts";
 import { isValidationErrorArray, ValidationException } from "./validation.ts";
 import type { SortOptions } from "./shared-types.ts";
 import {
