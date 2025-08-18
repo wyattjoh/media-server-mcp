@@ -110,8 +110,12 @@ export function createRadarrTools(
     "Delete a movie from Radarr",
     {
       id: z.number().describe("Movie ID in Radarr"),
-      deleteFiles: z.boolean().optional().default(false),
-      addImportExclusion: z.boolean().optional().default(false),
+      deleteFiles: z.boolean().optional().default(false).describe(
+        "Whether to delete movie files",
+      ),
+      addImportExclusion: z.boolean().optional().default(false).describe(
+        "Whether to add import exclusion",
+      ),
     },
     async (args) => {
       try {

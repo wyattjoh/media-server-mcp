@@ -12,7 +12,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       externalId: z.string().describe(
         "External ID (e.g., 'tt1234567' for movie/TV IDs)",
       ),
-      externalSource: z.string().optional().describe(
+      externalSource: z.string().optional().default("imdb_id").describe(
         "External source (default: 'imdb_id')",
       ),
     },
@@ -51,7 +51,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -90,7 +90,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -131,7 +131,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -169,7 +169,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -248,8 +248,8 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       certification: z.string().optional().describe(
         "Certification (e.g., 'R', 'PG-13')",
       ),
-      include_adult: z.boolean().optional().describe("Include adult movies"),
-      include_video: z.boolean().optional().describe(
+      include_adult: z.boolean().optional().default(false).describe("Include adult movies"),
+      include_video: z.boolean().optional().default(false).describe(
         "Include movies with videos",
       ),
       region: z.string().optional().describe(
@@ -339,8 +339,8 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
         "Comma-separated network IDs",
       ),
       timezone: z.string().optional().describe("Timezone for air dates"),
-      include_adult: z.boolean().optional().describe("Include adult TV shows"),
-      screened_theatrically: z.boolean().optional().describe(
+      include_adult: z.boolean().optional().default(false).describe("Include adult TV shows"),
+      screened_theatrically: z.boolean().optional().default(false).describe(
         "Filter by theatrical screening",
       ),
     },
@@ -381,7 +381,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
     "Get list of available genres for movies or TV shows",
     {
       mediaType: z.enum(["movie", "tv"]).describe("Media type for genres"),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -422,7 +422,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -461,7 +461,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
       region: z.string().optional().describe(
         "Region for release dates (ISO 3166-1)",
       ),
@@ -502,7 +502,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
       region: z.string().optional().describe(
         "Region for release dates (ISO 3166-1)",
       ),
@@ -543,7 +543,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
       region: z.string().optional().describe(
         "Region for release dates (ISO 3166-1)",
       ),
@@ -584,7 +584,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -621,7 +621,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -658,7 +658,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -695,7 +695,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
       timezone: z.string().optional().describe("Timezone for air dates"),
     },
     async (args) => {
@@ -732,7 +732,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
     "Get detailed information about a specific movie",
     {
       movieId: z.number().describe("The TMDB movie ID"),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
       appendToResponse: z.string().optional().describe(
         "Comma-separated list of additional details to append (e.g., 'credits,videos')",
       ),
@@ -766,7 +766,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
     "Get detailed information about a specific TV show",
     {
       tvId: z.number().describe("The TMDB TV show ID"),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
       appendToResponse: z.string().optional().describe(
         "Comma-separated list of additional details to append (e.g., 'credits,videos')",
       ),
@@ -803,7 +803,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -842,7 +842,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -881,7 +881,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -920,7 +920,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -959,8 +959,8 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      include_adult: z.boolean().optional().describe("Include adult content"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      include_adult: z.boolean().optional().default(false).describe("Include adult content"),
     },
     async (args) => {
       try {
@@ -999,7 +999,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -1034,7 +1034,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
     "Get detailed information about a specific person",
     {
       personId: z.number().describe("The TMDB person ID"),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
       appendToResponse: z.string().optional().describe(
         "Comma-separated list of additional details to append (e.g., 'movie_credits,tv_credits')",
       ),
@@ -1073,7 +1073,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
     "Get movie credits for a person",
     {
       personId: z.number().describe("The TMDB person ID"),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -1108,7 +1108,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
     "Get TV credits for a person",
     {
       personId: z.number().describe("The TMDB person ID"),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -1146,7 +1146,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -1182,7 +1182,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
     "Get details about a specific movie collection",
     {
       collectionId: z.number().describe("The TMDB collection ID"),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
@@ -1257,8 +1257,8 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
       page: z.number().min(1).max(1000).optional().describe(
         "Page number (1-1000)",
       ),
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
-      include_adult: z.boolean().optional().describe("Include adult movies"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      include_adult: z.boolean().optional().default(false).describe("Include adult movies"),
     },
     async (args) => {
       try {
@@ -1392,7 +1392,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
     "tmdb_get_countries",
     "Get list of countries used in TMDB",
     {
-      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
     },
     async (args) => {
       try {
