@@ -5,16 +5,21 @@ import * as tmdbClient from "@wyattjoh/tmdb";
 
 export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   // tmdb_find_by_external_id
-  server.tool(
+  server.registerTool(
     "tmdb_find_by_external_id",
-    "Find TMDB content by external ID (TVDB ID, etc.) from other databases.",
     {
-      externalId: z.string().describe(
-        "External ID (e.g., 'tt1234567' for movie/TV IDs)",
-      ),
-      externalSource: z.string().optional().default("imdb_id").describe(
-        "External source (default: 'imdb_id')",
-      ),
+      title:
+        "Find TMDB content by external ID (TVDB ID, etc.) from other databases.",
+      description:
+        "Find TMDB content by external ID (TVDB ID, etc.) from other databases.",
+      inputSchema: {
+        externalId: z.string().describe(
+          "External ID (e.g., 'tt1234567' for movie/TV IDs)",
+        ),
+        externalSource: z.string().optional().default("imdb_id").describe(
+          "External source (default: 'imdb_id')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -43,15 +48,20 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_search_movies
-  server.tool(
+  server.registerTool(
     "tmdb_search_movies",
-    "Search for movies on TMDB by title",
     {
-      query: z.string().describe("Movie title to search for"),
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Search for movies on TMDB by title",
+      description: "Search for movies on TMDB by title",
+      inputSchema: {
+        query: z.string().describe("Movie title to search for"),
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -82,15 +92,20 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_search_tv
-  server.tool(
+  server.registerTool(
     "tmdb_search_tv",
-    "Search for TV shows on TMDB by title",
     {
-      query: z.string().describe("TV show title to search for"),
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Search for TV shows on TMDB by title",
+      description: "Search for TV shows on TMDB by title",
+      inputSchema: {
+        query: z.string().describe("TV show title to search for"),
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -121,17 +136,24 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_search_multi
-  server.tool(
+  server.registerTool(
     "tmdb_search_multi",
-    "Search for movies, TV shows, and people on TMDB in a single request",
     {
-      query: z.string().describe(
-        "Search query for movies, TV shows, or people",
-      ),
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title:
+        "Search for movies, TV shows, and people on TMDB in a single request",
+      description:
+        "Search for movies, TV shows, and people on TMDB in a single request",
+      inputSchema: {
+        query: z.string().describe(
+          "Search query for movies, TV shows, or people",
+        ),
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -162,14 +184,19 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_popular_movies
-  server.tool(
+  server.registerTool(
     "tmdb_get_popular_movies",
-    "Get popular movies from TMDB",
     {
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Get popular movies from TMDB",
+      description: "Get popular movies from TMDB",
+      inputSchema: {
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -199,63 +226,68 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_discover_movies
-  server.tool(
+  server.registerTool(
     "tmdb_discover_movies",
-    "Discover movies based on various criteria",
     {
-      sort_by: z.string().optional().describe(
-        "Sort results by field (e.g., 'popularity.desc')",
-      ),
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      primary_release_year: z.number().optional().describe(
-        "Filter by primary release year",
-      ),
-      release_date_gte: z.string().optional().describe(
-        "Minimum release date (YYYY-MM-DD)",
-      ),
-      release_date_lte: z.string().optional().describe(
-        "Maximum release date (YYYY-MM-DD)",
-      ),
-      vote_average_gte: z.number().min(0).max(10).optional().describe(
-        "Minimum vote average (0-10)",
-      ),
-      vote_average_lte: z.number().min(0).max(10).optional().describe(
-        "Maximum vote average (0-10)",
-      ),
-      vote_count_gte: z.number().min(0).optional().describe(
-        "Minimum vote count",
-      ),
-      with_genres: z.string().optional().describe(
-        "Comma-separated genre IDs to include",
-      ),
-      without_genres: z.string().optional().describe(
-        "Comma-separated genre IDs to exclude",
-      ),
-      with_original_language: z.string().optional().describe(
-        "Filter by original language (ISO 639-1)",
-      ),
-      with_runtime_gte: z.number().min(0).optional().describe(
-        "Minimum runtime in minutes",
-      ),
-      with_runtime_lte: z.number().min(0).optional().describe(
-        "Maximum runtime in minutes",
-      ),
-      certification_country: z.string().optional().describe(
-        "Certification country (ISO 3166-1)",
-      ),
-      certification: z.string().optional().describe(
-        "Certification (e.g., 'R', 'PG-13')",
-      ),
-      include_adult: z.boolean().optional().default(false).describe("Include adult movies"),
-      include_video: z.boolean().optional().default(false).describe(
-        "Include movies with videos",
-      ),
-      region: z.string().optional().describe(
-        "Region for release dates (ISO 3166-1)",
-      ),
-      year: z.number().optional().describe("Filter by release year"),
+      title: "Discover movies based on various criteria",
+      description: "Discover movies based on various criteria",
+      inputSchema: {
+        sort_by: z.string().optional().describe(
+          "Sort results by field (e.g., 'popularity.desc')",
+        ),
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        primary_release_year: z.number().optional().describe(
+          "Filter by primary release year",
+        ),
+        release_date_gte: z.string().optional().describe(
+          "Minimum release date (YYYY-MM-DD)",
+        ),
+        release_date_lte: z.string().optional().describe(
+          "Maximum release date (YYYY-MM-DD)",
+        ),
+        vote_average_gte: z.number().min(0).max(10).optional().describe(
+          "Minimum vote average (0-10)",
+        ),
+        vote_average_lte: z.number().min(0).max(10).optional().describe(
+          "Maximum vote average (0-10)",
+        ),
+        vote_count_gte: z.number().min(0).optional().describe(
+          "Minimum vote count",
+        ),
+        with_genres: z.string().optional().describe(
+          "Comma-separated genre IDs to include",
+        ),
+        without_genres: z.string().optional().describe(
+          "Comma-separated genre IDs to exclude",
+        ),
+        with_original_language: z.string().optional().describe(
+          "Filter by original language (ISO 639-1)",
+        ),
+        with_runtime_gte: z.number().min(0).optional().describe(
+          "Minimum runtime in minutes",
+        ),
+        with_runtime_lte: z.number().min(0).optional().describe(
+          "Maximum runtime in minutes",
+        ),
+        certification_country: z.string().optional().describe(
+          "Certification country (ISO 3166-1)",
+        ),
+        certification: z.string().optional().describe(
+          "Certification (e.g., 'R', 'PG-13')",
+        ),
+        include_adult: z.boolean().optional().default(false).describe(
+          "Include adult movies",
+        ),
+        include_video: z.boolean().optional().default(false).describe(
+          "Include movies with videos",
+        ),
+        region: z.string().optional().describe(
+          "Region for release dates (ISO 3166-1)",
+        ),
+        year: z.number().optional().describe("Filter by release year"),
+      },
     },
     async (args) => {
       try {
@@ -292,57 +324,62 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_discover_tv
-  server.tool(
+  server.registerTool(
     "tmdb_discover_tv",
-    "Discover TV shows based on various criteria",
     {
-      sort_by: z.string().optional().describe(
-        "Sort results by field (e.g., 'popularity.desc')",
-      ),
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      first_air_date_year: z.number().optional().describe(
-        "Filter by first air date year",
-      ),
-      first_air_date_gte: z.string().optional().describe(
-        "Minimum first air date (YYYY-MM-DD)",
-      ),
-      first_air_date_lte: z.string().optional().describe(
-        "Maximum first air date (YYYY-MM-DD)",
-      ),
-      vote_average_gte: z.number().min(0).max(10).optional().describe(
-        "Minimum vote average (0-10)",
-      ),
-      vote_average_lte: z.number().min(0).max(10).optional().describe(
-        "Maximum vote average (0-10)",
-      ),
-      vote_count_gte: z.number().min(0).optional().describe(
-        "Minimum vote count",
-      ),
-      with_genres: z.string().optional().describe(
-        "Comma-separated genre IDs to include",
-      ),
-      without_genres: z.string().optional().describe(
-        "Comma-separated genre IDs to exclude",
-      ),
-      with_original_language: z.string().optional().describe(
-        "Filter by original language (ISO 639-1)",
-      ),
-      with_runtime_gte: z.number().min(0).optional().describe(
-        "Minimum runtime in minutes",
-      ),
-      with_runtime_lte: z.number().min(0).optional().describe(
-        "Maximum runtime in minutes",
-      ),
-      with_networks: z.string().optional().describe(
-        "Comma-separated network IDs",
-      ),
-      timezone: z.string().optional().describe("Timezone for air dates"),
-      include_adult: z.boolean().optional().default(false).describe("Include adult TV shows"),
-      screened_theatrically: z.boolean().optional().default(false).describe(
-        "Filter by theatrical screening",
-      ),
+      title: "Discover TV shows based on various criteria",
+      description: "Discover TV shows based on various criteria",
+      inputSchema: {
+        sort_by: z.string().optional().describe(
+          "Sort results by field (e.g., 'popularity.desc')",
+        ),
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        first_air_date_year: z.number().optional().describe(
+          "Filter by first air date year",
+        ),
+        first_air_date_gte: z.string().optional().describe(
+          "Minimum first air date (YYYY-MM-DD)",
+        ),
+        first_air_date_lte: z.string().optional().describe(
+          "Maximum first air date (YYYY-MM-DD)",
+        ),
+        vote_average_gte: z.number().min(0).max(10).optional().describe(
+          "Minimum vote average (0-10)",
+        ),
+        vote_average_lte: z.number().min(0).max(10).optional().describe(
+          "Maximum vote average (0-10)",
+        ),
+        vote_count_gte: z.number().min(0).optional().describe(
+          "Minimum vote count",
+        ),
+        with_genres: z.string().optional().describe(
+          "Comma-separated genre IDs to include",
+        ),
+        without_genres: z.string().optional().describe(
+          "Comma-separated genre IDs to exclude",
+        ),
+        with_original_language: z.string().optional().describe(
+          "Filter by original language (ISO 639-1)",
+        ),
+        with_runtime_gte: z.number().min(0).optional().describe(
+          "Minimum runtime in minutes",
+        ),
+        with_runtime_lte: z.number().min(0).optional().describe(
+          "Maximum runtime in minutes",
+        ),
+        with_networks: z.string().optional().describe(
+          "Comma-separated network IDs",
+        ),
+        timezone: z.string().optional().describe("Timezone for air dates"),
+        include_adult: z.boolean().optional().default(false).describe(
+          "Include adult TV shows",
+        ),
+        screened_theatrically: z.boolean().optional().default(false).describe(
+          "Filter by theatrical screening",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -376,12 +413,17 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_genres
-  server.tool(
+  server.registerTool(
     "tmdb_get_genres",
-    "Get list of available genres for movies or TV shows",
     {
-      mediaType: z.enum(["movie", "tv"]).describe("Media type for genres"),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Get list of available genres for movies or TV shows",
+      description: "Get list of available genres for movies or TV shows",
+      inputSchema: {
+        mediaType: z.enum(["movie", "tv"]).describe("Media type for genres"),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -409,20 +451,27 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_trending
-  server.tool(
+  server.registerTool(
     "tmdb_get_trending",
-    "Get trending movies, TV shows, or people by time window (day/week)",
     {
-      mediaType: z.enum(["all", "movie", "tv", "person"]).describe(
-        "Type of content to get trending for",
-      ),
-      timeWindow: z.enum(["day", "week"]).describe(
-        "Time window for trending content",
-      ),
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title:
+        "Get trending movies, TV shows, or people by time window (day/week)",
+      description:
+        "Get trending movies, TV shows, or people by time window (day/week)",
+      inputSchema: {
+        mediaType: z.enum(["all", "movie", "tv", "person"]).describe(
+          "Type of content to get trending for",
+        ),
+        timeWindow: z.enum(["day", "week"]).describe(
+          "Time window for trending content",
+        ),
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -454,17 +503,22 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_now_playing_movies
-  server.tool(
+  server.registerTool(
     "tmdb_get_now_playing_movies",
-    "Get movies currently playing in theaters",
     {
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
-      region: z.string().optional().describe(
-        "Region for release dates (ISO 3166-1)",
-      ),
+      title: "Get movies currently playing in theaters",
+      description: "Get movies currently playing in theaters",
+      inputSchema: {
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+        region: z.string().optional().describe(
+          "Region for release dates (ISO 3166-1)",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -495,17 +549,22 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_top_rated_movies
-  server.tool(
+  server.registerTool(
     "tmdb_get_top_rated_movies",
-    "Get top-rated movies",
     {
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
-      region: z.string().optional().describe(
-        "Region for release dates (ISO 3166-1)",
-      ),
+      title: "Get top-rated movies",
+      description: "Get top-rated movies",
+      inputSchema: {
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+        region: z.string().optional().describe(
+          "Region for release dates (ISO 3166-1)",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -536,17 +595,22 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_upcoming_movies
-  server.tool(
+  server.registerTool(
     "tmdb_get_upcoming_movies",
-    "Get upcoming movie releases",
     {
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
-      region: z.string().optional().describe(
-        "Region for release dates (ISO 3166-1)",
-      ),
+      title: "Get upcoming movie releases",
+      description: "Get upcoming movie releases",
+      inputSchema: {
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+        region: z.string().optional().describe(
+          "Region for release dates (ISO 3166-1)",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -577,14 +641,19 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_popular_tv
-  server.tool(
+  server.registerTool(
     "tmdb_get_popular_tv",
-    "Get popular TV shows",
     {
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Get popular TV shows",
+      description: "Get popular TV shows",
+      inputSchema: {
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -614,14 +683,19 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_top_rated_tv
-  server.tool(
+  server.registerTool(
     "tmdb_get_top_rated_tv",
-    "Get top-rated TV shows",
     {
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Get top-rated TV shows",
+      description: "Get top-rated TV shows",
+      inputSchema: {
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -651,14 +725,19 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_on_the_air_tv
-  server.tool(
+  server.registerTool(
     "tmdb_get_on_the_air_tv",
-    "Get TV shows currently on the air",
     {
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Get TV shows currently on the air",
+      description: "Get TV shows currently on the air",
+      inputSchema: {
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -688,15 +767,20 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_airing_today_tv
-  server.tool(
+  server.registerTool(
     "tmdb_get_airing_today_tv",
-    "Get TV shows airing today",
     {
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
-      timezone: z.string().optional().describe("Timezone for air dates"),
+      title: "Get TV shows airing today",
+      description: "Get TV shows airing today",
+      inputSchema: {
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+        timezone: z.string().optional().describe("Timezone for air dates"),
+      },
     },
     async (args) => {
       try {
@@ -727,15 +811,20 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_movie_details
-  server.tool(
+  server.registerTool(
     "tmdb_get_movie_details",
-    "Get detailed information about a specific movie",
     {
-      movieId: z.number().describe("The TMDB movie ID"),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
-      appendToResponse: z.string().optional().describe(
-        "Comma-separated list of additional details to append (e.g., 'credits,videos')",
-      ),
+      title: "Get detailed information about a specific movie",
+      description: "Get detailed information about a specific movie",
+      inputSchema: {
+        movieId: z.number().describe("The TMDB movie ID"),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+        appendToResponse: z.string().optional().describe(
+          "Comma-separated list of additional details to append (e.g., 'credits,videos')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -761,15 +850,20 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_tv_details
-  server.tool(
+  server.registerTool(
     "tmdb_get_tv_details",
-    "Get detailed information about a specific TV show",
     {
-      tvId: z.number().describe("The TMDB TV show ID"),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
-      appendToResponse: z.string().optional().describe(
-        "Comma-separated list of additional details to append (e.g., 'credits,videos')",
-      ),
+      title: "Get detailed information about a specific TV show",
+      description: "Get detailed information about a specific TV show",
+      inputSchema: {
+        tvId: z.number().describe("The TMDB TV show ID"),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+        appendToResponse: z.string().optional().describe(
+          "Comma-separated list of additional details to append (e.g., 'credits,videos')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -795,15 +889,20 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_movie_recommendations
-  server.tool(
+  server.registerTool(
     "tmdb_get_movie_recommendations",
-    "Get movie recommendations based on a specific movie",
     {
-      movieId: z.number().describe("The TMDB movie ID"),
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Get movie recommendations based on a specific movie",
+      description: "Get movie recommendations based on a specific movie",
+      inputSchema: {
+        movieId: z.number().describe("The TMDB movie ID"),
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -834,15 +933,20 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_tv_recommendations
-  server.tool(
+  server.registerTool(
     "tmdb_get_tv_recommendations",
-    "Get TV show recommendations based on a specific show",
     {
-      tvId: z.number().describe("The TMDB TV show ID"),
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Get TV show recommendations based on a specific show",
+      description: "Get TV show recommendations based on a specific show",
+      inputSchema: {
+        tvId: z.number().describe("The TMDB TV show ID"),
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -873,15 +977,20 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_similar_movies
-  server.tool(
+  server.registerTool(
     "tmdb_get_similar_movies",
-    "Get movies similar to a specific movie",
     {
-      movieId: z.number().describe("The TMDB movie ID"),
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Get movies similar to a specific movie",
+      description: "Get movies similar to a specific movie",
+      inputSchema: {
+        movieId: z.number().describe("The TMDB movie ID"),
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -912,15 +1021,20 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_similar_tv
-  server.tool(
+  server.registerTool(
     "tmdb_get_similar_tv",
-    "Get TV shows similar to a specific show",
     {
-      tvId: z.number().describe("The TMDB TV show ID"),
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Get TV shows similar to a specific show",
+      description: "Get TV shows similar to a specific show",
+      inputSchema: {
+        tvId: z.number().describe("The TMDB TV show ID"),
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -951,16 +1065,23 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_search_people
-  server.tool(
+  server.registerTool(
     "tmdb_search_people",
-    "Search for people (actors, directors, etc.)",
     {
-      query: z.string().describe("Search query for person name"),
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
-      include_adult: z.boolean().optional().default(false).describe("Include adult content"),
+      title: "Search for people (actors, directors, etc.)",
+      description: "Search for people (actors, directors, etc.)",
+      inputSchema: {
+        query: z.string().describe("Search query for person name"),
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+        include_adult: z.boolean().optional().default(false).describe(
+          "Include adult content",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -992,14 +1113,19 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_popular_people
-  server.tool(
+  server.registerTool(
     "tmdb_get_popular_people",
-    "Get popular people in the entertainment industry",
     {
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Get popular people in the entertainment industry",
+      description: "Get popular people in the entertainment industry",
+      inputSchema: {
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -1029,15 +1155,20 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_person_details
-  server.tool(
+  server.registerTool(
     "tmdb_get_person_details",
-    "Get detailed information about a specific person",
     {
-      personId: z.number().describe("The TMDB person ID"),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
-      appendToResponse: z.string().optional().describe(
-        "Comma-separated list of additional details to append (e.g., 'movie_credits,tv_credits')",
-      ),
+      title: "Get detailed information about a specific person",
+      description: "Get detailed information about a specific person",
+      inputSchema: {
+        personId: z.number().describe("The TMDB person ID"),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+        appendToResponse: z.string().optional().describe(
+          "Comma-separated list of additional details to append (e.g., 'movie_credits,tv_credits')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -1068,12 +1199,17 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_person_movie_credits
-  server.tool(
+  server.registerTool(
     "tmdb_get_person_movie_credits",
-    "Get movie credits for a person",
     {
-      personId: z.number().describe("The TMDB person ID"),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Get movie credits for a person",
+      description: "Get movie credits for a person",
+      inputSchema: {
+        personId: z.number().describe("The TMDB person ID"),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -1103,12 +1239,17 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_person_tv_credits
-  server.tool(
+  server.registerTool(
     "tmdb_get_person_tv_credits",
-    "Get TV credits for a person",
     {
-      personId: z.number().describe("The TMDB person ID"),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Get TV credits for a person",
+      description: "Get TV credits for a person",
+      inputSchema: {
+        personId: z.number().describe("The TMDB person ID"),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -1138,15 +1279,20 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_search_collections
-  server.tool(
+  server.registerTool(
     "tmdb_search_collections",
-    "Search for movie collections",
     {
-      query: z.string().describe("Search query for collection name"),
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Search for movie collections",
+      description: "Search for movie collections",
+      inputSchema: {
+        query: z.string().describe("Search query for collection name"),
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -1177,12 +1323,17 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_collection_details
-  server.tool(
+  server.registerTool(
     "tmdb_get_collection_details",
-    "Get details about a specific movie collection",
     {
-      collectionId: z.number().describe("The TMDB collection ID"),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Get details about a specific movie collection",
+      description: "Get details about a specific movie collection",
+      inputSchema: {
+        collectionId: z.number().describe("The TMDB collection ID"),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -1212,14 +1363,17 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_search_keywords
-  server.tool(
+  server.registerTool(
     "tmdb_search_keywords",
-    "Search for keywords",
     {
-      query: z.string().describe("Search query for keyword"),
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
+      title: "Search for keywords",
+      description: "Search for keywords",
+      inputSchema: {
+        query: z.string().describe("Search query for keyword"),
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -1249,16 +1403,23 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_movies_by_keyword
-  server.tool(
+  server.registerTool(
     "tmdb_get_movies_by_keyword",
-    "Get movies associated with a specific keyword",
     {
-      keywordId: z.number().describe("The TMDB keyword ID"),
-      page: z.number().min(1).max(1000).optional().describe(
-        "Page number (1-1000)",
-      ),
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
-      include_adult: z.boolean().optional().default(false).describe("Include adult movies"),
+      title: "Get movies associated with a specific keyword",
+      description: "Get movies associated with a specific keyword",
+      inputSchema: {
+        keywordId: z.number().describe("The TMDB keyword ID"),
+        page: z.number().min(1).max(1000).optional().describe(
+          "Page number (1-1000)",
+        ),
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+        include_adult: z.boolean().optional().default(false).describe(
+          "Include adult movies",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -1290,13 +1451,16 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_certifications
-  server.tool(
+  server.registerTool(
     "tmdb_get_certifications",
-    "Get certification lists for movies or TV shows",
     {
-      mediaType: z.enum(["movie", "tv"]).describe(
-        "Media type for certifications",
-      ),
+      title: "Get certification lists for movies or TV shows",
+      description: "Get certification lists for movies or TV shows",
+      inputSchema: {
+        mediaType: z.enum(["movie", "tv"]).describe(
+          "Media type for certifications",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -1325,12 +1489,15 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_watch_providers
-  server.tool(
+  server.registerTool(
     "tmdb_get_watch_providers",
-    "Get watch providers for a movie or TV show",
     {
-      mediaType: z.enum(["movie", "tv"]).describe("Media type"),
-      mediaId: z.number().describe("The TMDB ID of the movie or TV show"),
+      title: "Get watch providers for a movie or TV show",
+      description: "Get watch providers for a movie or TV show",
+      inputSchema: {
+        mediaType: z.enum(["movie", "tv"]).describe("Media type"),
+        mediaId: z.number().describe("The TMDB ID of the movie or TV show"),
+      },
     },
     async (args) => {
       try {
@@ -1360,10 +1527,13 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_configuration
-  server.tool(
+  server.registerTool(
     "tmdb_get_configuration",
-    "Get TMDB API configuration including image base URLs",
-    {},
+    {
+      title: "Get TMDB API configuration including image base URLs",
+      description: "Get TMDB API configuration including image base URLs",
+      inputSchema: {},
+    },
     async () => {
       try {
         const result = await tmdbClient.getConfiguration(config);
@@ -1388,11 +1558,16 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_countries
-  server.tool(
+  server.registerTool(
     "tmdb_get_countries",
-    "Get list of countries used in TMDB",
     {
-      language: z.string().optional().default("en-US").describe("Language code (e.g., 'en-US')"),
+      title: "Get list of countries used in TMDB",
+      description: "Get list of countries used in TMDB",
+      inputSchema: {
+        language: z.string().optional().default("en-US").describe(
+          "Language code (e.g., 'en-US')",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -1418,10 +1593,13 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_languages
-  server.tool(
+  server.registerTool(
     "tmdb_get_languages",
-    "Get list of languages used in TMDB",
-    {},
+    {
+      title: "Get list of languages used in TMDB",
+      description: "Get list of languages used in TMDB",
+      inputSchema: {},
+    },
     async () => {
       try {
         const result = await tmdbClient.getLanguages(config);
@@ -1446,11 +1624,14 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_movie_credits
-  server.tool(
+  server.registerTool(
     "tmdb_get_movie_credits",
-    "Get cast and crew for a movie",
     {
-      movieId: z.number().describe("The TMDB movie ID"),
+      title: "Get cast and crew for a movie",
+      description: "Get cast and crew for a movie",
+      inputSchema: {
+        movieId: z.number().describe("The TMDB movie ID"),
+      },
     },
     async (args) => {
       try {
@@ -1476,11 +1657,14 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   );
 
   // tmdb_get_tv_credits
-  server.tool(
+  server.registerTool(
     "tmdb_get_tv_credits",
-    "Get cast and crew for a TV show",
     {
-      tvId: z.number().describe("The TMDB TV show ID"),
+      title: "Get cast and crew for a TV show",
+      description: "Get cast and crew for a TV show",
+      inputSchema: {
+        tvId: z.number().describe("The TMDB TV show ID"),
+      },
     },
     async (args) => {
       try {

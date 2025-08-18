@@ -8,17 +8,20 @@ export function createRadarrTools(
   config: RadarrConfig,
 ): void {
   // radarr_search_movie
-  server.tool(
+  server.registerTool(
     "radarr_search_movie",
-    "Search for movies in The Movie Database via Radarr",
     {
-      term: z.string().describe("Movie title to search for"),
-      limit: z.number().optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
+      title: "Search for movies in The Movie Database via Radarr",
+      description: "Search for movies in The Movie Database via Radarr",
+      inputSchema: {
+        term: z.string().describe("Movie title to search for"),
+        limit: z.number().optional().describe(
+          "Maximum number of results to return",
+        ),
+        skip: z.number().optional().describe(
+          "Number of results to skip (for pagination)",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -48,33 +51,36 @@ export function createRadarrTools(
   );
 
   // radarr_add_movie
-  server.tool(
+  server.registerTool(
     "radarr_add_movie",
-    "Add a movie to Radarr",
     {
-      tmdbId: z.number().describe("The Movie Database ID"),
-      title: z.string().describe("Movie title"),
-      year: z.number().describe("Movie release year"),
-      qualityProfileId: z.number().describe("Quality profile ID to use"),
-      rootFolderPath: z.string().describe(
-        "Root folder path where movie should be stored",
-      ),
-      minimumAvailability: z.enum([
-        "tba",
-        "announced",
-        "inCinemas",
-        "released",
-        "preDB",
-      ]).describe("Minimum availability for monitoring"),
-      monitored: z.boolean().optional().default(true).describe(
-        "Whether to monitor the movie",
-      ),
-      searchForMovie: z.boolean().optional().default(true).describe(
-        "Whether to search for the movie immediately after adding",
-      ),
-      tags: z.array(z.number()).optional().describe(
-        "Tag IDs to apply to the movie",
-      ),
+      title: "Add a movie to Radarr",
+      description: "Add a movie to Radarr",
+      inputSchema: {
+        tmdbId: z.number().describe("The Movie Database ID"),
+        title: z.string().describe("Movie title"),
+        year: z.number().describe("Movie release year"),
+        qualityProfileId: z.number().describe("Quality profile ID to use"),
+        rootFolderPath: z.string().describe(
+          "Root folder path where movie should be stored",
+        ),
+        minimumAvailability: z.enum([
+          "tba",
+          "announced",
+          "inCinemas",
+          "released",
+          "preDB",
+        ]).describe("Minimum availability for monitoring"),
+        monitored: z.boolean().optional().default(true).describe(
+          "Whether to monitor the movie",
+        ),
+        searchForMovie: z.boolean().optional().default(true).describe(
+          "Whether to search for the movie immediately after adding",
+        ),
+        tags: z.array(z.number()).optional().describe(
+          "Tag IDs to apply to the movie",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -105,17 +111,20 @@ export function createRadarrTools(
   );
 
   // radarr_delete_movie
-  server.tool(
+  server.registerTool(
     "radarr_delete_movie",
-    "Delete a movie from Radarr",
     {
-      id: z.number().describe("Movie ID in Radarr"),
-      deleteFiles: z.boolean().optional().default(false).describe(
-        "Whether to delete movie files",
-      ),
-      addImportExclusion: z.boolean().optional().default(false).describe(
-        "Whether to add import exclusion",
-      ),
+      title: "Delete a movie from Radarr",
+      description: "Delete a movie from Radarr",
+      inputSchema: {
+        id: z.number().describe("Movie ID in Radarr"),
+        deleteFiles: z.boolean().optional().default(false).describe(
+          "Whether to delete movie files",
+        ),
+        addImportExclusion: z.boolean().optional().default(false).describe(
+          "Whether to add import exclusion",
+        ),
+      },
     },
     async (args) => {
       try {
@@ -145,11 +154,14 @@ export function createRadarrTools(
   );
 
   // radarr_refresh_movie
-  server.tool(
+  server.registerTool(
     "radarr_refresh_movie",
-    "Refresh metadata for a specific movie",
     {
-      id: z.number().describe("Movie ID in Radarr"),
+      title: "Refresh metadata for a specific movie",
+      description: "Refresh metadata for a specific movie",
+      inputSchema: {
+        id: z.number().describe("Movie ID in Radarr"),
+      },
     },
     async (args) => {
       try {
@@ -174,11 +186,14 @@ export function createRadarrTools(
   );
 
   // radarr_search_movie_releases
-  server.tool(
+  server.registerTool(
     "radarr_search_movie_releases",
-    "Search for releases of a specific movie",
     {
-      id: z.number().describe("Movie ID in Radarr"),
+      title: "Search for releases of a specific movie",
+      description: "Search for releases of a specific movie",
+      inputSchema: {
+        id: z.number().describe("Movie ID in Radarr"),
+      },
     },
     async (args) => {
       try {
@@ -203,62 +218,65 @@ export function createRadarrTools(
   );
 
   // radarr_get_movies
-  server.tool(
+  server.registerTool(
     "radarr_get_movies",
-    "Get all movies in the Radarr library",
     {
-      limit: z.number().optional().describe(
-        "Maximum number of results to return",
-      ),
-      skip: z.number().optional().describe(
-        "Number of results to skip (for pagination)",
-      ),
-      filters: z.object({
-        title: z.string().optional().describe(
-          "Filter by title (partial match, case-insensitive)",
+      title: "Get all movies in the Radarr library",
+      description: "Get all movies in the Radarr library",
+      inputSchema: {
+        limit: z.number().optional().describe(
+          "Maximum number of results to return",
         ),
-        genres: z.array(z.string()).optional().describe(
-          "Filter by genres (matches any)",
+        skip: z.number().optional().describe(
+          "Number of results to skip (for pagination)",
         ),
-        yearFrom: z.number().optional().describe(
-          "Filter by minimum year",
-        ),
-        yearTo: z.number().optional().describe(
-          "Filter by maximum year",
-        ),
-        tmdbId: z.number().optional().describe(
-          "Filter by TMDB ID",
-        ),
-        imdbId: z.string().optional().describe(
-          "Filter by IMDB ID",
-        ),
-        monitored: z.boolean().optional().describe(
-          "Filter by monitored status",
-        ),
-        hasFile: z.boolean().optional().describe(
-          "Filter by file availability",
-        ),
-        qualityProfileId: z.number().optional().describe(
-          "Filter by quality profile ID",
-        ),
-        minimumAvailability: z.string().optional().describe(
-          "Filter by minimum availability status",
-        ),
-        tags: z.array(z.number()).optional().describe(
-          "Filter by tag IDs (matches any)",
-        ),
-      }).optional().describe("Filter options for movies"),
-      sort: z.object({
-        field: z.enum([
-          "title",
-          "year",
-          "added",
-          "sizeOnDisk",
-          "qualityProfileId",
-          "runtime",
-        ]).describe("Field to sort by"),
-        direction: z.enum(["asc", "desc"]).describe("Sort direction"),
-      }).optional().describe("Sort options for movies"),
+        filters: z.object({
+          title: z.string().optional().describe(
+            "Filter by title (partial match, case-insensitive)",
+          ),
+          genres: z.array(z.string()).optional().describe(
+            "Filter by genres (matches any)",
+          ),
+          yearFrom: z.number().optional().describe(
+            "Filter by minimum year",
+          ),
+          yearTo: z.number().optional().describe(
+            "Filter by maximum year",
+          ),
+          tmdbId: z.number().optional().describe(
+            "Filter by TMDB ID",
+          ),
+          imdbId: z.string().optional().describe(
+            "Filter by IMDB ID",
+          ),
+          monitored: z.boolean().optional().describe(
+            "Filter by monitored status",
+          ),
+          hasFile: z.boolean().optional().describe(
+            "Filter by file availability",
+          ),
+          qualityProfileId: z.number().optional().describe(
+            "Filter by quality profile ID",
+          ),
+          minimumAvailability: z.string().optional().describe(
+            "Filter by minimum availability status",
+          ),
+          tags: z.array(z.number()).optional().describe(
+            "Filter by tag IDs (matches any)",
+          ),
+        }).optional().describe("Filter options for movies"),
+        sort: z.object({
+          field: z.enum([
+            "title",
+            "year",
+            "added",
+            "sizeOnDisk",
+            "qualityProfileId",
+            "runtime",
+          ]).describe("Field to sort by"),
+          direction: z.enum(["asc", "desc"]).describe("Sort direction"),
+        }).optional().describe("Sort options for movies"),
+      },
     },
     async (args) => {
       try {
@@ -289,11 +307,14 @@ export function createRadarrTools(
   );
 
   // radarr_get_movie
-  server.tool(
+  server.registerTool(
     "radarr_get_movie",
-    "Get details of a specific movie",
     {
-      id: z.number().describe("Movie ID in Radarr"),
+      title: "Get details of a specific movie",
+      description: "Get details of a specific movie",
+      inputSchema: {
+        id: z.number().describe("Movie ID in Radarr"),
+      },
     },
     async (args) => {
       try {
@@ -318,10 +339,15 @@ export function createRadarrTools(
   );
 
   // radarr_get_configuration
-  server.tool(
+  server.registerTool(
     "radarr_get_configuration",
-    "Get Radarr configuration including quality profiles, and root folders",
-    {},
+    {
+      title:
+        "Get Radarr configuration including quality profiles, and root folders",
+      description:
+        "Get Radarr configuration including quality profiles, and root folders",
+      inputSchema: {},
+    },
     async () => {
       try {
         const [qualityProfiles, rootFolders] = await Promise.all([
@@ -352,25 +378,29 @@ export function createRadarrTools(
   );
 
   // radarr_update_movie
-  server.tool(
+  server.registerTool(
     "radarr_update_movie",
-    "Update a movie's settings (quality profile, monitoring, etc.)",
     {
-      id: z.number().describe("Movie ID to update"),
-      monitored: z.boolean().optional().describe(
-        "Whether to monitor the movie",
-      ),
-      qualityProfileId: z.number().optional().describe(
-        "Quality profile ID",
-      ),
-      minimumAvailability: z.enum([
-        "tba",
-        "announced",
-        "inCinemas",
-        "released",
-        "preDB",
-      ]).optional().describe("Minimum availability for monitoring"),
-      tags: z.array(z.number()).optional().describe("Tag IDs"),
+      title: "Update a movie's settings (quality profile, monitoring, etc.)",
+      description:
+        "Update a movie's settings (quality profile, monitoring, etc.)",
+      inputSchema: {
+        id: z.number().describe("Movie ID to update"),
+        monitored: z.boolean().optional().describe(
+          "Whether to monitor the movie",
+        ),
+        qualityProfileId: z.number().optional().describe(
+          "Quality profile ID",
+        ),
+        minimumAvailability: z.enum([
+          "tba",
+          "announced",
+          "inCinemas",
+          "released",
+          "preDB",
+        ]).optional().describe("Minimum availability for monitoring"),
+        tags: z.array(z.number()).optional().describe("Tag IDs"),
+      },
     },
     async (args) => {
       try {
@@ -410,10 +440,13 @@ export function createRadarrTools(
   );
 
   // radarr_refresh_all_movies
-  server.tool(
+  server.registerTool(
     "radarr_refresh_all_movies",
-    "Refresh metadata for all movies in the library",
-    {},
+    {
+      title: "Refresh metadata for all movies in the library",
+      description: "Refresh metadata for all movies in the library",
+      inputSchema: {},
+    },
     async () => {
       try {
         await radarrClient.refreshAllMovies(config);
@@ -437,10 +470,13 @@ export function createRadarrTools(
   );
 
   // radarr_disk_scan
-  server.tool(
+  server.registerTool(
     "radarr_disk_scan",
-    "Rescan all movie folders for new/missing files",
-    {},
+    {
+      title: "Rescan all movie folders for new/missing files",
+      description: "Rescan all movie folders for new/missing files",
+      inputSchema: {},
+    },
     async () => {
       try {
         await radarrClient.diskScan(config);
