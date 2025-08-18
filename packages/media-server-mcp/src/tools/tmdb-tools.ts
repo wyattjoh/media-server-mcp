@@ -3,302 +3,25 @@ import { z } from "zod";
 import type { TMDBConfig } from "@wyattjoh/tmdb";
 import * as tmdbClient from "@wyattjoh/tmdb";
 
-// TMDB tool schemas
-const TMDBFindByExternalIdSchema = z.object({
-  externalId: z.string(),
-  externalSource: z.string().optional(),
-});
-
-const TMDBSearchMovieSchema = z.object({
-  query: z.string(),
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBSearchTVSchema = z.object({
-  query: z.string(),
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBSearchMultiSchema = z.object({
-  query: z.string(),
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBGetPopularMoviesSchema = z.object({
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBDiscoverMoviesSchema = z.object({
-  sort_by: z.string().optional(),
-  page: z.number().min(1).max(1000).optional(),
-  primary_release_year: z.number().optional(),
-  release_date_gte: z.string().optional(),
-  release_date_lte: z.string().optional(),
-  vote_average_gte: z.number().min(0).max(10).optional(),
-  vote_average_lte: z.number().min(0).max(10).optional(),
-  vote_count_gte: z.number().min(0).optional(),
-  with_genres: z.string().optional(),
-  without_genres: z.string().optional(),
-  with_original_language: z.string().optional(),
-  with_runtime_gte: z.number().min(0).optional(),
-  with_runtime_lte: z.number().min(0).optional(),
-  certification_country: z.string().optional(),
-  certification: z.string().optional(),
-  include_adult: z.boolean().optional(),
-  include_video: z.boolean().optional(),
-  region: z.string().optional(),
-  year: z.number().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBDiscoverTVSchema = z.object({
-  sort_by: z.string().optional(),
-  page: z.number().min(1).max(1000).optional(),
-  first_air_date_year: z.number().optional(),
-  first_air_date_gte: z.string().optional(),
-  first_air_date_lte: z.string().optional(),
-  vote_average_gte: z.number().min(0).max(10).optional(),
-  vote_average_lte: z.number().min(0).max(10).optional(),
-  vote_count_gte: z.number().min(0).optional(),
-  with_genres: z.string().optional(),
-  without_genres: z.string().optional(),
-  with_original_language: z.string().optional(),
-  with_runtime_gte: z.number().min(0).optional(),
-  with_runtime_lte: z.number().min(0).optional(),
-  with_networks: z.string().optional(),
-  timezone: z.string().optional(),
-  include_adult: z.boolean().optional(),
-  screened_theatrically: z.boolean().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBGetGenresSchema = z.object({
-  mediaType: z.enum(["movie", "tv"]),
-  language: z.string().optional(),
-});
-
-// Trending content schema
-const TMDBGetTrendingSchema = z.object({
-  mediaType: z.enum(["all", "movie", "tv", "person"]),
-  timeWindow: z.enum(["day", "week"]),
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-// Movie lists schemas
-const TMDBGetNowPlayingMoviesSchema = z.object({
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  region: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBGetTopRatedMoviesSchema = z.object({
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  region: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBGetUpcomingMoviesSchema = z.object({
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  region: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-// TV lists schemas
-const TMDBGetPopularTVSchema = z.object({
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBGetTopRatedTVSchema = z.object({
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBGetOnTheAirTVSchema = z.object({
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBGetAiringTodayTVSchema = z.object({
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  timezone: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-// Content details schemas
-const TMDBGetMovieDetailsSchema = z.object({
-  movieId: z.number(),
-  language: z.string().optional(),
-  appendToResponse: z.string().optional(),
-});
-
-const TMDBGetTVDetailsSchema = z.object({
-  tvId: z.number(),
-  language: z.string().optional(),
-  appendToResponse: z.string().optional(),
-});
-
-// Recommendations schemas
-const TMDBGetMovieRecommendationsSchema = z.object({
-  movieId: z.number(),
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBGetTVRecommendationsSchema = z.object({
-  tvId: z.number(),
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-// Similar content schemas
-const TMDBGetSimilarMoviesSchema = z.object({
-  movieId: z.number(),
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBGetSimilarTVSchema = z.object({
-  tvId: z.number(),
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-// People schemas
-const TMDBSearchPeopleSchema = z.object({
-  query: z.string(),
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  include_adult: z.boolean().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBGetPopularPeopleSchema = z.object({
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBGetPersonDetailsSchema = z.object({
-  personId: z.number(),
-  language: z.string().optional(),
-  appendToResponse: z.string().optional(),
-});
-
-const TMDBGetPersonMovieCreditsSchema = z.object({
-  personId: z.number(),
-  language: z.string().optional(),
-});
-
-const TMDBGetPersonTVCreditsSchema = z.object({
-  personId: z.number(),
-  language: z.string().optional(),
-});
-
-// Collections and keywords schemas
-const TMDBSearchCollectionsSchema = z.object({
-  query: z.string(),
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-const TMDBGetCollectionDetailsSchema = z.object({
-  collectionId: z.number(),
-  language: z.string().optional(),
-});
-
-const TMDBSearchKeywordsSchema = z.object({
-  query: z.string(),
-  page: z.number().min(1).max(1000).optional(),
-});
-
-const TMDBGetMoviesByKeywordSchema = z.object({
-  keywordId: z.number(),
-  page: z.number().min(1).max(1000).optional(),
-  language: z.string().optional(),
-  include_adult: z.boolean().optional(),
-  limit: z.number().min(1).max(100).optional(),
-  skip: z.number().min(0).optional(),
-});
-
-// Certifications schema
-const TMDBGetCertificationsSchema = z.object({
-  mediaType: z.enum(["movie", "tv"]),
-});
-
-// Watch providers schema
-const TMDBGetWatchProvidersSchema = z.object({
-  mediaType: z.enum(["movie", "tv"]),
-  mediaId: z.number(),
-});
-
-// Configuration schemas
-const TMDBGetConfigurationSchema = z.object({});
-
-const TMDBGetCountriesSchema = z.object({
-  language: z.string().optional(),
-});
-
-const TMDBGetLanguagesSchema = z.object({});
-
 export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   // tmdb_find_by_external_id
   server.tool(
     "tmdb_find_by_external_id",
     "Find TMDB content by external ID (TVDB ID, etc.) from other databases.",
-    TMDBFindByExternalIdSchema.shape,
+    {
+      externalId: z.string().describe(
+        "External ID (e.g., 'tt1234567' for movie/TV IDs)",
+      ),
+      externalSource: z.string().optional().describe(
+        "External source (default: 'imdb_id')",
+      ),
+    },
     async (args) => {
       try {
-        const { externalId, externalSource } = TMDBFindByExternalIdSchema.parse(
-          args,
-        );
         const result = await tmdbClient.findByExternalId(
           config,
-          externalId,
-          externalSource,
+          args.externalId,
+          args.externalSource,
         );
         return {
           content: [{
@@ -323,20 +46,34 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_search_movies",
     "Search for movies on TMDB by title",
-    TMDBSearchMovieSchema.shape,
+    {
+      query: z.string().describe("Movie title to search for"),
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { query, page, language, limit, skip } = TMDBSearchMovieSchema
-          .parse(args);
         const result = await tmdbClient.searchMovies(
           config,
-          query,
-          page,
-          language,
+          args.query,
+          args.page,
+          args.language,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -368,21 +105,34 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_search_tv",
     "Search for TV shows on TMDB by title",
-    TMDBSearchTVSchema.shape,
+    {
+      query: z.string().describe("TV show title to search for"),
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { query, page, language, limit, skip } = TMDBSearchTVSchema.parse(
-          args,
-        );
         const result = await tmdbClient.searchTV(
           config,
-          query,
-          page,
-          language,
+          args.query,
+          args.page,
+          args.language,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -414,20 +164,36 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_search_multi",
     "Search for movies, TV shows, and people on TMDB in a single request",
-    TMDBSearchMultiSchema.shape,
+    {
+      query: z.string().describe(
+        "Search query for movies, TV shows, or people",
+      ),
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { query, page, language, limit, skip } = TMDBSearchMultiSchema
-          .parse(args);
         const result = await tmdbClient.searchMulti(
           config,
-          query,
-          page,
-          language,
+          args.query,
+          args.page,
+          args.language,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -459,19 +225,32 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_popular_movies",
     "Get popular movies from TMDB",
-    TMDBGetPopularMoviesSchema.shape,
+    {
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { page, language, limit, skip } = TMDBGetPopularMoviesSchema
-          .parse(args);
         const result = await tmdbClient.getPopularMovies(
           config,
-          page,
-          language,
+          args.page,
+          args.language,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -503,11 +282,70 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_discover_movies",
     "Discover movies based on various criteria",
-    TMDBDiscoverMoviesSchema.shape,
+    {
+      sort_by: z.string().optional().describe(
+        "Sort results by field (e.g., 'popularity.desc')",
+      ),
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      primary_release_year: z.number().optional().describe(
+        "Filter by primary release year",
+      ),
+      release_date_gte: z.string().optional().describe(
+        "Minimum release date (YYYY-MM-DD)",
+      ),
+      release_date_lte: z.string().optional().describe(
+        "Maximum release date (YYYY-MM-DD)",
+      ),
+      vote_average_gte: z.number().min(0).max(10).optional().describe(
+        "Minimum vote average (0-10)",
+      ),
+      vote_average_lte: z.number().min(0).max(10).optional().describe(
+        "Maximum vote average (0-10)",
+      ),
+      vote_count_gte: z.number().min(0).optional().describe(
+        "Minimum vote count",
+      ),
+      with_genres: z.string().optional().describe(
+        "Comma-separated genre IDs to include",
+      ),
+      without_genres: z.string().optional().describe(
+        "Comma-separated genre IDs to exclude",
+      ),
+      with_original_language: z.string().optional().describe(
+        "Filter by original language (ISO 639-1)",
+      ),
+      with_runtime_gte: z.number().min(0).optional().describe(
+        "Minimum runtime in minutes",
+      ),
+      with_runtime_lte: z.number().min(0).optional().describe(
+        "Maximum runtime in minutes",
+      ),
+      certification_country: z.string().optional().describe(
+        "Certification country (ISO 3166-1)",
+      ),
+      certification: z.string().optional().describe(
+        "Certification (e.g., 'R', 'PG-13')",
+      ),
+      include_adult: z.boolean().optional().describe("Include adult movies"),
+      include_video: z.boolean().optional().describe(
+        "Include movies with videos",
+      ),
+      region: z.string().optional().describe(
+        "Region for release dates (ISO 3166-1)",
+      ),
+      year: z.number().optional().describe("Filter by release year"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const options = TMDBDiscoverMoviesSchema.parse(args);
-        const { limit, skip, ...discoverOptions } = options;
+        const { limit, skip, ...discoverOptions } = args;
 
         // Filter out undefined values
         const cleanedOptions: Record<string, string | number | boolean> = {};
@@ -555,11 +393,64 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_discover_tv",
     "Discover TV shows based on various criteria",
-    TMDBDiscoverTVSchema.shape,
+    {
+      sort_by: z.string().optional().describe(
+        "Sort results by field (e.g., 'popularity.desc')",
+      ),
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      first_air_date_year: z.number().optional().describe(
+        "Filter by first air date year",
+      ),
+      first_air_date_gte: z.string().optional().describe(
+        "Minimum first air date (YYYY-MM-DD)",
+      ),
+      first_air_date_lte: z.string().optional().describe(
+        "Maximum first air date (YYYY-MM-DD)",
+      ),
+      vote_average_gte: z.number().min(0).max(10).optional().describe(
+        "Minimum vote average (0-10)",
+      ),
+      vote_average_lte: z.number().min(0).max(10).optional().describe(
+        "Maximum vote average (0-10)",
+      ),
+      vote_count_gte: z.number().min(0).optional().describe(
+        "Minimum vote count",
+      ),
+      with_genres: z.string().optional().describe(
+        "Comma-separated genre IDs to include",
+      ),
+      without_genres: z.string().optional().describe(
+        "Comma-separated genre IDs to exclude",
+      ),
+      with_original_language: z.string().optional().describe(
+        "Filter by original language (ISO 639-1)",
+      ),
+      with_runtime_gte: z.number().min(0).optional().describe(
+        "Minimum runtime in minutes",
+      ),
+      with_runtime_lte: z.number().min(0).optional().describe(
+        "Maximum runtime in minutes",
+      ),
+      with_networks: z.string().optional().describe(
+        "Comma-separated network IDs",
+      ),
+      timezone: z.string().optional().describe("Timezone for air dates"),
+      include_adult: z.boolean().optional().describe("Include adult TV shows"),
+      screened_theatrically: z.boolean().optional().describe(
+        "Filter by theatrical screening",
+      ),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const options = TMDBDiscoverTVSchema.parse(args);
-        const { limit, skip, ...discoverOptions } = options;
+        const { limit, skip, ...discoverOptions } = args;
 
         // Filter out undefined values
         const cleanedOptions: Record<string, string | number | boolean> = {};
@@ -604,14 +495,15 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_genres",
     "Get list of available genres for movies or TV shows",
-    TMDBGetGenresSchema.shape,
+    {
+      mediaType: z.enum(["movie", "tv"]).describe("Media type for genres"),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+    },
     async (args) => {
       try {
-        const { mediaType, language } = TMDBGetGenresSchema.parse(args);
-
-        const result = mediaType === "movie"
-          ? await tmdbClient.getMovieGenres(config, language)
-          : await tmdbClient.getTVGenres(config, language);
+        const result = args.mediaType === "movie"
+          ? await tmdbClient.getMovieGenres(config, args.language)
+          : await tmdbClient.getTVGenres(config, args.language);
 
         return {
           content: [{
@@ -636,21 +528,40 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_trending",
     "Get trending movies, TV shows, or people by time window (day/week)",
-    TMDBGetTrendingSchema.shape,
+    {
+      mediaType: z.enum(["all", "movie", "tv", "person"]).describe(
+        "Type of content to get trending for",
+      ),
+      timeWindow: z.enum(["day", "week"]).describe(
+        "Time window for trending content",
+      ),
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { mediaType, timeWindow, page, language, limit, skip } =
-          TMDBGetTrendingSchema.parse(args);
         const result = await tmdbClient.getTrending(
           config,
-          mediaType,
-          timeWindow,
-          page,
-          language,
+          args.mediaType,
+          args.timeWindow,
+          args.page,
+          args.language,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -682,20 +593,36 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_now_playing_movies",
     "Get movies currently playing in theaters",
-    TMDBGetNowPlayingMoviesSchema.shape,
+    {
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      region: z.string().optional().describe(
+        "Region for release dates (ISO 3166-1)",
+      ),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { page, language, region, limit, skip } =
-          TMDBGetNowPlayingMoviesSchema.parse(args);
         const result = await tmdbClient.getNowPlayingMovies(
           config,
-          page,
-          language,
-          region,
+          args.page,
+          args.language,
+          args.region,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -727,20 +654,36 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_top_rated_movies",
     "Get top-rated movies",
-    TMDBGetTopRatedMoviesSchema.shape,
+    {
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      region: z.string().optional().describe(
+        "Region for release dates (ISO 3166-1)",
+      ),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { page, language, region, limit, skip } =
-          TMDBGetTopRatedMoviesSchema.parse(args);
         const result = await tmdbClient.getTopRatedMovies(
           config,
-          page,
-          language,
-          region,
+          args.page,
+          args.language,
+          args.region,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -772,20 +715,36 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_upcoming_movies",
     "Get upcoming movie releases",
-    TMDBGetUpcomingMoviesSchema.shape,
+    {
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      region: z.string().optional().describe(
+        "Region for release dates (ISO 3166-1)",
+      ),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { page, language, region, limit, skip } =
-          TMDBGetUpcomingMoviesSchema.parse(args);
         const result = await tmdbClient.getUpcomingMovies(
           config,
-          page,
-          language,
-          region,
+          args.page,
+          args.language,
+          args.region,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -817,16 +776,32 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_popular_tv",
     "Get popular TV shows",
-    TMDBGetPopularTVSchema.shape,
+    {
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { page, language, limit, skip } = TMDBGetPopularTVSchema.parse(
-          args,
+        const result = await tmdbClient.getPopularTV(
+          config,
+          args.page,
+          args.language,
         );
-        const result = await tmdbClient.getPopularTV(config, page, language);
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -858,16 +833,32 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_top_rated_tv",
     "Get top-rated TV shows",
-    TMDBGetTopRatedTVSchema.shape,
+    {
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { page, language, limit, skip } = TMDBGetTopRatedTVSchema.parse(
-          args,
+        const result = await tmdbClient.getTopRatedTV(
+          config,
+          args.page,
+          args.language,
         );
-        const result = await tmdbClient.getTopRatedTV(config, page, language);
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -899,16 +890,32 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_on_the_air_tv",
     "Get TV shows currently on the air",
-    TMDBGetOnTheAirTVSchema.shape,
+    {
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { page, language, limit, skip } = TMDBGetOnTheAirTVSchema.parse(
-          args,
+        const result = await tmdbClient.getOnTheAirTV(
+          config,
+          args.page,
+          args.language,
         );
-        const result = await tmdbClient.getOnTheAirTV(config, page, language);
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -940,20 +947,34 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_airing_today_tv",
     "Get TV shows airing today",
-    TMDBGetAiringTodayTVSchema.shape,
+    {
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      timezone: z.string().optional().describe("Timezone for air dates"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { page, language, timezone, limit, skip } =
-          TMDBGetAiringTodayTVSchema.parse(args);
         const result = await tmdbClient.getAiringTodayTV(
           config,
-          page,
-          language,
-          timezone,
+          args.page,
+          args.language,
+          args.timezone,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -985,16 +1006,16 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_movie_details",
     "Get detailed information about a specific movie",
-    TMDBGetMovieDetailsSchema.shape,
+    {
+      movieId: z.number().describe("The TMDB movie ID"),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      appendToResponse: z.string().optional().describe(
+        "Comma-separated list of additional details to append (e.g., 'credits,videos')",
+      ),
+    },
     async (args) => {
       try {
-        const {
-          movieId,
-          language: _language,
-          appendToResponse: _appendToResponse,
-        } = TMDBGetMovieDetailsSchema.parse(args);
-
-        const result = await tmdbClient.getMovieDetails(config, movieId);
+        const result = await tmdbClient.getMovieDetails(config, args.movieId);
 
         return {
           content: [{
@@ -1019,17 +1040,16 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_tv_details",
     "Get detailed information about a specific TV show",
-    TMDBGetTVDetailsSchema.shape,
+    {
+      tvId: z.number().describe("The TMDB TV show ID"),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      appendToResponse: z.string().optional().describe(
+        "Comma-separated list of additional details to append (e.g., 'credits,videos')",
+      ),
+    },
     async (args) => {
       try {
-        const {
-          tvId,
-          language: _language,
-          appendToResponse: _appendToResponse,
-        } = TMDBGetTVDetailsSchema
-          .parse(args);
-
-        const result = await tmdbClient.getTVDetails(config, tvId);
+        const result = await tmdbClient.getTVDetails(config, args.tvId);
 
         return {
           content: [{
@@ -1054,20 +1074,34 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_movie_recommendations",
     "Get movie recommendations based on a specific movie",
-    TMDBGetMovieRecommendationsSchema.shape,
+    {
+      movieId: z.number().describe("The TMDB movie ID"),
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { movieId, page, language, limit, skip } =
-          TMDBGetMovieRecommendationsSchema.parse(args);
         const result = await tmdbClient.getMovieRecommendations(
           config,
-          movieId,
-          page,
-          language,
+          args.movieId,
+          args.page,
+          args.language,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -1099,20 +1133,34 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_tv_recommendations",
     "Get TV show recommendations based on a specific show",
-    TMDBGetTVRecommendationsSchema.shape,
+    {
+      tvId: z.number().describe("The TMDB TV show ID"),
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { tvId, page, language, limit, skip } =
-          TMDBGetTVRecommendationsSchema.parse(args);
         const result = await tmdbClient.getTVRecommendations(
           config,
-          tvId,
-          page,
-          language,
+          args.tvId,
+          args.page,
+          args.language,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -1144,20 +1192,34 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_similar_movies",
     "Get movies similar to a specific movie",
-    TMDBGetSimilarMoviesSchema.shape,
+    {
+      movieId: z.number().describe("The TMDB movie ID"),
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { movieId, page, language, limit, skip } =
-          TMDBGetSimilarMoviesSchema.parse(args);
         const result = await tmdbClient.getSimilarMovies(
           config,
-          movieId,
-          page,
-          language,
+          args.movieId,
+          args.page,
+          args.language,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -1189,20 +1251,34 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_similar_tv",
     "Get TV shows similar to a specific show",
-    TMDBGetSimilarTVSchema.shape,
+    {
+      tvId: z.number().describe("The TMDB TV show ID"),
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { tvId, page, language, limit, skip } = TMDBGetSimilarTVSchema
-          .parse(args);
         const result = await tmdbClient.getSimilarTV(
           config,
-          tvId,
-          page,
-          language,
+          args.tvId,
+          args.page,
+          args.language,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -1234,21 +1310,36 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_search_people",
     "Search for people (actors, directors, etc.)",
-    TMDBSearchPeopleSchema.shape,
+    {
+      query: z.string().describe("Search query for person name"),
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      include_adult: z.boolean().optional().describe("Include adult content"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { query, page, language, include_adult, limit, skip } =
-          TMDBSearchPeopleSchema.parse(args);
         const result = await tmdbClient.searchPeople(
           config,
-          query,
-          page,
-          language,
-          include_adult,
+          args.query,
+          args.page,
+          args.language,
+          args.include_adult,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -1280,21 +1371,32 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_popular_people",
     "Get popular people in the entertainment industry",
-    TMDBGetPopularPeopleSchema.shape,
+    {
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { page, language, limit, skip } = TMDBGetPopularPeopleSchema
-          .parse(
-            args,
-          );
         const result = await tmdbClient.getPopularPeople(
           config,
-          page,
-          language,
+          args.page,
+          args.language,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -1326,16 +1428,20 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_person_details",
     "Get detailed information about a specific person",
-    TMDBGetPersonDetailsSchema.shape,
+    {
+      personId: z.number().describe("The TMDB person ID"),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      appendToResponse: z.string().optional().describe(
+        "Comma-separated list of additional details to append (e.g., 'movie_credits,tv_credits')",
+      ),
+    },
     async (args) => {
       try {
-        const { personId, language, appendToResponse } =
-          TMDBGetPersonDetailsSchema.parse(args);
         const result = await tmdbClient.getPersonDetails(
           config,
-          personId,
-          language,
-          appendToResponse,
+          args.personId,
+          args.language,
+          args.appendToResponse,
         );
 
         return {
@@ -1361,16 +1467,16 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_person_movie_credits",
     "Get movie credits for a person",
-    TMDBGetPersonMovieCreditsSchema.shape,
+    {
+      personId: z.number().describe("The TMDB person ID"),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+    },
     async (args) => {
       try {
-        const { personId, language } = TMDBGetPersonMovieCreditsSchema.parse(
-          args,
-        );
         const result = await tmdbClient.getPersonMovieCredits(
           config,
-          personId,
-          language,
+          args.personId,
+          args.language,
         );
 
         return {
@@ -1396,14 +1502,16 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_person_tv_credits",
     "Get TV credits for a person",
-    TMDBGetPersonTVCreditsSchema.shape,
+    {
+      personId: z.number().describe("The TMDB person ID"),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+    },
     async (args) => {
       try {
-        const { personId, language } = TMDBGetPersonTVCreditsSchema.parse(args);
         const result = await tmdbClient.getPersonTVCredits(
           config,
-          personId,
-          language,
+          args.personId,
+          args.language,
         );
 
         return {
@@ -1429,20 +1537,34 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_search_collections",
     "Search for movie collections",
-    TMDBSearchCollectionsSchema.shape,
+    {
+      query: z.string().describe("Search query for collection name"),
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { query, page, language, limit, skip } =
-          TMDBSearchCollectionsSchema.parse(args);
         const result = await tmdbClient.searchCollections(
           config,
-          query,
-          page,
-          language,
+          args.query,
+          args.page,
+          args.language,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -1474,16 +1596,16 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_collection_details",
     "Get details about a specific movie collection",
-    TMDBGetCollectionDetailsSchema.shape,
+    {
+      collectionId: z.number().describe("The TMDB collection ID"),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+    },
     async (args) => {
       try {
-        const { collectionId, language } = TMDBGetCollectionDetailsSchema.parse(
-          args,
-        );
         const result = await tmdbClient.getCollectionDetails(
           config,
-          collectionId,
-          language,
+          args.collectionId,
+          args.language,
         );
 
         return {
@@ -1509,11 +1631,19 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_search_keywords",
     "Search for keywords",
-    TMDBSearchKeywordsSchema.shape,
+    {
+      query: z.string().describe("Search query for keyword"),
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+    },
     async (args) => {
       try {
-        const { query, page } = TMDBSearchKeywordsSchema.parse(args);
-        const result = await tmdbClient.searchKeywords(config, query, page);
+        const result = await tmdbClient.searchKeywords(
+          config,
+          args.query,
+          args.page,
+        );
 
         return {
           content: [{
@@ -1538,21 +1668,36 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_movies_by_keyword",
     "Get movies associated with a specific keyword",
-    TMDBGetMoviesByKeywordSchema.shape,
+    {
+      keywordId: z.number().describe("The TMDB keyword ID"),
+      page: z.number().min(1).max(1000).optional().describe(
+        "Page number (1-1000)",
+      ),
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+      include_adult: z.boolean().optional().describe("Include adult movies"),
+      limit: z.number().min(1).max(100).optional().describe(
+        "Maximum number of results to return",
+      ),
+      skip: z.number().min(0).optional().describe(
+        "Number of results to skip (for pagination)",
+      ),
+    },
     async (args) => {
       try {
-        const { keywordId, page, language, include_adult, limit, skip } =
-          TMDBGetMoviesByKeywordSchema.parse(args);
         const result = await tmdbClient.getMoviesByKeyword(
           config,
-          keywordId,
-          page,
-          language,
-          include_adult,
+          args.keywordId,
+          args.page,
+          args.language,
+          args.include_adult,
         );
 
-        if (limit !== undefined || skip !== undefined) {
-          const paginated = tmdbClient.toPaginatedResponse(result, limit, skip);
+        if (args.limit !== undefined || args.skip !== undefined) {
+          const paginated = tmdbClient.toPaginatedResponse(
+            result,
+            args.limit,
+            args.skip,
+          );
           return {
             content: [{
               type: "text",
@@ -1584,11 +1729,17 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_certifications",
     "Get certification lists for movies or TV shows",
-    TMDBGetCertificationsSchema.shape,
+    {
+      mediaType: z.enum(["movie", "tv"]).describe(
+        "Media type for certifications",
+      ),
+    },
     async (args) => {
       try {
-        const { mediaType } = TMDBGetCertificationsSchema.parse(args);
-        const result = await tmdbClient.getCertifications(config, mediaType);
+        const result = await tmdbClient.getCertifications(
+          config,
+          args.mediaType,
+        );
 
         return {
           content: [{
@@ -1613,14 +1764,16 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_watch_providers",
     "Get watch providers for a movie or TV show",
-    TMDBGetWatchProvidersSchema.shape,
+    {
+      mediaType: z.enum(["movie", "tv"]).describe("Media type"),
+      mediaId: z.number().describe("The TMDB ID of the movie or TV show"),
+    },
     async (args) => {
       try {
-        const { mediaType, mediaId } = TMDBGetWatchProvidersSchema.parse(args);
         const result = await tmdbClient.getWatchProviders(
           config,
-          mediaType,
-          mediaId,
+          args.mediaType,
+          args.mediaId,
         );
 
         return {
@@ -1646,7 +1799,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_configuration",
     "Get TMDB API configuration including image base URLs",
-    TMDBGetConfigurationSchema.shape,
+    {},
     async () => {
       try {
         const result = await tmdbClient.getConfiguration(config);
@@ -1674,11 +1827,12 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_countries",
     "Get list of countries used in TMDB",
-    TMDBGetCountriesSchema.shape,
+    {
+      language: z.string().optional().describe("Language code (e.g., 'en-US')"),
+    },
     async (args) => {
       try {
-        const { language } = TMDBGetCountriesSchema.parse(args);
-        const result = await tmdbClient.getCountries(config, language);
+        const result = await tmdbClient.getCountries(config, args.language);
 
         return {
           content: [{
@@ -1703,7 +1857,7 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_languages",
     "Get list of languages used in TMDB",
-    TMDBGetLanguagesSchema.shape,
+    {},
     async () => {
       try {
         const result = await tmdbClient.getLanguages(config);
@@ -1731,11 +1885,12 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_movie_credits",
     "Get cast and crew for a movie",
-    { movieId: { type: "number", description: "The TMDB movie ID" } },
+    {
+      movieId: z.number().describe("The TMDB movie ID"),
+    },
     async (args) => {
       try {
-        const { movieId } = z.object({ movieId: z.number() }).parse(args);
-        const result = await tmdbClient.getMovieCredits(config, movieId);
+        const result = await tmdbClient.getMovieCredits(config, args.movieId);
 
         return {
           content: [{
@@ -1760,11 +1915,12 @@ export function createTMDBTools(server: McpServer, config: TMDBConfig): void {
   server.tool(
     "tmdb_get_tv_credits",
     "Get cast and crew for a TV show",
-    { tvId: { type: "number", description: "The TMDB TV show ID" } },
+    {
+      tvId: z.number().describe("The TMDB TV show ID"),
+    },
     async (args) => {
       try {
-        const { tvId } = z.object({ tvId: z.number() }).parse(args);
-        const result = await tmdbClient.getTVCredits(config, tvId);
+        const result = await tmdbClient.getTVCredits(config, args.tvId);
 
         return {
           content: [{
