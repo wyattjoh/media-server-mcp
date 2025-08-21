@@ -135,13 +135,14 @@ Add to your MCP servers configuration using the JSR package:
 
 ### Environment Variables
 
-| Variable         | Description                        | Required  |
-| ---------------- | ---------------------------------- | --------- |
-| `RADARR_URL`     | Base URL of your Radarr instance   | Optional* |
-| `RADARR_API_KEY` | API key for Radarr authentication  | Optional* |
-| `SONARR_URL`     | Base URL of your Sonarr instance   | Optional* |
-| `SONARR_API_KEY` | API key for Sonarr authentication  | Optional* |
-| `TMDB_API_KEY`   | TMDB API key for movie/TV metadata | Optional* |
+| Variable           | Description                                        | Required  |
+| ------------------ | -------------------------------------------------- | --------- |
+| `RADARR_URL`       | Base URL of your Radarr instance                   | Optional* |
+| `RADARR_API_KEY`   | API key for Radarr authentication                  | Optional* |
+| `SONARR_URL`       | Base URL of your Sonarr instance                   | Optional* |
+| `SONARR_API_KEY`   | API key for Sonarr authentication                  | Optional* |
+| `TMDB_API_KEY`     | TMDB API key for movie/TV metadata                 | Optional* |
+| `MCP_AUTH_TOKEN`   | Authentication token for SSE mode (HTTP transport) | Optional  |
 
 *_At least one service (Radarr, Sonarr, or TMDB) must be configured._
 
@@ -150,6 +151,63 @@ Add to your MCP servers configuration using the JSR package:
 - **Local Radarr**: `http://localhost:7878`
 - **Local Sonarr**: `http://localhost:8989`
 - **Remote with custom port**: `https://radarr.yourdomain.com:443`
+
+### SSE Mode (HTTP Transport)
+
+By default, the MCP server runs in stdio mode for direct integration with MCP clients. However, you can also run it in SSE (Server-Sent Events) mode over HTTP for web-based integrations or debugging.
+
+#### Running in SSE Mode
+
+```bash
+# Start server in SSE mode on port 3000 (default)
+deno run --allow-all jsr:@wyattjoh/media-server-mcp --sse
+
+# Or specify a custom port
+deno run --allow-all jsr:@wyattjoh/media-server-mcp --sse --port 8080
+```
+
+#### Authentication Token
+
+**Important**: SSE mode requires the `MCP_AUTH_TOKEN` environment variable for security. This token is used to authenticate HTTP requests via Bearer token authentication.
+
+```bash
+# Required for SSE mode
+export MCP_AUTH_TOKEN="your-secure-random-token"
+
+# Generate a secure token (example using openssl)
+export MCP_AUTH_TOKEN=$(openssl rand -base64 32)
+```
+
+#### SSE Endpoints
+
+When running in SSE mode, the server provides these endpoints:
+
+- **`/sse?sessionId=<id>`** - SSE event stream endpoint (requires Bearer auth)
+- **`/messages?sessionId=<id>`** - HTTP POST endpoint for client messages (requires Bearer auth)  
+- **`/health`** - Health check endpoint (no authentication required)
+
+#### Example SSE Usage
+
+```bash
+# Set authentication token
+export MCP_AUTH_TOKEN="your-secure-token"
+
+# Start server in SSE mode
+deno run --allow-all jsr:@wyattjoh/media-server-mcp --sse --port 3000
+
+# Test health endpoint
+curl http://localhost:3000/health
+
+# Connect to SSE stream (requires Bearer token)
+curl -H "Authorization: Bearer your-secure-token" \
+     "http://localhost:3000/sse?sessionId=test-session"
+```
+
+**Security Notes:**
+- Never expose SSE mode to the internet without proper authentication
+- Use a strong, randomly generated `MCP_AUTH_TOKEN`
+- The health endpoint (`/health`) is the only unauthenticated endpoint
+- All other endpoints require valid Bearer token authentication
 
 ## Tool Configuration System
 
@@ -577,13 +635,13 @@ deno task dev
 deno task start
 
 # Type checking
-deno task check
+deno check
 
 # Code formatting
-deno task fmt
+deno fmt
 
 # Linting
-deno task lint
+deno lint
 ```
 
 ### Project Structure

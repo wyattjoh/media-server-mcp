@@ -1,3 +1,4 @@
+import { getLogger } from "@logtape/logtape";
 import type {
   RadarrAddMovieOptions,
   RadarrHealth,
@@ -36,12 +37,19 @@ async function makeRequest<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const logger = getLogger(["radarr", "http"]);
   const url = `${config.baseUrl}/api/v3${endpoint}`;
   const headers = {
     "X-Api-Key": config.apiKey,
     "Content-Type": "application/json",
     ...options.headers,
   };
+
+  logger.debug("Making API request to {endpoint}", {
+    endpoint,
+    method: options.method || "GET",
+    url: `${config.baseUrl}/api/v3${endpoint}`,
+  });
 
   try {
     const response = await fetch(url, {
@@ -55,6 +63,13 @@ async function makeRequest<T>(
         try {
           const errorData = await response.json();
           if (isValidationErrorArray(errorData)) {
+            logger.error("API validation error: {status} {statusText}", {
+              status: response.status,
+              statusText: response.statusText,
+              endpoint,
+              method: options.method || "GET",
+              validationErrors: errorData,
+            });
             throw new ValidationException(errorData);
           }
         } catch (parseError) {
@@ -66,6 +81,14 @@ async function makeRequest<T>(
         }
       }
 
+      logger.error("API request failed: {status} {statusText}", {
+        status: response.status,
+        statusText: response.statusText,
+        endpoint,
+        method: options.method || "GET",
+        url,
+      });
+
       throw new Error(
         `${response.status} ${response.statusText}`,
       );
@@ -73,6 +96,13 @@ async function makeRequest<T>(
 
     const contentLength = response.headers.get("content-length");
     const contentType = response.headers.get("content-type");
+
+    logger.debug("API request successful", {
+      endpoint,
+      status: response.status,
+      contentType,
+      contentLength,
+    });
 
     // Handle empty responses (like 204 No Content or 200 with no body)
     if (contentLength === "0" || (!contentLength && !contentType)) {
@@ -85,6 +115,13 @@ async function makeRequest<T>(
     if (error instanceof ValidationException) {
       throw error;
     }
+
+    logger.error("API request failed with exception", {
+      error: error instanceof Error ? error.message : String(error),
+      endpoint,
+      method: options.method || "GET",
+      url,
+    });
 
     throw new Error(
       `Radarr API request failed: ${
@@ -400,13 +437,24 @@ export async function diskScan(config: RadarrConfig): Promise<void> {
 export async function testConnection(
   config: RadarrConfig,
 ): Promise<{ success: boolean; error?: string }> {
+  const logger = getLogger(["radarr"]);
+  
   try {
+    logger.debug("Testing Radarr connection", { baseUrl: config.baseUrl });
+    
     await getSystemStatus(config);
+    
+    logger.debug("Radarr connection test successful");
     return { success: true };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("Radarr connection test failed", { 
+      error: errorMessage,
+      baseUrl: config.baseUrl 
+    });
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage,
     };
   }
 }

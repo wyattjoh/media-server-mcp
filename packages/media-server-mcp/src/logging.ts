@@ -53,6 +53,22 @@ export async function configureLogging(options: LoggingOptions): Promise<void> {
         category: ["media-server-mcp", "transport", "sse"],
         lowestLevel: logLevel,
       },
+      // Client package loggers
+      {
+        category: ["radarr"],
+        lowestLevel: logLevel,
+        sinks: ["main"],
+      },
+      {
+        category: ["sonarr"],
+        lowestLevel: logLevel,
+        sinks: ["main"],
+      },
+      {
+        category: ["tmdb"],
+        lowestLevel: logLevel,
+        sinks: ["main"],
+      },
       // LogTape meta logger (for internal LogTape messages)
       {
         category: ["logtape", "meta"],

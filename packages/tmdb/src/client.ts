@@ -1,3 +1,4 @@
+import { getLogger } from "@logtape/logtape";
 import type {
   TMDBCertificationsResponse,
   TMDBCollectionDetails,
@@ -42,6 +43,7 @@ async function makeRequest<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const logger = getLogger(["tmdb", "http"]);
   const url = `${config.baseUrl}${endpoint}`;
 
   const headers = {
@@ -51,6 +53,12 @@ async function makeRequest<T>(
     ...options.headers,
   };
 
+  logger.debug("Making API request to {endpoint}", {
+    endpoint,
+    method: options.method || "GET",
+    url,
+  });
+
   try {
     const response = await fetch(url, {
       ...options,
@@ -58,13 +66,36 @@ async function makeRequest<T>(
     });
 
     if (!response.ok) {
+      logger.error("API request failed: {status} {statusText}", {
+        status: response.status,
+        statusText: response.statusText,
+        endpoint,
+        method: options.method || "GET",
+        url,
+      });
+
       throw new Error(
         `TMDB API request failed: ${response.status} ${response.statusText}`,
       );
     }
 
+    const contentType = response.headers.get("content-type");
+    
+    logger.debug("API request successful", {
+      endpoint,
+      status: response.status,
+      contentType,
+    });
+
     return await response.json();
   } catch (error) {
+    logger.error("API request failed with exception", {
+      error: error instanceof Error ? error.message : String(error),
+      endpoint,
+      method: options.method || "GET",
+      url,
+    });
+
     throw new Error(
       `TMDB API request failed: ${
         error instanceof Error ? error.message : String(error)
@@ -723,13 +754,24 @@ export function getLanguages(
 export async function testConnection(
   config: TMDBConfig,
 ): Promise<{ success: boolean; error?: string }> {
+  const logger = getLogger(["tmdb"]);
+  
   try {
+    logger.debug("Testing TMDB connection", { baseUrl: config.baseUrl });
+    
     await makeRequest<{ success: boolean }>(config, "/authentication");
+    
+    logger.debug("TMDB connection test successful");
     return { success: true };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("TMDB connection test failed", { 
+      error: errorMessage,
+      baseUrl: config.baseUrl 
+    });
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage,
     };
   }
 }
