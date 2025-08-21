@@ -5,6 +5,7 @@
     "jsr:@cliffy/flags@1.0.0-rc.8": "1.0.0-rc.8",
     "jsr:@cliffy/internal@1.0.0-rc.8": "1.0.0-rc.8",
     "jsr:@cliffy/table@1.0.0-rc.8": "1.0.0-rc.8",
+    "jsr:@logtape/logtape@^1.0.4": "1.0.4",
     "jsr:@std/assert@*": "1.0.14",
     "jsr:@std/dotenv@0.225.5": "0.225.5",
     "jsr:@std/dotenv@~0.225.5": "0.225.5",
@@ -41,6 +42,9 @@
       "dependencies": [
         "jsr:@std/fmt"
       ]
+    },
+    "@logtape/logtape@1.0.4": {
+      "integrity": "6ada87764d995b1033c352a17fd9e20b217f3672083bc2d8debe356eac03fe10"
     },
     "@std/assert@1.0.14": {
       "integrity": "68d0d4a43b365abc927f45a9b85c639ea18a9fab96ad92281e493e4ed84abaa4",
@@ -611,6 +615,7 @@
       "packages/media-server-mcp": {
         "dependencies": [
           "jsr:@cliffy/command@^1.0.0-rc.8",
+          "jsr:@logtape/logtape@^1.0.4",
           "jsr:@std/dotenv@~0.225.5",
           "npm:@modelcontextprotocol/sdk@1",
           "npm:zod@^3.22.0"

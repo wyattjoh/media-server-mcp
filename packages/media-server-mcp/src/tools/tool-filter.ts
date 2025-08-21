@@ -4,6 +4,7 @@ import {
   isToolEnabled,
   TOOL_PROFILES,
 } from "./tool-categories.ts";
+import { getLogger } from "../logging.ts";
 
 export interface ToolFilterConfig {
   profile: string;
@@ -56,10 +57,10 @@ export function parseToolConfig(
         config.includeTools = fileConfig.customOverrides.include;
       }
     } catch (error) {
-      console.error(
-        "[WARNING] Failed to parse tool config file:",
-        error instanceof Error ? error.message : String(error),
-      );
+      const logger = getLogger(["media-server-mcp", "tools"]);
+      logger.warn("Failed to parse tool config file", {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -87,9 +88,11 @@ export function parseToolConfig(
   // Validate profile exists
   const validProfile = TOOL_PROFILES.find((p) => p.name === config.profile);
   if (!validProfile) {
-    console.error(
-      `[WARNING] Unknown tool profile '${config.profile}', using 'default'`,
-    );
+    const logger = getLogger(["media-server-mcp", "tools"]);
+    logger.warn("Unknown tool profile, using default", {
+      requestedProfile: config.profile,
+      defaultProfile: "default",
+    });
     config.profile = "default";
   }
 
@@ -147,10 +150,11 @@ export async function loadToolConfigFile(): Promise<string | undefined> {
   try {
     return await Deno.readTextFile(configPath);
   } catch (error) {
-    console.error(
-      `[WARNING] Failed to read tool config file '${configPath}':`,
-      error instanceof Error ? error.message : String(error),
-    );
+    const logger = getLogger(["media-server-mcp", "tools"]);
+    logger.warn("Failed to read tool config file", {
+      configPath,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return undefined;
   }
 }
@@ -159,24 +163,17 @@ export async function loadToolConfigFile(): Promise<string | undefined> {
  * Log the current tool configuration for debugging
  */
 export function logToolConfiguration(config: ToolFilterConfig): void {
+  const logger = getLogger(["media-server-mcp", "tools"]);
   const enabledTools = getEnabledTools(config);
 
-  console.error(`[INFO] Tool Configuration:`);
-  console.error(`  Profile: ${config.profile}`);
+  logger.info("Tool Configuration {*}", {
+    profile: config.profile,
+    additionalBranches: config.additionalBranches,
+    excludeTools: config.excludeTools,
+    includeTools: config.includeTools,
+    totalEnabledTools: enabledTools.length,
+  });
 
-  if (config.additionalBranches.length > 0) {
-    console.error(
-      `  Additional Branches: ${config.additionalBranches.join(", ")}`,
-    );
-  }
-
-  if (config.excludeTools.length > 0) {
-    console.error(`  Excluded Tools: ${config.excludeTools.join(", ")}`);
-  }
-
-  if (config.includeTools.length > 0) {
-    console.error(`  Included Tools: ${config.includeTools.join(", ")}`);
-  }
-
-  console.error(`  Total Enabled Tools: ${enabledTools.length}`);
+  // Add debug logging for the actual tool list
+  logger.debug("Enabled tools list", { enabledTools });
 }

@@ -10,7 +10,7 @@
     "dev:sse": "deno run --allow-all --watch packages/media-server-mcp/src/index.ts --sse",
     "start": "deno run --allow-all packages/media-server-mcp/src/index.ts",
     "start:sse": "deno run --allow-all packages/media-server-mcp/src/index.ts --sse",
-    "build": "deno compile --allow-read --allow-write --allow-env --allow-run --allow-net --output=media-server-mcp packages/media-server-mcp/src/index.ts",
+    "build": "deno compile --allow-read --allow-write --allow-env --allow-run --allow-net --output=packages/media-server-mcp/media-server-mcp packages/media-server-mcp/src/index.ts",
     "test": "deno test --allow-net"
   },
   "compilerOptions": {

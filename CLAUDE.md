@@ -20,8 +20,18 @@ deno test --allow-net
 # Development with hot reload
 deno task dev
 
+# Development with debug logging enabled
+deno task dev --debug
+
 # Production run
 deno task start
+
+# Production run with debug logging enabled  
+deno task start --debug
+
+# SSE mode with debug logging
+deno task dev:sse --debug
+deno task start:sse --debug
 ```
 
 ## Monorepo Structure
@@ -290,4 +300,54 @@ export async function handleServiceTool(
   args: unknown,
   config: ServiceConfig,
 ): Promise<MCPToolResult> { ... }
+```
+
+## Logging
+
+The project uses [LogTape](https://logtape.org/) for structured logging with the following features:
+
+### Debug Mode
+
+Enable verbose logging with the `--debug` flag:
+
+```bash
+# Development with debug logging
+deno task dev --debug
+deno task start --debug 
+deno task dev:sse --debug
+```
+
+### Log Categories
+
+- **media-server-mcp**: Main application logs
+- **media-server-mcp.connection**: Service connection tests
+- **media-server-mcp.tools**: Tool configuration and registration
+- **media-server-mcp.transport.stdio**: STDIO transport logs
+- **media-server-mcp.transport.sse**: SSE transport logs
+
+### Log Levels
+
+- **trace**: Most verbose, rarely used
+- **debug**: Development debugging (enabled with --debug flag)
+- **info**: General application information
+- **warn**: Warning conditions that don't halt execution
+- **error**: Error conditions
+- **fatal**: Critical errors causing application termination
+
+### STDIO Mode Requirements
+
+When running in STDIO mode (default), all log output goes to stderr to avoid interfering with MCP protocol communication on stdout. This is automatically configured when not using `--sse` mode.
+
+### Adding Logging to Code
+
+```typescript
+import { getLogger } from "../logging.ts";
+
+const logger = getLogger(["media-server-mcp", "your-module"]);
+
+// Structured logging with properties
+logger.info("Service started", { port: 3000, mode: "sse" });
+logger.debug("Processing request", { toolName, sessionId });
+logger.warn("Connection failed", { error: error.message, retryCount });
+logger.error("Critical error", { error: error.message, stack: error.stack });
 ```

@@ -31,6 +31,7 @@ import {
   logToolConfiguration,
   parseToolConfig,
 } from "./tools/tool-filter.ts";
+import { configureLogging, getLogger } from "./logging.ts";
 
 interface ServerState {
   server: McpServer;
@@ -38,9 +39,17 @@ interface ServerState {
   sonarrConfig?: SonarrConfig;
   tmdbConfig?: TMDBConfig;
   authToken?: string;
+  transport?: { close: () => Promise<void> };
 }
 
 async function createServer(): Promise<ServerState> {
+  const logger = getLogger(["media-server-mcp"]);
+
+  logger.debug("Creating MCP server", {
+    name: "media-server-mcp",
+    version: deno.version,
+  });
+
   const server = new McpServer(
     {
       name: "media-server-mcp",
@@ -56,15 +65,21 @@ async function createServer(): Promise<ServerState> {
   const state: ServerState = { server };
   loadConfig(state);
   await setupTools(state);
+
+  logger.debug("Server created successfully");
   return state;
 }
 
 function loadConfig(state: ServerState): void {
+  const logger = getLogger(["media-server-mcp"]);
+  logger.debug("Loading configuration from environment variables");
+
   // Load Radarr configuration
   const radarrUrl = Deno.env.get("RADARR_URL");
   const radarrApiKey = Deno.env.get("RADARR_API_KEY");
   if (radarrUrl && radarrApiKey) {
     state.radarrConfig = createRadarrConfig(radarrUrl, radarrApiKey);
+    logger.debug("Radarr configuration loaded: url={radarrUrl}", { radarrUrl });
   }
 
   // Load Sonarr configuration
@@ -72,21 +87,36 @@ function loadConfig(state: ServerState): void {
   const sonarrApiKey = Deno.env.get("SONARR_API_KEY");
   if (sonarrUrl && sonarrApiKey) {
     state.sonarrConfig = createSonarrConfig(sonarrUrl, sonarrApiKey);
+    logger.debug("Sonarr configuration loaded: url={sonarrUrl}", { sonarrUrl });
   }
 
   // Load TMDB configuration
   const tmdbApiKey = Deno.env.get("TMDB_API_KEY");
   if (tmdbApiKey) {
     state.tmdbConfig = createTMDBConfig(tmdbApiKey);
+    logger.debug("TMDB configuration loaded");
   }
 
   // Load authentication token
-  state.authToken = Deno.env.get("MCP_AUTH_TOKEN");
+  const authToken = Deno.env.get("MCP_AUTH_TOKEN");
+  if (authToken) {
+    state.authToken = authToken;
+  }
+  if (state.authToken) {
+    logger.debug("Authentication token loaded for SSE mode");
+  }
 
-  if (
-    !state.radarrConfig && !state.sonarrConfig &&
-    !state.tmdbConfig
-  ) {
+  const configuredServices = [
+    state.radarrConfig ? "Radarr" : null,
+    state.sonarrConfig ? "Sonarr" : null,
+    state.tmdbConfig ? "TMDB" : null,
+  ].filter(Boolean);
+
+  logger.info("Services configured: {services}", {
+    services: configuredServices,
+  });
+
+  if (configuredServices.length === 0) {
     throw new Error(
       "At least one service must be configured. Please set RADARR_URL/RADARR_API_KEY, SONARR_URL/SONARR_API_KEY, or TMDB_API_KEY environment variables.",
     );
@@ -94,6 +124,9 @@ function loadConfig(state: ServerState): void {
 }
 
 async function setupTools(state: Readonly<ServerState>): Promise<void> {
+  const logger = getLogger(["media-server-mcp", "tools"]);
+  logger.debug("Setting up tools and filters");
+
   // Load tool configuration from file if specified
   const configFileContent = await loadToolConfigFile();
 
@@ -106,41 +139,53 @@ async function setupTools(state: Readonly<ServerState>): Promise<void> {
 
   // Register Radarr tools if configured
   if (state.radarrConfig) {
-    createRadarrTools(state.server, state.radarrConfig, isToolEnabled);
+    logger.debug("Registering Radarr tools");
+    createRadarrTools(
+      state.server,
+      state.radarrConfig,
+      isToolEnabled,
+    );
   }
 
   // Register Sonarr tools if configured
   if (state.sonarrConfig) {
-    createSonarrTools(state.server, state.sonarrConfig, isToolEnabled);
+    logger.debug("Registering Sonarr tools");
+    createSonarrTools(
+      state.server,
+      state.sonarrConfig,
+      isToolEnabled,
+    );
   }
 
   // Register TMDB tools if configured
   if (state.tmdbConfig) {
-    createTMDBTools(state.server, state.tmdbConfig, isToolEnabled);
+    logger.debug("Registering TMDB tools");
+    createTMDBTools(
+      state.server,
+      state.tmdbConfig,
+      isToolEnabled,
+    );
   }
 
-  // Error handling will be handled by the MCP framework
-
-  process.on("SIGINT", async () => {
-    await state.server.close();
-  });
+  logger.info("Tools registration completed");
 }
 
 async function testConnections(state: Readonly<ServerState>): Promise<void> {
+  const logger = getLogger(["media-server-mcp", "connection"]);
+
   // Test connections before starting
   if (state.radarrConfig) {
     try {
       const result = await testRadarrConnection(state.radarrConfig);
       if (result.success) {
-        console.error("[INFO] Successfully connected to Radarr");
+        logger.info("Successfully connected to Radarr");
       } else {
-        console.error("[WARNING] Failed to connect to Radarr:", result.error);
+        logger.warn("Failed to connect to Radarr", { error: result.error });
       }
     } catch (error) {
-      console.error(
-        "[WARNING] Radarr connection test failed:",
-        error instanceof Error ? error.message : String(error),
-      );
+      logger.warn("Radarr connection test failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -148,15 +193,14 @@ async function testConnections(state: Readonly<ServerState>): Promise<void> {
     try {
       const result = await testSonarrConnection(state.sonarrConfig);
       if (result.success) {
-        console.error("[INFO] Successfully connected to Sonarr");
+        logger.info("Successfully connected to Sonarr");
       } else {
-        console.error("[WARNING] Failed to connect to Sonarr:", result.error);
+        logger.warn("Failed to connect to Sonarr", { error: result.error });
       }
     } catch (error) {
-      console.error(
-        "[WARNING] Sonarr connection test failed:",
-        error instanceof Error ? error.message : String(error),
-      );
+      logger.warn("Sonarr connection test failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -164,27 +208,26 @@ async function testConnections(state: Readonly<ServerState>): Promise<void> {
     try {
       const result = await testTMDBConnection(state.tmdbConfig);
       if (result.success) {
-        console.error("[INFO] Successfully connected to TMDB");
+        logger.info("Successfully connected to TMDB");
       } else {
-        console.error("[WARNING] Failed to connect to TMDB:", result.error);
+        logger.warn("Failed to connect to TMDB", { error: result.error });
       }
     } catch (error) {
-      console.error(
-        "[WARNING] TMDB connection test failed:",
-        error instanceof Error ? error.message : String(error),
-      );
+      logger.warn("TMDB connection test failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }
 
-async function runStdioServer(state: Readonly<ServerState>): Promise<void> {
+async function runStdioServer(state: ServerState): Promise<void> {
   await testConnections(state);
 
-  await createStdioServer({ server: state.server });
+  state.transport = await createStdioServer({ server: state.server });
 }
 
 async function runSSEServer(
-  state: Readonly<ServerState>,
+  state: ServerState,
   port: number,
 ): Promise<void> {
   // Require authentication token in SSE mode
@@ -197,7 +240,59 @@ async function runSSEServer(
   await testConnections(state);
 
   // Start SSE server with authentication token
-  createSSEServer({ port, server: state.server, authToken: state.authToken });
+  state.transport = createSSEServer({
+    port,
+    server: state.server,
+    authToken: state.authToken,
+  });
+}
+
+function setupGracefulShutdown(state: ServerState): void {
+  const logger = getLogger(["media-server-mcp"]);
+
+  const cleanup = async () => {
+    logger.info("Received shutdown signal, cleaning up gracefully");
+
+    try {
+      // Close transport first
+      if (state.transport) {
+        await state.transport.close();
+      }
+
+      // Then close the MCP server
+      await state.server.close();
+
+      logger.info("Graceful shutdown completed");
+    } catch (error) {
+      logger.error("Error during graceful shutdown", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      // Force exit after cleanup attempt
+      Deno.exit(0);
+    }
+  };
+
+  // Handle various shutdown signals
+  process.on("SIGINT", cleanup);
+  process.on("SIGTERM", cleanup);
+
+  // Handle unhandled promise rejections and exceptions
+  process.on("unhandledRejection", (reason, _promise) => {
+    logger.error("Unhandled promise rejection", {
+      reason: reason instanceof Error ? reason.message : String(reason),
+      stack: reason instanceof Error ? reason.stack : undefined,
+    });
+    cleanup();
+  });
+
+  process.on("uncaughtException", (error) => {
+    logger.fatal("Uncaught exception", {
+      error: error.message,
+      stack: error.stack,
+    });
+    cleanup();
+  });
 }
 
 async function main(): Promise<void> {
@@ -215,8 +310,18 @@ async function main(): Promise<void> {
       .option("-p, --port <port:number>", "Port to run SSE server on", {
         default: 3000,
       })
+      .option("--debug", "Enable debug logging for verbose output")
       .action(async (options) => {
+        // Configure logging first
+        await configureLogging({
+          debug: options.debug || false,
+          useStdio: !options.sse,
+        });
+
         const serverState = await createServer();
+
+        // Setup graceful shutdown handling
+        setupGracefulShutdown(serverState);
 
         if (options.sse) {
           await runSSEServer(serverState, options.port);
@@ -227,6 +332,8 @@ async function main(): Promise<void> {
 
     await command.parse(Deno.args);
   } catch (error) {
+    // Use basic console.error for fatal errors before logging is configured
+    // or if logging configuration fails
     console.error(
       "[FATAL]",
       error instanceof Error ? error.message : String(error),

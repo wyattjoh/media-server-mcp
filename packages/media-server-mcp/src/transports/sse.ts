@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { URL } from "node:url";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { getLogger } from "../logging.ts";
 
 interface SSEServerOptions {
   port: number;
@@ -29,7 +30,9 @@ function validateBearerToken(
 
 export function createSSEServer(
   { port, server, authToken }: SSEServerOptions,
-): void {
+): { close: () => Promise<void> } {
+  const logger = getLogger(["media-server-mcp", "transport", "sse"]);
+
   // Store transports by session ID
   const transports = new Map<string, SSEServerTransport>();
 
@@ -60,7 +63,11 @@ export function createSSEServer(
         error: "Unauthorized",
         message: "Valid Bearer token required",
       }));
-      console.error("[WARNING] Unauthorized access attempt to", pathname);
+      logger.warn("Unauthorized access attempt", {
+        pathname,
+        ip: req.socket.remoteAddress,
+        userAgent: req.headers["user-agent"],
+      });
       return;
     }
 
@@ -89,15 +96,15 @@ export function createSSEServer(
         // Handle cleanup when connection closes
         transport.onclose = () => {
           transports.delete(sessionId);
-          console.error(`[INFO] SSE session ${sessionId} closed`);
+          logger.info("SSE session closed: {sessionId}", { sessionId });
         };
 
-        console.error(`[INFO] SSE session ${sessionId} established`);
+        logger.info("SSE session established: {sessionId}", { sessionId });
       } catch (error) {
-        console.error(
-          `[ERROR] Failed to establish SSE connection for session ${sessionId}:`,
-          error instanceof Error ? error.message : String(error),
-        );
+        logger.error("Failed to establish SSE connection", {
+          sessionId,
+          error: error instanceof Error ? error.message : String(error),
+        });
         res.writeHead(500, { "Content-Type": "application/json" });
         res.end(
           JSON.stringify({ error: "Failed to establish SSE connection" }),
@@ -137,21 +144,21 @@ export function createSSEServer(
             // Handle the message through the SSE transport
             await transport.handlePostMessage(req, res, jsonBody);
           } catch (parseError) {
-            console.error(
-              `[ERROR] Failed to parse JSON for session ${sessionId}:`,
-              parseError instanceof Error
+            logger.error("Failed to parse JSON", {
+              sessionId,
+              error: parseError instanceof Error
                 ? parseError.message
                 : String(parseError),
-            );
+            });
             res.writeHead(400, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ error: "Invalid JSON" }));
           }
         });
       } catch (error) {
-        console.error(
-          `[ERROR] Failed to handle message for session ${sessionId}:`,
-          error instanceof Error ? error.message : String(error),
-        );
+        logger.error("Failed to handle message", {
+          sessionId,
+          error: error instanceof Error ? error.message : String(error),
+        });
         res.writeHead(500, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Failed to process message" }));
       }
@@ -170,16 +177,52 @@ export function createSSEServer(
     }
   });
 
-  console.error(`[INFO] Starting SSE server on port ${port}`);
-  console.error(
-    `[INFO] SSE endpoint: http://localhost:${port}/sse?sessionId=<session-id>`,
-  );
-  console.error(
-    `[INFO] Messages endpoint: http://localhost:${port}/messages?sessionId=<session-id>`,
-  );
-  console.error(`[INFO] Health check: http://localhost:${port}/health`);
+  logger.info("Starting SSE server on port {port}", { port });
+  logger.info("SSE endpoint: {url}", {
+    url: `http://localhost:${port}/sse?sessionId=<session-id>`,
+  });
+  logger.info("Messages endpoint: {url}", {
+    url: `http://localhost:${port}/messages?sessionId=<session-id>`,
+  });
+  logger.info("Health check endpoint: {url}", {
+    url: `http://localhost:${port}/health`,
+  });
 
   httpServer.listen(port, () => {
-    console.error(`[INFO] SSE server listening on port ${port}`);
+    logger.info("SSE server listening on port {port}", { port });
   });
+
+  return {
+    close: () => {
+      logger.info("Closing SSE server");
+
+      // Close all active transports
+      for (const [sessionId, transport] of transports) {
+        try {
+          transport.close();
+        } catch (error) {
+          logger.error("Error closing transport for session {sessionId}", {
+            sessionId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+      transports.clear();
+
+      // Close HTTP server
+      return new Promise<void>((resolve, reject) => {
+        httpServer.close((error) => {
+          if (error) {
+            logger.error("Error closing HTTP server", {
+              error: error instanceof Error ? error.message : String(error),
+            });
+            reject(error);
+          } else {
+            logger.info("SSE server closed");
+            resolve();
+          }
+        });
+      });
+    },
+  };
 }
