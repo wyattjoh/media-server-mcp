@@ -110,6 +110,9 @@ SONARR_API_KEY=your-sonarr-api-key
 
 # TMDB Configuration (optional)
 TMDB_API_KEY=your-tmdb-api-key
+
+# Authentication Configuration (required for SSE mode only)
+MCP_AUTH_TOKEN=your-secure-auth-token
 ```
 
 ### API Key Acquisition
@@ -124,6 +127,7 @@ TMDB_API_KEY=your-tmdb-api-key
 - Each service's tools are only registered if that service is properly configured
 - Radarr and Sonarr use the same base URL + endpoint pattern with API key authentication via `X-Api-Key` header
 - TMDB uses direct API access with `Authorization: Bearer {api_key}` header authentication
+- **SSE Mode Security**: SSE mode requires `MCP_AUTH_TOKEN` environment variable and validates Bearer tokens on all endpoints except `/health`
 
 ## Available Tools by Service
 

@@ -1,6 +1,6 @@
 {
   "name": "@wyattjoh/media-server-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "MIT",
   "exports": "./src/index.ts",
   "publish": {
@@ -19,7 +19,8 @@
   "imports": {
     "@modelcontextprotocol/sdk": "npm:@modelcontextprotocol/sdk@^1.0.0",
     "@std/dotenv": "jsr:@std/dotenv@^0.225.5",
-    "zod": "npm:zod@^3.22.0"
+    "zod": "npm:zod@^3.22.0",
+    "@cliffy/command": "jsr:@cliffy/command@^1.0.0-rc.8"
   },
   "repository": {
     "type": "git",

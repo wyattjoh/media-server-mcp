@@ -5,7 +5,7 @@ import * as radarrClient from "@wyattjoh/radarr";
 
 export function createRadarrTools(
   server: McpServer,
-  config: RadarrConfig,
+  config: Readonly<RadarrConfig>,
   isToolEnabled: (toolName: string) => boolean,
 ): void {
   // radarr_search_movie

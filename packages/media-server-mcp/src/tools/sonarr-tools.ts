@@ -5,7 +5,7 @@ import * as sonarrClient from "@wyattjoh/sonarr";
 
 export function createSonarrTools(
   server: McpServer,
-  config: SonarrConfig,
+  config: Readonly<SonarrConfig>,
   isToolEnabled: (toolName: string) => boolean,
 ): void {
   // sonarr_search_series

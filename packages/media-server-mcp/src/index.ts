@@ -2,9 +2,11 @@
 
 import "@std/dotenv/load";
 import process from "node:process";
+import { Command } from "@cliffy/command";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import deno from "../deno.json" with { type: "json" };
+import { createSSEServer } from "./transports/sse.ts";
+import { createStdioServer } from "./transports/stdio.ts";
 import {
   createRadarrConfig,
   type RadarrConfig,
@@ -35,6 +37,7 @@ interface ServerState {
   radarrConfig?: RadarrConfig;
   sonarrConfig?: SonarrConfig;
   tmdbConfig?: TMDBConfig;
+  authToken?: string;
 }
 
 async function createServer(): Promise<ServerState> {
@@ -77,6 +80,9 @@ function loadConfig(state: ServerState): void {
     state.tmdbConfig = createTMDBConfig(tmdbApiKey);
   }
 
+  // Load authentication token
+  state.authToken = Deno.env.get("MCP_AUTH_TOKEN");
+
   if (
     !state.radarrConfig && !state.sonarrConfig &&
     !state.tmdbConfig
@@ -87,7 +93,7 @@ function loadConfig(state: ServerState): void {
   }
 }
 
-async function setupTools(state: ServerState): Promise<void> {
+async function setupTools(state: Readonly<ServerState>): Promise<void> {
   // Load tool configuration from file if specified
   const configFileContent = await loadToolConfigFile();
 
@@ -120,7 +126,7 @@ async function setupTools(state: ServerState): Promise<void> {
   });
 }
 
-async function runServer(state: ServerState): Promise<void> {
+async function testConnections(state: Readonly<ServerState>): Promise<void> {
   // Test connections before starting
   if (state.radarrConfig) {
     try {
@@ -169,16 +175,57 @@ async function runServer(state: ServerState): Promise<void> {
       );
     }
   }
+}
 
-  const transport = new StdioServerTransport();
-  await state.server.connect(transport);
-  console.error("[INFO] Media Server MCP Server running on stdio");
+async function runStdioServer(state: Readonly<ServerState>): Promise<void> {
+  await testConnections(state);
+
+  await createStdioServer({ server: state.server });
+}
+
+async function runSSEServer(
+  state: Readonly<ServerState>,
+  port: number,
+): Promise<void> {
+  // Require authentication token in SSE mode
+  if (!state.authToken) {
+    throw new Error(
+      "MCP_AUTH_TOKEN environment variable is required when running in SSE mode for security.",
+    );
+  }
+
+  await testConnections(state);
+
+  // Start SSE server with authentication token
+  createSSEServer({ port, server: state.server, authToken: state.authToken });
 }
 
 async function main(): Promise<void> {
   try {
-    const serverState = await createServer();
-    await runServer(serverState);
+    const command = new Command()
+      .name("media-server-mcp")
+      .version(deno.version)
+      .description(
+        "Media Server MCP - Model Context Protocol server for Radarr, Sonarr, and TMDB",
+      )
+      .option(
+        "--sse",
+        "Run server in SSE (Server-Sent Events) mode over HTTP instead of stdio",
+      )
+      .option("-p, --port <port:number>", "Port to run SSE server on", {
+        default: 3000,
+      })
+      .action(async (options) => {
+        const serverState = await createServer();
+
+        if (options.sse) {
+          await runSSEServer(serverState, options.port);
+        } else {
+          await runStdioServer(serverState);
+        }
+      });
+
+    await command.parse(Deno.args);
   } catch (error) {
     console.error(
       "[FATAL]",
