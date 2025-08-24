@@ -40,6 +40,7 @@ export type {
   TMDBSearchResponse,
   TMDBSeason,
   TMDBSpokenLanguage,
+  TMDBTrendingMovieResult,
   TMDBTV,
   TMDBTVDetails,
   TMDBTVSearchResponse,
