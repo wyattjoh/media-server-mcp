@@ -442,3 +442,37 @@ export interface TMDBLanguage {
 
 // People search response
 export type TMDBPeopleSearchResponse = TMDBSearchResponse<TMDBPerson>;
+
+// Trending-specific person interface (simplified, no known_for array)
+export interface TMDBTrendingPerson {
+  readonly id: number;
+  readonly name: string;
+  readonly original_name: string;
+  readonly popularity: number;
+  readonly profile_path: string | undefined;
+  readonly adult: boolean;
+  readonly gender: number;
+  readonly known_for_department: string | undefined;
+  readonly media_type: "person";
+}
+
+// Trending result types (unions for different media types)
+export type TMDBTrendingMovieResult = TMDBMovie & {
+  readonly media_type: "movie";
+};
+export type TMDBTrendingTVResult = TMDBTV & { readonly media_type: "tv" };
+export type TMDBTrendingPersonResult = TMDBTrendingPerson;
+export type TMDBTrendingAllResult =
+  | TMDBTrendingMovieResult
+  | TMDBTrendingTVResult
+  | TMDBTrendingPersonResult;
+
+// Trending response types
+export type TMDBTrendingMovieResponse = TMDBSearchResponse<
+  TMDBTrendingMovieResult
+>;
+export type TMDBTrendingTVResponse = TMDBSearchResponse<TMDBTrendingTVResult>;
+export type TMDBTrendingPersonResponse = TMDBSearchResponse<
+  TMDBTrendingPersonResult
+>;
+export type TMDBTrendingAllResponse = TMDBSearchResponse<TMDBTrendingAllResult>;

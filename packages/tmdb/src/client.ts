@@ -21,6 +21,10 @@ import type {
   TMDBPersonMovieCredits,
   TMDBPersonTVCredits,
   TMDBSearchResponse,
+  TMDBTrendingAllResponse,
+  TMDBTrendingMovieResponse,
+  TMDBTrendingPersonResponse,
+  TMDBTrendingTVResponse,
   TMDBTVDetails,
   TMDBTVSearchResponse,
   TMDBWatchProvidersResponse,
@@ -294,17 +298,64 @@ export function getTVCredits(
 // Get trending content (movies, TV shows, or people)
 export function getTrending(
   config: TMDBConfig,
+  mediaType: "all",
+  timeWindow: "day" | "week",
+  page?: number,
+  language?: string,
+): Promise<TMDBTrendingAllResponse>;
+export function getTrending(
+  config: TMDBConfig,
+  mediaType: "movie",
+  timeWindow: "day" | "week",
+  page?: number,
+  language?: string,
+): Promise<TMDBTrendingMovieResponse>;
+export function getTrending(
+  config: TMDBConfig,
+  mediaType: "tv",
+  timeWindow: "day" | "week",
+  page?: number,
+  language?: string,
+): Promise<TMDBTrendingTVResponse>;
+export function getTrending(
+  config: TMDBConfig,
+  mediaType: "person",
+  timeWindow: "day" | "week",
+  page?: number,
+  language?: string,
+): Promise<TMDBTrendingPersonResponse>;
+// Union overload signature to handle union types from callers
+export function getTrending(
+  config: TMDBConfig,
+  mediaType: "all" | "movie" | "tv" | "person",
+  timeWindow: "day" | "week",
+  page?: number,
+  language?: string,
+): Promise<
+  | TMDBTrendingAllResponse
+  | TMDBTrendingMovieResponse
+  | TMDBTrendingTVResponse
+  | TMDBTrendingPersonResponse
+>;
+// Implementation signature
+export function getTrending(
+  config: TMDBConfig,
   mediaType: "all" | "movie" | "tv" | "person",
   timeWindow: "day" | "week",
   page = 1,
   language = "en-US",
-): Promise<TMDBSearchResponse<unknown>> {
+): Promise<
+  | TMDBTrendingAllResponse
+  | TMDBTrendingMovieResponse
+  | TMDBTrendingTVResponse
+  | TMDBTrendingPersonResponse
+> {
   const params = new URLSearchParams({
     page: page.toString(),
     language,
   });
 
-  return makeRequest<TMDBSearchResponse<unknown>>(
+  return makeRequest(
     config,
     `/trending/${mediaType}/${timeWindow}?${params.toString()}`,
   );
