@@ -91,13 +91,15 @@ The codebase follows a **layered architecture**:
 This codebase **ALWAYS** follows a **functional architecture** approach rather than classes:
 
 - **No Classes**: All code should be implemented using functions, not classes. This applies to clients, services, utilities, and all other modules.
-- **Configuration Objects**: Each service uses config objects (`RadarrConfig`, `SonarrConfig`, `TMDBConfig`) created by factory functions (`createRadarrConfig()`, `createSonarrConfig()`, `createTMDBConfig()`)
+- **Configuration Objects**: Each service uses config objects (`RadarrConfig`, `SonarrConfig`, `TMDBConfig`, `PlexConfig`) created by factory functions (`createRadarrConfig()`, `createSonarrConfig()`, `createTMDBConfig()`, `createPlexConfig()`)
 - **HTTP Communication**: Each client has a private `makeRequest<T>()` function that handles all HTTP communication
 - **Public Functions**: Individual functions (`getMovies()`, `addMovie()`, `searchMovies()`, etc.) are exported functions that accept config objects and call `makeRequest`
 - **Async Patterns**: Functions that only call `makeRequest` without additional `await` should NOT be marked `async`
 - **Connection Testing**: Each client exports a `testConnection()` function that returns `{ success: boolean; error?: string }`
 
 **TMDB Client Specifics**: Uses direct TMDB API with `Authorization: Bearer {api_key}` header authentication and includes a pagination utility function `toPaginatedResponse()` for consistent result formatting.
+
+**Plex Client Specifics**: Uses Plex API with `X-Plex-Token` header authentication for accessing media libraries, search functionality, and server capabilities.
 
 ### Error Handling Pattern
 
@@ -121,6 +123,10 @@ SONARR_API_KEY=your-sonarr-api-key
 # TMDB Configuration (optional)
 TMDB_API_KEY=your-tmdb-api-key
 
+# Plex Configuration (optional)
+PLEX_URL=http://localhost:32400
+PLEX_API_KEY=your-plex-api-key
+
 # Authentication Configuration (required for SSE mode only)
 MCP_AUTH_TOKEN=your-secure-auth-token
 ```
@@ -129,6 +135,7 @@ MCP_AUTH_TOKEN=your-secure-auth-token
 
 - **Radarr/Sonarr**: Found in Settings → General → Security → API Key
 - **TMDB**: Free account at [TMDB](https://www.themoviedb.org/), then Settings → API → Create API Key
+- **Plex**: Found in Settings → Account → Privacy → X-Plex-Token
 
 ## Important Implementation Notes
 
@@ -137,6 +144,7 @@ MCP_AUTH_TOKEN=your-secure-auth-token
 - Each service's tools are only registered if that service is properly configured
 - Radarr and Sonarr use the same base URL + endpoint pattern with API key authentication via `X-Api-Key` header
 - TMDB uses direct API access with `Authorization: Bearer {api_key}` header authentication
+- Plex uses direct API access with `X-Plex-Token` header authentication
 - **SSE Mode Security**: SSE mode requires `MCP_AUTH_TOKEN` environment variable and validates Bearer tokens on all endpoints except `/health`
 
 ## Available Tools by Service
@@ -275,6 +283,22 @@ MCP_AUTH_TOKEN=your-secure-auth-token
 
 - `tmdb_get_movie_credits`: Get cast and crew for a movie
 - `tmdb_get_tv_credits`: Get cast and crew for a TV show
+
+### Plex Tools (when `PLEX_URL` and `PLEX_API_KEY` are configured)
+
+#### System Information
+
+- `plex_get_capabilities` - Get Plex server capabilities, version, and system information
+
+#### Library Management
+
+- `plex_get_libraries` - List all media libraries available on the Plex server
+- `plex_refresh_library` - Trigger a refresh of a specific library to scan for new content
+
+#### Search and Discovery
+
+- `plex_search` - Search across all Plex libraries for movies, TV shows, and other content with optional type filters
+- `plex_get_metadata` - Get detailed metadata for a specific movie, TV show, or other media item
 
 ## Tool Implementation Pattern
 

@@ -622,6 +622,11 @@
           "npm:zod@^3.22.0"
         ]
       },
+      "packages/plex": {
+        "dependencies": [
+          "jsr:@logtape/logtape@^1.0.4"
+        ]
+      },
       "packages/radarr": {
         "dependencies": [
           "jsr:@logtape/logtape@^1.0.4"

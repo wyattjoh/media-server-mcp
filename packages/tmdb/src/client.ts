@@ -80,7 +80,7 @@ async function makeRequest<T>(
     }
 
     const contentType = response.headers.get("content-type");
-    
+
     logger.debug("API request successful", {
       endpoint,
       status: response.status,
@@ -755,19 +755,19 @@ export async function testConnection(
   config: TMDBConfig,
 ): Promise<{ success: boolean; error?: string }> {
   const logger = getLogger(["tmdb"]);
-  
+
   try {
     logger.debug("Testing TMDB connection", { baseUrl: config.baseUrl });
-    
+
     await makeRequest<{ success: boolean }>(config, "/authentication");
-    
+
     logger.debug("TMDB connection test successful");
     return { success: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("TMDB connection test failed", { 
+    logger.error("TMDB connection test failed", {
       error: errorMessage,
-      baseUrl: config.baseUrl 
+      baseUrl: config.baseUrl,
     });
     return {
       success: false,

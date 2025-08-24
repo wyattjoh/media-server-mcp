@@ -438,19 +438,19 @@ export async function testConnection(
   config: RadarrConfig,
 ): Promise<{ success: boolean; error?: string }> {
   const logger = getLogger(["radarr"]);
-  
+
   try {
     logger.debug("Testing Radarr connection", { baseUrl: config.baseUrl });
-    
+
     await getSystemStatus(config);
-    
+
     logger.debug("Radarr connection test successful");
     return { success: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("Radarr connection test failed", { 
+    logger.error("Radarr connection test failed", {
       error: errorMessage,
-      baseUrl: config.baseUrl 
+      baseUrl: config.baseUrl,
     });
     return {
       success: false,

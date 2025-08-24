@@ -1,0 +1,16 @@
+{
+  "name": "@wyattjoh/plex",
+  "version": "0.1.0",
+  "license": "MIT",
+  "exports": "./mod.ts",
+  "imports": {
+    "@logtape/logtape": "jsr:@logtape/logtape@^1.0.4"
+  },
+  "publish": {
+    "include": ["LICENSE", "README.md", "mod.ts", "src/**/*.ts", "deno.json"]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wyattjoh/media-server-mcp.git"
+  }
+}

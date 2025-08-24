@@ -1,6 +1,6 @@
 # Media Server MCP
 
-A Model Context Protocol (MCP) server that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series) media servers, and access TMDB data through natural language interactions.
+A Model Context Protocol (MCP) server that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series), Plex media servers, and access TMDB data through natural language interactions.
 
 ## Packages
 
@@ -10,11 +10,13 @@ This is a monorepo containing the following packages:
 - **[@wyattjoh/radarr](packages/radarr/)** - Radarr API client library
 - **[@wyattjoh/sonarr](packages/sonarr/)** - Sonarr API client library
 - **[@wyattjoh/tmdb](packages/tmdb/)** - TMDB API client library
+- **[@wyattjoh/plex](packages/plex/)** - Plex API client library
 
 ## Features
 
 - **Radarr Integration**: Search, add, manage, and monitor movies
 - **Sonarr Integration**: Search, add, manage, and monitor TV series
+- **Plex Integration**: Browse libraries, search content, and manage Plex media server
 - **TMDB Integration**: Advanced movie/TV discovery, external ID lookup, and comprehensive metadata
 - **Tool Configuration System**: Reduce tool clutter with 6 profiles (18-70 tools) and branch-based filtering
 - **Flexible Service Configuration**: Each service is optional - configure any combination
@@ -39,6 +41,8 @@ Add to your MCP servers configuration using the JSR package:
         "SONARR_URL": "http://localhost:8989",
         "SONARR_API_KEY": "your-sonarr-api-key",
         "TMDB_API_KEY": "your-tmdb-api-key",
+        "PLEX_URL": "http://localhost:32400",
+        "PLEX_API_KEY": "your-plex-api-key",
         "TOOL_PROFILE": "default"
       }
     }
@@ -135,14 +139,14 @@ Add to your MCP servers configuration using the JSR package:
 
 ### Environment Variables
 
-| Variable           | Description                                        | Required  |
-| ------------------ | -------------------------------------------------- | --------- |
-| `RADARR_URL`       | Base URL of your Radarr instance                   | Optional* |
-| `RADARR_API_KEY`   | API key for Radarr authentication                  | Optional* |
-| `SONARR_URL`       | Base URL of your Sonarr instance                   | Optional* |
-| `SONARR_API_KEY`   | API key for Sonarr authentication                  | Optional* |
-| `TMDB_API_KEY`     | TMDB API key for movie/TV metadata                 | Optional* |
-| `MCP_AUTH_TOKEN`   | Authentication token for SSE mode (HTTP transport) | Optional  |
+| Variable         | Description                                        | Required  |
+| ---------------- | -------------------------------------------------- | --------- |
+| `RADARR_URL`     | Base URL of your Radarr instance                   | Optional* |
+| `RADARR_API_KEY` | API key for Radarr authentication                  | Optional* |
+| `SONARR_URL`     | Base URL of your Sonarr instance                   | Optional* |
+| `SONARR_API_KEY` | API key for Sonarr authentication                  | Optional* |
+| `TMDB_API_KEY`   | TMDB API key for movie/TV metadata                 | Optional* |
+| `MCP_AUTH_TOKEN` | Authentication token for SSE mode (HTTP transport) | Optional  |
 
 *_At least one service (Radarr, Sonarr, or TMDB) must be configured._
 
@@ -183,7 +187,7 @@ export MCP_AUTH_TOKEN=$(openssl rand -base64 32)
 When running in SSE mode, the server provides these endpoints:
 
 - **`/sse?sessionId=<id>`** - SSE event stream endpoint (requires Bearer auth)
-- **`/messages?sessionId=<id>`** - HTTP POST endpoint for client messages (requires Bearer auth)  
+- **`/messages?sessionId=<id>`** - HTTP POST endpoint for client messages (requires Bearer auth)
 - **`/health`** - Health check endpoint (no authentication required)
 
 #### Example SSE Usage
@@ -204,6 +208,7 @@ curl -H "Authorization: Bearer your-secure-token" \
 ```
 
 **Security Notes:**
+
 - Never expose SSE mode to the internet without proper authentication
 - Use a strong, randomly generated `MCP_AUTH_TOKEN`
 - The health endpoint (`/health`) is the only unauthenticated endpoint

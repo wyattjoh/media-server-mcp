@@ -22,9 +22,15 @@ import {
   testConnection as testTMDBConnection,
   type TMDBConfig,
 } from "@wyattjoh/tmdb";
+import {
+  createPlexConfig,
+  type PlexConfig,
+  testConnection as testPlexConnection,
+} from "@wyattjoh/plex";
 import { createRadarrTools } from "./tools/radarr-tools.ts";
 import { createSonarrTools } from "./tools/sonarr-tools.ts";
 import { createTMDBTools } from "./tools/tmdb-tools.ts";
+import { createPlexTools } from "./tools/plex-tools.ts";
 import {
   createToolFilter,
   loadToolConfigFile,
@@ -38,6 +44,7 @@ interface ServerState {
   radarrConfig?: RadarrConfig;
   sonarrConfig?: SonarrConfig;
   tmdbConfig?: TMDBConfig;
+  plexConfig?: PlexConfig;
   authToken?: string;
   transport?: { close: () => Promise<void> };
 }
@@ -97,6 +104,14 @@ function loadConfig(state: ServerState): void {
     logger.debug("TMDB configuration loaded");
   }
 
+  // Load Plex configuration
+  const plexUrl = Deno.env.get("PLEX_URL");
+  const plexApiKey = Deno.env.get("PLEX_API_KEY");
+  if (plexUrl && plexApiKey) {
+    state.plexConfig = createPlexConfig(plexUrl, plexApiKey);
+    logger.debug("Plex configuration loaded: url={plexUrl}", { plexUrl });
+  }
+
   // Load authentication token
   const authToken = Deno.env.get("MCP_AUTH_TOKEN");
   if (authToken) {
@@ -110,6 +125,7 @@ function loadConfig(state: ServerState): void {
     state.radarrConfig ? "Radarr" : null,
     state.sonarrConfig ? "Sonarr" : null,
     state.tmdbConfig ? "TMDB" : null,
+    state.plexConfig ? "Plex" : null,
   ].filter(Boolean);
 
   logger.info("Services configured: {services}", {
@@ -118,7 +134,7 @@ function loadConfig(state: ServerState): void {
 
   if (configuredServices.length === 0) {
     throw new Error(
-      "At least one service must be configured. Please set RADARR_URL/RADARR_API_KEY, SONARR_URL/SONARR_API_KEY, or TMDB_API_KEY environment variables.",
+      "At least one service must be configured. Please set RADARR_URL/RADARR_API_KEY, SONARR_URL/SONARR_API_KEY, TMDB_API_KEY, or PLEX_URL/PLEX_API_KEY environment variables.",
     );
   }
 }
@@ -163,6 +179,16 @@ async function setupTools(state: Readonly<ServerState>): Promise<void> {
     createTMDBTools(
       state.server,
       state.tmdbConfig,
+      isToolEnabled,
+    );
+  }
+
+  // Register Plex tools if configured
+  if (state.plexConfig) {
+    logger.debug("Registering Plex tools");
+    createPlexTools(
+      state.server,
+      state.plexConfig,
       isToolEnabled,
     );
   }
@@ -214,6 +240,21 @@ async function testConnections(state: Readonly<ServerState>): Promise<void> {
       }
     } catch (error) {
       logger.warn("TMDB connection test failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  if (state.plexConfig) {
+    try {
+      const result = await testPlexConnection(state.plexConfig);
+      if (result.success) {
+        logger.info("Successfully connected to Plex");
+      } else {
+        logger.warn("Failed to connect to Plex", { error: result.error });
+      }
+    } catch (error) {
+      logger.warn("Plex connection test failed", {
         error: error instanceof Error ? error.message : String(error),
       });
     }

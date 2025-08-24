@@ -33,6 +33,8 @@ export const TOOL_BRANCHES: ToolCategory[] = [
       "radarr_add_movie",
       "sonarr_search_series",
       "sonarr_add_series",
+      // Plex Search
+      "plex_search",
       // Configuration (needed for add operations)
       "radarr_get_configuration",
       "sonarr_get_configuration",
@@ -53,6 +55,9 @@ export const TOOL_BRANCHES: ToolCategory[] = [
       "sonarr_get_episodes",
       "sonarr_get_episode",
       "sonarr_update_episode_monitoring",
+      // Plex Library Management
+      "plex_get_libraries",
+      "plex_get_metadata",
     ],
   },
   {
@@ -69,6 +74,9 @@ export const TOOL_BRANCHES: ToolCategory[] = [
       "sonarr_refresh_series",
       "sonarr_refresh_all_series",
       "sonarr_disk_scan",
+      // Plex System Maintenance
+      "plex_get_capabilities",
+      "plex_refresh_library",
     ],
   },
   {

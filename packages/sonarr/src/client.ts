@@ -495,19 +495,19 @@ export async function testConnection(
   config: SonarrConfig,
 ): Promise<{ success: boolean; error?: string }> {
   const logger = getLogger(["sonarr"]);
-  
+
   try {
     logger.debug("Testing Sonarr connection", { baseUrl: config.baseUrl });
-    
+
     await getSystemStatus(config);
-    
+
     logger.debug("Sonarr connection test successful");
     return { success: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("Sonarr connection test failed", { 
+    logger.error("Sonarr connection test failed", {
       error: errorMessage,
-      baseUrl: config.baseUrl 
+      baseUrl: config.baseUrl,
     });
     return {
       success: false,
