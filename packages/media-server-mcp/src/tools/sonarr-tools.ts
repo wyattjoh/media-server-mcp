@@ -415,15 +415,51 @@ export function createSonarrTools(
     server.registerTool(
       "sonarr_get_series_by_id",
       {
-        title: "Get details of a specific TV series",
-        description: "Get details of a specific TV series",
+        title: "Get details of a specific TV series by Sonarr ID or TVDB ID",
+        description:
+          "Get details of a specific TV series by Sonarr ID or TVDB ID",
         inputSchema: {
-          id: z.number().describe("Series ID in Sonarr"),
+          id: z.number().optional().describe("Series ID in Sonarr"),
+          tvdbId: z.number().optional().describe("The TV Database (TVDB) ID"),
         },
       },
       async (args) => {
         try {
-          const result = await sonarrClient.getSeriesById(config, args.id);
+          // Validate that exactly one identifier is provided
+          if ((args.id === undefined) === (args.tvdbId === undefined)) {
+            return {
+              content: [{
+                type: "text",
+                text:
+                  "Error: Provide either 'id' (Sonarr ID) or 'tvdbId', but not both",
+              }],
+            };
+          }
+
+          let result;
+          if (args.id !== undefined) {
+            // Use Sonarr ID
+            result = await sonarrClient.getSeriesById(config, args.id);
+          } else if (args.tvdbId !== undefined) {
+            // Use TVDB ID
+            result = await sonarrClient.getSeriesById(config, {
+              tvdbId: args.tvdbId,
+            });
+          }
+
+          if (!result) {
+            return {
+              content: [{
+                type: "text",
+                text: `Series not found with ${
+                  args.id !== undefined
+                    ? `Sonarr ID ${args.id}`
+                    : `TVDB ID ${args.tvdbId}`
+                }`,
+              }],
+            };
+          }
+
           return {
             content: [{
               type: "text",

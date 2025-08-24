@@ -325,15 +325,52 @@ export function createRadarrTools(
     server.registerTool(
       "radarr_get_movie",
       {
-        title: "Get details of a specific movie",
-        description: "Get details of a specific movie",
+        title: "Get details of a specific movie by Radarr ID or TMDB ID",
+        description: "Get details of a specific movie by Radarr ID or TMDB ID",
         inputSchema: {
-          id: z.number().describe("Movie ID in Radarr"),
+          id: z.number().optional().describe("Movie ID in Radarr"),
+          tmdbId: z.number().optional().describe(
+            "The Movie Database (TMDB) ID",
+          ),
         },
       },
       async (args) => {
         try {
-          const result = await radarrClient.getMovie(config, args.id);
+          // Validate that exactly one identifier is provided
+          if ((args.id === undefined) === (args.tmdbId === undefined)) {
+            return {
+              content: [{
+                type: "text",
+                text:
+                  "Error: Provide either 'id' (Radarr ID) or 'tmdbId', but not both",
+              }],
+            };
+          }
+
+          let result;
+          if (args.id !== undefined) {
+            // Use Radarr ID
+            result = await radarrClient.getMovie(config, args.id);
+          } else if (args.tmdbId !== undefined) {
+            // Use TMDB ID
+            result = await radarrClient.getMovie(config, {
+              tmdbId: args.tmdbId,
+            });
+          }
+
+          if (!result) {
+            return {
+              content: [{
+                type: "text",
+                text: `Movie not found with ${
+                  args.id !== undefined
+                    ? `Radarr ID ${args.id}`
+                    : `TMDB ID ${args.tmdbId}`
+                }`,
+              }],
+            };
+          }
+
           return {
             content: [{
               type: "text",
@@ -427,7 +464,7 @@ export function createRadarrTools(
           const currentMovie = await radarrClient.getMovie(config, args.id);
 
           // Update only the specified fields
-          const updatedMovie: RadarrMovie = {
+          const updatedMovie = {
             ...currentMovie,
             ...(args.monitored !== undefined &&
               { monitored: args.monitored }),
@@ -436,7 +473,7 @@ export function createRadarrTools(
             ...(args.minimumAvailability !== undefined &&
               { minimumAvailability: args.minimumAvailability }),
             ...(args.tags !== undefined && { tags: args.tags }),
-          };
+          } as RadarrMovie;
 
           const result = await radarrClient.updateMovie(config, updatedMovie);
           return {

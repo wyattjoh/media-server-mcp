@@ -187,12 +187,33 @@ export async function getMovies(
   };
 }
 
-// Get specific movie by ID
+// Get specific movie by ID or TMDB ID using discriminated union
 export function getMovie(
   config: RadarrConfig,
   id: number,
-): Promise<RadarrMovie> {
-  return makeRequest<RadarrMovie>(config, `/movie/${id}`);
+): Promise<RadarrMovie | undefined>;
+export function getMovie(
+  config: RadarrConfig,
+  options: { tmdbId: number },
+): Promise<RadarrMovie | undefined>;
+export async function getMovie(
+  config: RadarrConfig,
+  idOrOptions: number | { tmdbId: number },
+): Promise<RadarrMovie | undefined> {
+  // Handle numeric ID (Radarr ID)
+  if (typeof idOrOptions === "number") {
+    return makeRequest<RadarrMovie>(config, `/movie/${idOrOptions}`);
+  }
+
+  // Handle TMDB ID lookup
+  const { tmdbId } = idOrOptions;
+  const movies = await makeRequest<RadarrMovie[]>(
+    config,
+    `/movie?tmdbId=${tmdbId}`,
+  );
+
+  // Return the first movie if found, undefined otherwise
+  return movies[0];
 }
 
 // Add a movie

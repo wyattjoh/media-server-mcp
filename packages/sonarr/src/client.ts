@@ -191,12 +191,33 @@ export async function getSeries(
   };
 }
 
-// Get specific series by ID
+// Get specific series by ID or TVDB ID using discriminated union
 export function getSeriesById(
   config: SonarrConfig,
   id: number,
-): Promise<SonarrSeries> {
-  return makeRequest<SonarrSeries>(config, `/series/${id}`);
+): Promise<SonarrSeries | undefined>;
+export function getSeriesById(
+  config: SonarrConfig,
+  options: { tvdbId: number },
+): Promise<SonarrSeries | undefined>;
+export async function getSeriesById(
+  config: SonarrConfig,
+  idOrOptions: number | { tvdbId: number },
+): Promise<SonarrSeries | undefined> {
+  // Handle numeric ID (Sonarr ID)
+  if (typeof idOrOptions === "number") {
+    return makeRequest<SonarrSeries>(config, `/series/${idOrOptions}`);
+  }
+
+  // Handle TVDB ID lookup
+  const { tvdbId } = idOrOptions;
+  const series = await makeRequest<SonarrSeries[]>(
+    config,
+    `/series?tvdbId=${tvdbId}`,
+  );
+
+  // Return the first series if found, undefined otherwise
+  return series[0];
 }
 
 // Add a series
