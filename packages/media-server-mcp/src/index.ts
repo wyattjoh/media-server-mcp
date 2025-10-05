@@ -7,6 +7,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import deno from "../deno.json" with { type: "json" };
 import { createSSEServer } from "./transports/sse.ts";
 import { createStdioServer } from "./transports/stdio.ts";
+import { createHealthService, type HealthService } from "./docker/health-service.ts";
 import {
   createRadarrConfig,
   type RadarrConfig,
@@ -37,7 +38,7 @@ import {
   logToolConfiguration,
   parseToolConfig,
 } from "./tools/tool-filter.ts";
-import { configureLogging, getLogger } from "./logging.ts";
+import { configureLogging, getLogger, isDockerContainer } from "./logging.ts";
 
 interface ServerState {
   server: McpServer;
@@ -47,6 +48,8 @@ interface ServerState {
   plexConfig?: PlexConfig;
   authToken?: string;
   transport?: { close: () => Promise<void> };
+  healthService?: HealthService;
+  startTime: Date;
 }
 
 async function createServer(): Promise<ServerState> {
@@ -69,9 +72,13 @@ async function createServer(): Promise<ServerState> {
     },
   );
 
-  const state: ServerState = { server };
+  const state: ServerState = { 
+    server, 
+    startTime: new Date() 
+  };
   loadConfig(state);
   await setupTools(state);
+  setupHealthService(state);
 
   logger.debug("Server created successfully");
   return state;
@@ -119,6 +126,54 @@ function loadConfig(state: ServerState): void {
   }
   if (state.authToken) {
     logger.debug("Authentication token loaded for SSE mode");
+  }
+
+  // Load Docker-specific environment variables
+  const dockerContainer = Deno.env.get("DOCKER_CONTAINER");
+  const containerId = Deno.env.get("HOSTNAME") || Deno.env.get("CONTAINER_ID");
+  const containerImage = Deno.env.get("CONTAINER_IMAGE");
+  const containerName = Deno.env.get("CONTAINER_NAME");
+  const containerVersion = Deno.env.get("CONTAINER_VERSION");
+  const dockerNetwork = Deno.env.get("DOCKER_NETWORK");
+  const dockerHost = Deno.env.get("DOCKER_HOST");
+  
+  if (dockerContainer === "true") {
+    logger.debug("Running in Docker container", {
+      containerId,
+      containerImage,
+      containerName,
+      containerVersion,
+      dockerNetwork,
+      dockerHost,
+    });
+  }
+
+  // Log Docker-specific configuration if available
+  const dockerConfig = {
+    containerId,
+    containerImage,
+    containerName,
+    containerVersion,
+    dockerNetwork,
+    dockerHost,
+  };
+  
+  const hasDockerConfig = Object.values(dockerConfig).some(value => value !== undefined);
+  if (hasDockerConfig) {
+    logger.info("Docker environment detected", dockerConfig);
+  }
+
+  // Load Docker-specific tool and debug configuration
+  const dockerToolProfile = Deno.env.get("DOCKER_TOOL_PROFILE");
+  const dockerDebugMode = Deno.env.get("DOCKER_DEBUG_MODE");
+  const dockerLogLevel = Deno.env.get("DOCKER_LOG_LEVEL");
+  
+  if (dockerToolProfile || dockerDebugMode || dockerLogLevel) {
+    logger.debug("Docker-specific configuration loaded", {
+      toolProfile: dockerToolProfile,
+      debugMode: dockerDebugMode,
+      logLevel: dockerLogLevel,
+    });
   }
 
   const configuredServices = [
@@ -194,6 +249,29 @@ async function setupTools(state: Readonly<ServerState>): Promise<void> {
   }
 
   logger.info("Tools registration completed");
+}
+
+function setupHealthService(state: ServerState): void {
+  const logger = getLogger(["media-server-mcp", "health"]);
+  logger.debug("Setting up health service");
+
+  // Determine transport mode based on whether auth token is configured
+  const transportMode = state.authToken ? "sse" : "stdio";
+
+  // Create health service with service configurations
+  state.healthService = createHealthService({
+    serviceConfigs: {
+      radarrConfig: state.radarrConfig,
+      sonarrConfig: state.sonarrConfig,
+      tmdbConfig: state.tmdbConfig,
+      plexConfig: state.plexConfig,
+    },
+    transportMode,
+    version: deno.version,
+    startTime: state.startTime,
+  });
+
+  logger.debug("Health service created", { transportMode });
 }
 
 async function testConnections(state: Readonly<ServerState>): Promise<void> {
@@ -280,33 +358,56 @@ async function runSSEServer(
 
   await testConnections(state);
 
-  // Start SSE server with authentication token
+  // Start SSE server with authentication token and health service
   state.transport = createSSEServer({
     port,
     server: state.server,
     authToken: state.authToken,
+    healthService: state.healthService!,
   });
 }
 
 function setupGracefulShutdown(state: ServerState): void {
   const logger = getLogger(["media-server-mcp"]);
 
-  const cleanup = async () => {
-    logger.info("Received shutdown signal, cleaning up gracefully");
+  // Docker-specific shutdown timeout (30 seconds)
+  const SHUTDOWN_TIMEOUT = 30000;
+  let isShuttingDown = false;
+
+  const cleanup = async (signal?: string) => {
+    if (isShuttingDown) {
+      logger.warn("Shutdown already in progress, ignoring signal", { signal });
+      return;
+    }
+    
+    isShuttingDown = true;
+    logger.info("Received shutdown signal, cleaning up gracefully", { signal });
 
     try {
+      // Set a timeout for graceful shutdown (Docker best practice)
+      const shutdownTimer = setTimeout(() => {
+        logger.error("Graceful shutdown timeout exceeded, forcing exit");
+        Deno.exit(1);
+      }, SHUTDOWN_TIMEOUT);
+
       // Close transport first
       if (state.transport) {
+        logger.debug("Closing transport connection");
         await state.transport.close();
       }
 
       // Then close the MCP server
+      logger.debug("Closing MCP server");
       await state.server.close();
 
-      logger.info("Graceful shutdown completed");
+      // Clear the timeout since we completed gracefully
+      clearTimeout(shutdownTimer);
+
+      logger.info("Graceful shutdown completed successfully");
     } catch (error) {
       logger.error("Error during graceful shutdown", {
         error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
       });
     } finally {
       // Force exit after cleanup attempt
@@ -314,9 +415,12 @@ function setupGracefulShutdown(state: ServerState): void {
     }
   };
 
-  // Handle various shutdown signals
-  process.on("SIGINT", cleanup);
-  process.on("SIGTERM", cleanup);
+  // Handle various shutdown signals (Docker uses SIGTERM)
+  process.on("SIGINT", () => cleanup("SIGINT"));
+  process.on("SIGTERM", () => cleanup("SIGTERM"));
+  
+  // Docker-specific signals
+  process.on("SIGQUIT", () => cleanup("SIGQUIT"));
 
   // Handle unhandled promise rejections and exceptions
   process.on("unhandledRejection", (reason, _promise) => {
@@ -324,7 +428,7 @@ function setupGracefulShutdown(state: ServerState): void {
       reason: reason instanceof Error ? reason.message : String(reason),
       stack: reason instanceof Error ? reason.stack : undefined,
     });
-    cleanup();
+    cleanup("unhandledRejection");
   });
 
   process.on("uncaughtException", (error) => {
@@ -332,7 +436,13 @@ function setupGracefulShutdown(state: ServerState): void {
       error: error.message,
       stack: error.stack,
     });
-    cleanup();
+    cleanup("uncaughtException");
+  });
+
+  // Log shutdown signal handlers are registered
+  logger.debug("Graceful shutdown handlers registered", {
+    signals: ["SIGINT", "SIGTERM", "SIGQUIT"],
+    timeout: SHUTDOWN_TIMEOUT,
   });
 }
 
@@ -353,10 +463,12 @@ async function main(): Promise<void> {
       })
       .option("--debug", "Enable debug logging for verbose output")
       .action(async (options) => {
-        // Configure logging first
+        // Detect container mode and configure logging
+        const containerMode = await isDockerContainer();
         await configureLogging({
           debug: options.debug || false,
           useStdio: !options.sse,
+          containerMode,
         });
 
         const serverState = await createServer();

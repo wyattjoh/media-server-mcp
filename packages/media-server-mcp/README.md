@@ -4,7 +4,63 @@ The main Model Context Protocol (MCP) server that provides AI assistants with to
 
 ## Installation
 
-### JSR (Recommended)
+### Docker (Recommended for Production)
+
+#### Quick Start with Docker Compose
+
+1. Clone the repository:
+```bash
+git clone https://github.com/wyattjoh/media-server-mcp.git
+cd media-server-mcp
+```
+
+2. Create environment file:
+```bash
+cp .env.example .env
+# Edit .env with your service configurations
+```
+
+3. Start with Docker Compose:
+```bash
+docker-compose up -d
+```
+
+4. Verify deployment:
+```bash
+docker logs media-server-mcp
+curl http://localhost:3000/health
+```
+
+#### Manual Docker Deployment
+
+1. Build the image:
+```bash
+docker build -t media-server-mcp:latest .
+```
+
+2. Run the container:
+```bash
+# STDIO mode
+docker run -d \
+  --name media-server-mcp \
+  --env-file .env \
+  -v media-server-mcp-logs:/app/logs \
+  -v media-server-mcp-config:/app/config \
+  media-server-mcp:latest
+
+# SSE mode
+docker run -d \
+  --name media-server-mcp \
+  --env-file .env \
+  -p 3000:3000 \
+  -v media-server-mcp-logs:/app/logs \
+  -v media-server-mcp-config:/app/config \
+  media-server-mcp:latest --sse
+```
+
+For detailed Docker deployment instructions, see [Docker Deployment Guide](docs/docker-deployment.md).
+
+### JSR (Native Installation)
 
 Add to your MCP servers configuration:
 
@@ -133,6 +189,13 @@ The following environment variables can be configured:
 ### Security Configuration
 
 - `MCP_AUTH_TOKEN` - **Required for SSE mode only** - Bearer token for HTTP authentication. Generate a secure random string for this value.
+
+### Docker Configuration
+
+- `HOSTNAME` - Container hostname (automatically set by Docker)
+- `PORT` - Port for SSE mode (default: 3000, automatically configured)
+- `DEBUG_MODE` - Enable debug logging (default: false)
+- `TOOL_PROFILE` - Tool configuration profile (default: default)
 
 ### Example Environment Setup
 

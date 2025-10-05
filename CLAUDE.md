@@ -62,6 +62,53 @@ Each package is independently publishable and has its own `deno.json` configurat
 
 This is a **Model Context Protocol (MCP) server** that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series) media servers, and access TMDB data through their APIs.
 
+## Docker Integration
+
+The server includes comprehensive Docker support for containerized deployment:
+
+### Docker Files
+
+- **Dockerfile** - Multi-stage build with Deno 1.40+ Alpine base image
+- **docker-compose.yml** - Complete orchestration with volumes, health checks, and networking
+- **.dockerignore** - Optimized build context exclusions
+
+### Docker Architecture
+
+- **Container Lifecycle Management** - Startup, health monitoring, and graceful shutdown
+- **Volume Management** - Persistent storage for logs and configuration
+- **Environment Configuration** - Service connection validation and Docker-specific settings
+- **Health Monitoring** - HTTP endpoints for container health checks and service status
+
+### Docker Development
+
+```bash
+# Build Docker image
+docker build -t media-server-mcp:latest .
+
+# Run with Docker Compose
+docker-compose up -d
+
+# Run tests in container
+docker-compose exec media-server-mcp deno test --allow-net
+
+# View container logs
+docker-compose logs -f media-server-mcp
+```
+
+### Docker Testing
+
+- **Unit Tests** - `packages/media-server-mcp/tests/unit/` - Docker type and manager tests
+- **Integration Tests** - `packages/media-server-mcp/tests/integration/` - Container startup and health tests
+- **Performance Tests** - `packages/media-server-mcp/tests/performance/` - Startup time validation (<5s target)
+- **Contract Tests** - `packages/media-server-mcp/tests/contract/` - API endpoint validation
+
+### Docker Configuration
+
+- **Environment Variables** - Service URLs, API keys, authentication tokens
+- **Volume Mounts** - `/app/logs` and `/app/config` for persistence
+- **Port Mapping** - 3000:3000 for SSE mode
+- **Health Checks** - HTTP endpoint validation with retry logic
+
 ### Core Architecture Pattern
 
 The codebase follows a **layered architecture**:

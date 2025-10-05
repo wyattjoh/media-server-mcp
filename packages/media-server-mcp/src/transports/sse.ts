@@ -3,11 +3,18 @@ import { URL } from "node:url";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { getLogger } from "../logging.ts";
+import type { HealthService } from "../docker/health-service.ts";
+import type { RadarrConfig } from "@wyattjoh/radarr";
+import type { SonarrConfig } from "@wyattjoh/sonarr";
+import type { TMDBConfig } from "@wyattjoh/tmdb";
+import type { PlexConfig } from "@wyattjoh/plex";
+import deno from "../../deno.json" with { type: "json" };
 
 interface SSEServerOptions {
   port: number;
   server: McpServer;
   authToken: string;
+  healthService: HealthService;
 }
 
 function validateBearerToken(
@@ -29,7 +36,7 @@ function validateBearerToken(
 }
 
 export function createSSEServer(
-  { port, server, authToken }: SSEServerOptions,
+  { port, server, authToken, healthService }: SSEServerOptions,
 ): { close: () => Promise<void> } {
   const logger = getLogger(["media-server-mcp", "transport", "sse"]);
 
@@ -163,13 +170,75 @@ export function createSSEServer(
         res.end(JSON.stringify({ error: "Failed to process message" }));
       }
     } else if (pathname === "/health") {
-      // Health check endpoint
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({
-        status: "healthy",
-        activeSessions: transports.size,
-        timestamp: new Date().toISOString(),
-      }));
+      // Health check endpoint - Docker API contract
+      try {
+        const healthStatus = await healthService.getHealthStatus();
+        const statusCode = healthStatus.serverStatus === "healthy" ? 200 : 503;
+        
+        res.writeHead(statusCode, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(healthStatus));
+      } catch (error) {
+        logger.error("Health check failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        res.writeHead(503, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({
+          serverStatus: "unhealthy",
+          serviceConnections: [],
+          lastCheck: new Date().toISOString(),
+          uptime: "PT0S",
+          version: deno.version,
+          transportMode: "sse",
+        }));
+      }
+    } else if (pathname === "/status") {
+      // Status endpoint - Docker API contract
+      try {
+        const containerStatus = {
+          containerId: process.env.HOSTNAME || "unknown",
+          status: "running" as const,
+          image: `media-server-mcp:${deno.version}`,
+          ports: [
+            {
+              containerPort: port,
+              hostPort: port,
+              protocol: "tcp" as const,
+            },
+          ],
+          volumes: [
+            {
+              name: "media-server-mcp-logs",
+              mountPath: "/app/logs",
+              type: "logs" as const,
+            },
+            {
+              name: "media-server-mcp-config",
+              mountPath: "/app/config",
+              type: "config" as const,
+            },
+          ],
+          environment: Object.entries(process.env)
+            .filter(([key]) => key.startsWith("RADARR_") || key.startsWith("SONARR_") || 
+                    key.startsWith("TMDB_") || key.startsWith("PLEX_") || 
+                    key.startsWith("MCP_") || key.startsWith("TOOL_") || 
+                    key.startsWith("DEBUG_"))
+            .map(([name, value]) => ({
+              name,
+              value: value || "",
+              sensitive: name.includes("API_KEY") || name.includes("TOKEN"),
+            })),
+          healthStatus: (await healthService.getHealthStatus()).serverStatus,
+        };
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(containerStatus));
+      } catch (error) {
+        logger.error("Status check failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Failed to get container status" }));
+      }
     } else {
       // 404 for all other routes
       res.writeHead(404, { "Content-Type": "application/json" });
