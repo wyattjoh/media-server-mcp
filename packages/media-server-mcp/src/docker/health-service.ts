@@ -87,7 +87,7 @@ export function createHealthService(options: HealthServiceOptions) {
     service: ServiceType,
     config: RadarrConfig | SonarrConfig | TMDBConfig | PlexConfig,
   ): Promise<ServiceConnection> {
-    const startTime = Date.now();
+    const requestStartTime = Date.now();
     const lastCheck = new Date().toISOString();
 
     try {
@@ -110,7 +110,7 @@ export function createHealthService(options: HealthServiceOptions) {
           throw new Error(`Unknown service type: ${service}`);
       }
 
-      const responseTime = Date.now() - startTime;
+      const responseTime = Date.now() - requestStartTime;
 
       if (result.success) {
         return {

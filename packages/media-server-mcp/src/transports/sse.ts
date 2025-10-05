@@ -195,7 +195,7 @@ export function createSSEServer(
       // Status endpoint - Docker API contract
       try {
         const containerStatus = {
-          containerId: process.env.HOSTNAME || "unknown",
+          containerId: Deno.env.get("HOSTNAME") || "unknown",
           status: "running" as const,
           image: `media-server-mcp:${deno.version}`,
           ports: [
@@ -217,7 +217,7 @@ export function createSSEServer(
               type: "config" as const,
             },
           ],
-          environment: Object.entries(process.env)
+          environment: Object.entries(Deno.env.toObject())
             .filter(([key]) => key.startsWith("RADARR_") || key.startsWith("SONARR_") || 
                     key.startsWith("TMDB_") || key.startsWith("PLEX_") || 
                     key.startsWith("MCP_") || key.startsWith("TOOL_") || 

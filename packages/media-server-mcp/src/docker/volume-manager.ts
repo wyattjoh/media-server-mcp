@@ -179,7 +179,6 @@ export function createVolumeManager(options: VolumeManagerOptions) {
 
         // Set appropriate permissions based on volume type
         try {
-          const fullPath = `${basePath}${volume.mountPath}`;
           const stat = await Deno.stat(fullPath);
           
           // For logs and config volumes, ensure write permissions
