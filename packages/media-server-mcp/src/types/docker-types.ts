@@ -5,9 +5,11 @@
  * environment configuration, health monitoring, and volume management.
  */
 
-// Container status enumeration
-export type ContainerStatus = "running" | "stopped" | "restarting" | "exited" | "starting" | "stopping";
+// Container status enumeration (public contract)
+export type ContainerStatus = "running" | "stopped" | "restarting" | "exited";
 
+// Internal container status enumeration (includes transitional states)
+export type InternalContainerStatus = ContainerStatus | "starting" | "stopping";
 // Health status enumeration
 export type HealthStatus = "healthy" | "unhealthy" | "starting";
 
