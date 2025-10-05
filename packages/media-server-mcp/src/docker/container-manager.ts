@@ -208,22 +208,29 @@ export function createContainerManager(options: ContainerManagerOptions) {
     const diffHours = Math.floor(diffMinutes / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    // Format as ISO 8601 duration (PT2H30M format)
-    let duration = "PT";
+    // Format as ISO 8601 duration (P[n]DT[n]H[n]M[n]S)
+    let duration = "P";
     if (diffDays > 0) {
       duration += `${diffDays}D`;
     }
-    if (diffHours % 24 > 0) {
-      duration += `${diffHours % 24}H`;
+    // Calculate time components
+    const hours = diffHours % 24;
+    const minutes = diffMinutes % 60;
+    const seconds = diffSeconds % 60;
+    if (hours > 0 || minutes > 0 || seconds > 0) {
+      duration += "T";
+      if (hours > 0) {
+        duration += `${hours}H`;
+      }
+      if (minutes > 0) {
+        duration += `${minutes}M`;
+      }
+      if (seconds > 0) {
+        duration += `${seconds}S`;
+      }
     }
-    if (diffMinutes % 60 > 0) {
-      duration += `${diffMinutes % 60}M`;
-    }
-    if (diffSeconds % 60 > 0) {
-      duration += `${diffSeconds % 60}S`;
-    }
-    
-    return duration === "PT" ? "PT0S" : duration;
+    // If duration is just "P", return "PT0S" (zero duration)
+    return duration === "P" ? "PT0S" : duration;
   }
 
   /**
