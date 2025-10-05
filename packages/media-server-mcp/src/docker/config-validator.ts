@@ -364,12 +364,30 @@ export function createConfigValidator(options: ConfigValidatorOptions = {}) {
 
     const sensitiveVariables = envVars.filter(env => env.sensitive).length;
 
+    // Run validations and count errors/warnings
+    let validationErrors = 0;
+    let validationWarnings = 0;
+
+    // Validate environment config
+    const envConfigResults = validateEnvironmentConfig(config);
+    if (Array.isArray(envConfigResults)) {
+      validationErrors += envConfigResults.filter(r => r.level === "error").length;
+      validationWarnings += envConfigResults.filter(r => r.level === "warning").length;
+    }
+
+    // Validate Docker config
+    const dockerConfigResults = validateDockerConfig(config);
+    if (Array.isArray(dockerConfigResults)) {
+      validationErrors += dockerConfigResults.filter(r => r.level === "error").length;
+      validationWarnings += dockerConfigResults.filter(r => r.level === "warning").length;
+    }
+
     return {
       servicesConfigured,
       totalEnvironmentVariables: envVars.length,
       sensitiveVariables,
-      validationErrors: 0, // Would be populated by validation calls
-      validationWarnings: 0, // Would be populated by validation calls
+      validationErrors,
+      validationWarnings,
     };
   }
 
