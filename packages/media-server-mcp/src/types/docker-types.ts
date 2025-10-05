@@ -136,7 +136,7 @@ export interface EnvironmentConfiguration {
   toolProfile: string | undefined;
   
   /** Enable debug logging */
-  debugMode: boolean;
+  debugMode?: boolean;
 }
 
 /**
