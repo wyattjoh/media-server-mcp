@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "jsr:@std/assert@^1.0.0";
 
 // Simple integration test to verify the main module can be imported
 Deno.test("index.ts - can be imported without errors", () => {

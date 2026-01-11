@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "jsr:@std/assert@^1.0.0";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createTMDBTools } from "../../src/tools/tmdb-tools.ts";
 import { createTMDBConfig } from "@wyattjoh/tmdb";

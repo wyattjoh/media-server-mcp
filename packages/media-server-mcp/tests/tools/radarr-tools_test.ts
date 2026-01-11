@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "jsr:@std/assert@^1.0.0";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createRadarrTools } from "../../src/tools/radarr-tools.ts";
 import { createRadarrConfig } from "@wyattjoh/radarr";
