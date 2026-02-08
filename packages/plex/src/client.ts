@@ -14,7 +14,7 @@ export interface PlexConfig {
 
 export function createPlexConfig(baseUrl: string, apiKey: string): PlexConfig {
   return {
-    baseUrl,
+    baseUrl: baseUrl.replace(/\/$/, ""), // Remove trailing slash
     apiKey,
   };
 }
@@ -111,7 +111,7 @@ export function search(
 
   return makeRequest<SearchResponse>(
     config,
-    `/search?${searchParams.toString()}`,
+    `/hubs/search?${searchParams.toString()}`,
   );
 }
 

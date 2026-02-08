@@ -113,10 +113,18 @@ export interface SearchResponse {
 interface SearchResponseMediaContainer {
   size: number;
   identifier: string;
-  mediaTagPrefix: string;
-  mediaTagVersion: number;
-  Metadata: MetadataItem[];
-  Provider: ProviderItem[];
+  Hub: SearchHub[];
+}
+
+interface SearchHub {
+  hubIdentifier: string;
+  size: number;
+  title: string;
+  type: string;
+  hubKey: string;
+  more: boolean;
+  style: string;
+  Metadata: MetadataItem[] | undefined;
 }
 
 interface BaseMetadataItem {
@@ -242,12 +250,6 @@ interface CountryItem extends BaseTagItem {}
 interface DirectorItem extends BaseTagItem {}
 interface WriterItem extends BaseTagItem {}
 interface RoleItem extends BaseTagItem {}
-
-interface ProviderItem {
-  key: string;
-  m_title: string;
-  m_type: string;
-}
 
 export interface GetMetadataResponse {
   MediaContainer: MediaContainer;
