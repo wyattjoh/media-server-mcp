@@ -505,6 +505,32 @@ This helps verify your configuration is working as expected.
 - `tmdb_get_movie_credits` - Get cast and crew for a movie
 - `tmdb_get_tv_credits` - Get cast and crew for a TV show
 
+### Plex Tools (when configured)
+
+#### System Information
+
+- `plex_get_capabilities` - Get Plex server capabilities, version, and system information
+
+#### Library Management
+
+- `plex_get_libraries` - List all media libraries available on the Plex server
+- `plex_refresh_library` - Trigger a refresh of a specific library to scan for new content
+- `plex_get_library_items` - Browse and filter items in a library section (supports filtering by studio, genre, year, and sorting)
+
+#### Search and Discovery
+
+- `plex_search` - Search across all Plex libraries for movies, TV shows, and other content with optional type filters
+- `plex_get_metadata` - Get detailed metadata for a specific movie, TV show, or other media item
+
+#### Collection Management
+
+- `plex_get_collections` - List all collections in a library section
+- `plex_get_collection_items` - Get all items in a specific collection
+- `plex_create_collection` - Create a new collection with initial items
+- `plex_add_to_collection` - Add items to an existing collection
+- `plex_remove_from_collection` - Remove a single item from a collection
+- `plex_delete_collection` - Delete an entire collection
+
 ## Usage Examples
 
 ### Natural Language Requests

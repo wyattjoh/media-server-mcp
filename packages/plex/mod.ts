@@ -1,17 +1,30 @@
 export {
+  addToCollection,
+  createCollection,
   createPlexConfig,
+  deleteCollection,
   getCapabilities,
+  getCollectionItems,
+  getCollections,
   getLibraries,
+  getLibraryItems,
   getMetadata,
   type PlexConfig,
   refreshLibrary,
+  removeFromCollection,
   search,
   testConnection,
 } from "./src/client.ts";
 export { SearchType } from "./src/types.ts";
 export type {
+  CollectionMetadataItem,
+  CreateCollectionResponse,
   GetCapabilitiesResponse,
+  GetCollectionItemsResponse,
+  GetCollectionsResponse,
   GetLibrariesResponse,
+  GetLibraryItemsResponse,
   GetMetadataResponse,
+  LibraryItemsOptions,
   SearchResponse,
 } from "./src/types.ts";

@@ -58,6 +58,13 @@ export const TOOL_BRANCHES: ToolCategory[] = [
       // Plex Library Management
       "plex_get_libraries",
       "plex_get_metadata",
+      "plex_get_library_items",
+      "plex_get_collections",
+      "plex_get_collection_items",
+      "plex_create_collection",
+      "plex_add_to_collection",
+      "plex_remove_from_collection",
+      "plex_delete_collection",
     ],
   },
   {

@@ -272,7 +272,7 @@ interface DetailedMetadataItem extends BaseMetadataItem {
   librarySectionKey: string;
   Guid: GuidItem[];
   Rating: RatingItem[];
-  Collection: CollectionItem[];
+  Collection?: CollectionItem[];
   Producer: DetailedPersonItem[];
 }
 
@@ -339,4 +339,138 @@ interface CollectionItem {
 interface DetailedPersonItem extends DetailedTagItem {
   tagKey: string;
   thumb: string;
+}
+
+// Library items (browsing a library section)
+
+export interface LibraryItemsOptions {
+  type: number | undefined;
+  studio: string | undefined;
+  genre: string | undefined;
+  year: number | undefined;
+  sort: string | undefined;
+  start: number | undefined;
+  size: number | undefined;
+}
+
+export interface GetLibraryItemsResponse {
+  MediaContainer: GetLibraryItemsMediaContainer;
+}
+
+interface GetLibraryItemsMediaContainer {
+  size: number;
+  totalSize?: number;
+  offset?: number;
+  allowSync: boolean;
+  art: string;
+  identifier: string;
+  librarySectionID: number;
+  librarySectionTitle: string;
+  librarySectionUUID: string;
+  mediaTagPrefix: string;
+  mediaTagVersion: number;
+  thumb: string;
+  title1: string;
+  title2: string;
+  viewGroup: string;
+  Metadata?: LibraryMetadataItem[];
+}
+
+interface LibraryMetadataItem {
+  ratingKey: string;
+  key: string;
+  guid: string;
+  studio: string;
+  type: string;
+  title: string;
+  titleSort: string;
+  contentRating: string;
+  summary: string;
+  rating: number;
+  audienceRating: number;
+  year: number;
+  tagline: string;
+  thumb: string;
+  art: string;
+  duration: number;
+  originallyAvailableAt: string;
+  addedAt: number;
+  updatedAt: number;
+  Genre: GenreItem[];
+  Country: CountryItem[];
+  Director: DirectorItem[];
+  Role: RoleItem[];
+}
+
+// Collections
+
+export interface GetCollectionsResponse {
+  MediaContainer: GetCollectionsMediaContainer;
+}
+
+interface GetCollectionsMediaContainer {
+  size: number;
+  allowSync: boolean;
+  art: string;
+  identifier: string;
+  librarySectionID: number;
+  librarySectionTitle: string;
+  librarySectionUUID: string;
+  mediaTagPrefix: string;
+  mediaTagVersion: number;
+  thumb: string;
+  title1: string;
+  title2: string;
+  totalSize?: number;
+  offset?: number;
+  Metadata?: CollectionMetadataItem[];
+}
+
+export interface CollectionMetadataItem {
+  ratingKey: string;
+  key: string;
+  guid: string;
+  type: string;
+  title: string;
+  subtype: string;
+  summary: string;
+  index: number;
+  ratingCount: number;
+  thumb: string;
+  addedAt: number;
+  updatedAt: number;
+  childCount: string;
+  maxYear: string;
+  minYear: string;
+}
+
+export interface GetCollectionItemsResponse {
+  MediaContainer: GetCollectionItemsMediaContainer;
+}
+
+interface GetCollectionItemsMediaContainer {
+  size: number;
+  totalSize?: number;
+  offset?: number;
+  allowSync: boolean;
+  art: string;
+  identifier: string;
+  librarySectionID: number;
+  librarySectionTitle: string;
+  librarySectionUUID: string;
+  mediaTagPrefix: string;
+  mediaTagVersion: number;
+  thumb: string;
+  title1: string;
+  title2: string;
+  Metadata?: LibraryMetadataItem[];
+}
+
+export interface CreateCollectionResponse {
+  MediaContainer: CreateCollectionMediaContainer;
+}
+
+interface CreateCollectionMediaContainer {
+  size: number;
+  Metadata?: CollectionMetadataItem[];
 }

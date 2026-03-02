@@ -71,6 +71,7 @@ async function createServer(): Promise<ServerState> {
 
   const state: ServerState = { server };
   loadConfig(state);
+  await testConnections(state);
   await setupTools(state);
 
   logger.debug("Server created successfully");
@@ -196,7 +197,7 @@ async function setupTools(state: Readonly<ServerState>): Promise<void> {
   logger.info("Tools registration completed");
 }
 
-async function testConnections(state: Readonly<ServerState>): Promise<void> {
+async function testConnections(state: ServerState): Promise<void> {
   const logger = getLogger(["media-server-mcp", "connection"]);
 
   // Test connections before starting
@@ -262,23 +263,19 @@ async function testConnections(state: Readonly<ServerState>): Promise<void> {
 }
 
 async function runStdioServer(state: ServerState): Promise<void> {
-  await testConnections(state);
-
   state.transport = await createStdioServer({ server: state.server });
 }
 
-async function runSSEServer(
+function runSSEServer(
   state: ServerState,
   port: number,
-): Promise<void> {
+): void {
   // Require authentication token in SSE mode
   if (!state.authToken) {
     throw new Error(
       "MCP_AUTH_TOKEN environment variable is required when running in SSE mode for security.",
     );
   }
-
-  await testConnections(state);
 
   // Start SSE server with authentication token
   state.transport = createSSEServer({
@@ -365,7 +362,7 @@ async function main(): Promise<void> {
         setupGracefulShutdown(serverState);
 
         if (options.sse) {
-          await runSSEServer(serverState, options.port);
+          runSSEServer(serverState, options.port);
         } else {
           await runStdioServer(serverState);
         }

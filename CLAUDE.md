@@ -101,6 +101,28 @@ This codebase **ALWAYS** follows a **functional architecture** approach rather t
 
 **Plex Client Specifics**: Uses Plex API with `X-Plex-Token` header authentication for accessing media libraries, search functionality, and server capabilities.
 
+### Plex API Notes (verified against Plex Media Server 1.43.x)
+
+**Collection item management changed in Plex 1.28+.** The legacy `server://` URI approach (`PUT /library/collections/{id}/items?uri=server://{machineId}/...`) no longer works — it returns 400 Bad Request on modern Plex versions. Do not attempt to implement or restore it.
+
+**Current working API for manual (non-smart) collections:**
+
+| Operation                   | Endpoint                                                                                                                   | Method | Notes                                                                                                                                                                                                                              |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Add item to collection      | `/library/metadata/{itemId}?collection[N].tag.tag={title}&collection.locked=1`                                             | PUT    | Tag the item with the collection name; Plex creates the collection automatically if it doesn't exist. `collection[N]` must use **literal bracket syntax** — do NOT use `URLSearchParams` for these keys as it encodes `[` → `%5B`. |
+| Remove item from collection | `/library/collections/{collectionId}/items/{itemId}`                                                                       | DELETE | Returns updated collection metadata as JSON.                                                                                                                                                                                       |
+| Create collection           | Tag initial items (above), then look up the resulting collection by title via `/library/sections/{sectionKey}/collections` | —      | No dedicated "create" endpoint needed; tagging auto-creates.                                                                                                                                                                       |
+
+**Safe tag preservation**: When adding an item to a collection, always `GET /library/metadata/{itemId}` first to retrieve existing collection tags, then include all existing tags plus the new one in the PUT. This preserves memberships in other collections.
+
+**`makeRequest` content handling**: Plex returns XML (not JSON) for metadata PUT responses. The `makeRequest` function discards non-JSON response bodies rather than attempting to parse them. Do not assume Plex always returns JSON.
+
+**API reference resources:**
+
+- [Plex Media Server URL Commands (unofficially documented)](https://support.plex.tv/articles/201638786-plex-media-server-url-commands/) — official Plex support article
+- [python-plexapi source](https://github.com/pkkid/python-plexapi) — the most reliable reference for Plex API behaviour; check `collection.py` and `library.py` for endpoint patterns
+- [Plex API (community wiki)](https://github.com/nicedoc/plex-api) — community-documented endpoints
+
 ### Error Handling Pattern
 
 - Unknown errors must be handled with `error instanceof Error ? error.message : String(error)`
@@ -294,11 +316,21 @@ MCP_AUTH_TOKEN=your-secure-auth-token
 
 - `plex_get_libraries` - List all media libraries available on the Plex server
 - `plex_refresh_library` - Trigger a refresh of a specific library to scan for new content
+- `plex_get_library_items` - Browse and filter items in a library section (supports filtering by studio, genre, year, and sorting)
 
 #### Search and Discovery
 
 - `plex_search` - Search across all Plex libraries for movies, TV shows, and other content with optional type filters
 - `plex_get_metadata` - Get detailed metadata for a specific movie, TV show, or other media item
+
+#### Collection Management
+
+- `plex_get_collections` - List all collections in a library section
+- `plex_get_collection_items` - Get all items in a specific collection
+- `plex_create_collection` - Create a new collection with initial items
+- `plex_add_to_collection` - Add items to an existing collection
+- `plex_remove_from_collection` - Remove a single item from a collection
+- `plex_delete_collection` - Delete an entire collection
 
 ## Tool Implementation Pattern
 
