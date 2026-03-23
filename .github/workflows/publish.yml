@@ -1,9 +1,6 @@
 name: Publish to JSR
 
 on:
-  push:
-    branches:
-      - main
   release:
     types: [published]
 
