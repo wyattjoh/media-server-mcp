@@ -32,6 +32,14 @@ import { createRadarrTools } from "./tools/radarr-tools.ts";
 import { createSonarrTools } from "./tools/sonarr-tools.ts";
 import { createTMDBTools } from "./tools/tmdb-tools.ts";
 import { createPlexTools } from "./tools/plex-tools.ts";
+import { createRadarrResources } from "./resources/radarr-resources.ts";
+import { createSonarrResources } from "./resources/sonarr-resources.ts";
+import { createTMDBResources } from "./resources/tmdb-resources.ts";
+import { createPlexResources } from "./resources/plex-resources.ts";
+import { createAddMoviePrompt } from "./prompts/add-movie-prompt.ts";
+import { createAddSeriesPrompt } from "./prompts/add-series-prompt.ts";
+import { createLibraryReportPrompt } from "./prompts/library-report-prompt.ts";
+import { createRecommendationsPrompt } from "./prompts/recommendations-prompt.ts";
 import {
   createToolFilter,
   loadToolConfigFile,
@@ -75,6 +83,8 @@ async function createMcpServerWithTools(
     {
       capabilities: {
         tools: {},
+        resources: {},
+        prompts: {},
       },
     },
   );
@@ -213,6 +223,18 @@ async function setupTools(
   }
 
   logger.info("Tools registration completed");
+
+  // Register resources
+  if (config.radarrConfig) createRadarrResources(server, config.radarrConfig);
+  if (config.sonarrConfig) createSonarrResources(server, config.sonarrConfig);
+  if (config.tmdbConfig) createTMDBResources(server, config.tmdbConfig);
+  if (config.plexConfig) createPlexResources(server, config.plexConfig);
+
+  // Register prompts
+  if (config.radarrConfig) createAddMoviePrompt(server, config.radarrConfig);
+  if (config.sonarrConfig) createAddSeriesPrompt(server, config.sonarrConfig);
+  createLibraryReportPrompt(server);
+  createRecommendationsPrompt(server);
 }
 
 async function testConnections(
