@@ -1,7 +1,7 @@
 {
-  "packages/plex": "0.3.1",
-  "packages/radarr": "0.4.1",
-  "packages/sonarr": "0.4.1",
-  "packages/tmdb": "0.4.1",
-  "packages/media-server-mcp": "1.5.0"
+  "packages/plex": "0.4.0",
+  "packages/radarr": "1.0.0",
+  "packages/sonarr": "1.0.0",
+  "packages/tmdb": "1.0.0",
+  "packages/media-server-mcp": "2.0.0"
 }
