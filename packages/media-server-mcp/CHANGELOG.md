@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/media-server-mcp-v2.1.0...@wyattjoh/media-server-mcp-v2.1.1) (2026-03-23)
+
+
+### Bug Fixes
+
+* replace z.record with z.object().catchall() in outputSchema for Zod v4 compatibility ([aacd755](https://github.com/wyattjoh/media-server-mcp/commit/aacd755e8deab37292ed8cf7891a2991af8c7326))
+
 ## [2.1.0](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/media-server-mcp-v2.0.0...@wyattjoh/media-server-mcp-v2.1.0) (2026-03-23)
 
 
