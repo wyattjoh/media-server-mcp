@@ -1,8 +1,4 @@
-import {
-  assertEquals,
-  assertExists,
-  assertRejects,
-} from "jsr:@std/assert@^1.0.0";
+import { assertEquals, assertExists, assertRejects } from "@std/assert";
 import {
   addToCollection,
   createCollection,

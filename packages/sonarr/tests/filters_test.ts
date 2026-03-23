@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@^1.0.0";
+import { assertEquals } from "@std/assert";
 import { applySonarrSeriesFilters, type SonarrSeries } from "../mod.ts";
 
 Deno.test("applySonarrSeriesFilters - filter by imdbId", () => {

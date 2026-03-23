@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@^1.0.0";
+import { assertEquals } from "@std/assert";
 import { validateBearerToken } from "../src/auth.ts";
 
 Deno.test("validateBearerToken - returns true for a valid Bearer token", () => {
