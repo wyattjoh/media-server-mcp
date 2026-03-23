@@ -19,6 +19,8 @@ This is a monorepo containing the following packages:
 - **Plex Integration**: Browse libraries, search content, and manage Plex media server
 - **TMDB Integration**: Advanced movie/TV discovery, external ID lookup, and comprehensive metadata
 - **Tool Configuration System**: Reduce tool clutter with 6 profiles (18-70 tools) and branch-based filtering
+- **MCP Resources**: Expose service configs and dynamic data (movies, series, collections, genres) as readable resources
+- **MCP Prompts**: Built-in prompts for common workflows (add-movie, add-series, library-report, recommendations)
 - **Flexible Service Configuration**: Each service is optional - configure any combination
 - **Type-Safe**: Built with TypeScript for reliable operations
 - **Easy Setup**: Install directly from JSR with a single deno run command
@@ -159,6 +161,8 @@ Add to your MCP servers configuration using the JSR package:
 - **Remote with custom port**: `https://radarr.yourdomain.com:443`
 
 ### SSE Mode (HTTP Transport)
+
+> **Deprecated**: SSE transport is deprecated. Use Streamable HTTP (`--http`) instead.
 
 By default, the MCP server runs in stdio mode for direct integration with MCP clients. However, you can also run it in SSE (Server-Sent Events) mode over HTTP for web-based integrations or debugging.
 
