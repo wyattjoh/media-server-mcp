@@ -396,6 +396,7 @@ export function createSonarrTools(
               text:
                 "Error: Provide either 'id' (Sonarr ID) or 'tvdbId', but not both",
             }],
+            isError: true,
           };
         }
 
@@ -420,6 +421,7 @@ export function createSonarrTools(
                   : `TVDB ID ${args.tvdbId}`
               }`,
             }],
+            isError: true,
           };
         }
 

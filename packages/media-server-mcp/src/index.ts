@@ -233,8 +233,12 @@ async function setupTools(
   // Register prompts
   if (config.radarrConfig) createAddMoviePrompt(server, config.radarrConfig);
   if (config.sonarrConfig) createAddSeriesPrompt(server, config.sonarrConfig);
-  createLibraryReportPrompt(server);
-  createRecommendationsPrompt(server);
+  if (config.radarrConfig || config.sonarrConfig) {
+    createLibraryReportPrompt(server);
+  }
+  if (config.tmdbConfig) {
+    createRecommendationsPrompt(server);
+  }
 }
 
 async function testConnections(

@@ -317,6 +317,7 @@ export function createRadarrTools(
               text:
                 "Error: Provide either 'id' (Radarr ID) or 'tmdbId', but not both",
             }],
+            isError: true,
           };
         }
 
@@ -341,6 +342,7 @@ export function createRadarrTools(
                   : `TMDB ID ${args.tmdbId}`
               }`,
             }],
+            isError: true,
           };
         }
 
