@@ -4,6 +4,15 @@ import type { TMDBConfig } from "@wyattjoh/tmdb";
 import * as tmdbClient from "@wyattjoh/tmdb";
 import { wrapToolHandler } from "./tool-wrapper.ts";
 
+// Reusable output schema shape for paginated TMDB responses.
+// toPaginatedResponse() always returns { page, total_pages, total_results, results }.
+const paginatedOutputSchema = {
+  page: z.number(),
+  total_pages: z.number(),
+  total_results: z.number(),
+  results: z.array(z.record(z.string(), z.unknown())),
+};
+
 export function createTMDBTools(
   server: McpServer,
   config: TMDBConfig,
@@ -26,6 +35,7 @@ export function createTMDBTools(
             "External source (default: 'imdb_id')",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_find_by_external_id", async (args) => {
@@ -39,6 +49,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -60,6 +71,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_search_movies", async (args) => {
@@ -75,6 +87,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -96,6 +109,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_search_tv", async (args) => {
@@ -111,6 +125,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -136,6 +151,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_search_multi", async (args) => {
@@ -151,6 +167,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -171,6 +188,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_popular_movies", async (args) => {
@@ -185,6 +203,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -254,6 +273,7 @@ export function createTMDBTools(
           ),
           year: z.number().optional().describe("Filter by release year"),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_discover_movies", async (args) => {
@@ -275,6 +295,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -338,6 +359,7 @@ export function createTMDBTools(
             "Filter by theatrical screening",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_discover_tv", async (args) => {
@@ -356,6 +378,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -374,6 +397,9 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: {
+          genres: z.array(z.record(z.string(), z.unknown())),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_genres", async (args) => {
@@ -386,6 +412,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -414,6 +441,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_trending", async (args) => {
@@ -430,6 +458,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -453,6 +482,7 @@ export function createTMDBTools(
             "Region for release dates (ISO 3166-1)",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_now_playing_movies", async (args) => {
@@ -468,6 +498,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -491,6 +522,7 @@ export function createTMDBTools(
             "Region for release dates (ISO 3166-1)",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_top_rated_movies", async (args) => {
@@ -506,6 +538,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -529,6 +562,7 @@ export function createTMDBTools(
             "Region for release dates (ISO 3166-1)",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_upcoming_movies", async (args) => {
@@ -544,6 +578,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -564,6 +599,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_popular_tv", async (args) => {
@@ -578,6 +614,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -598,6 +635,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_top_rated_tv", async (args) => {
@@ -612,6 +650,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -632,6 +671,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_on_the_air_tv", async (args) => {
@@ -646,6 +686,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -667,6 +708,7 @@ export function createTMDBTools(
           ),
           timezone: z.string().optional().describe("Timezone for air dates"),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_airing_today_tv", async (args) => {
@@ -682,6 +724,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -703,6 +746,7 @@ export function createTMDBTools(
             "Comma-separated list of additional details to append (e.g., 'credits,videos')",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_movie_details", async (args) => {
@@ -713,6 +757,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -734,6 +779,7 @@ export function createTMDBTools(
             "Comma-separated list of additional details to append (e.g., 'credits,videos')",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_tv_details", async (args) => {
@@ -744,6 +790,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -765,6 +812,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_movie_recommendations", async (args) => {
@@ -780,6 +828,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -801,6 +850,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_tv_recommendations", async (args) => {
@@ -816,6 +866,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -837,6 +888,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_similar_movies", async (args) => {
@@ -852,6 +904,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -873,6 +926,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_similar_tv", async (args) => {
@@ -888,6 +942,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -912,6 +967,7 @@ export function createTMDBTools(
             "Include adult content",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_search_people", async (args) => {
@@ -928,6 +984,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -948,6 +1005,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_popular_people", async (args) => {
@@ -962,6 +1020,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -983,6 +1042,7 @@ export function createTMDBTools(
             "Comma-separated list of additional details to append (e.g., 'movie_credits,tv_credits')",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_person_details", async (args) => {
@@ -998,6 +1058,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -1016,6 +1077,10 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: {
+          cast: z.array(z.record(z.string(), z.unknown())),
+          crew: z.array(z.record(z.string(), z.unknown())),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_person_movie_credits", async (args) => {
@@ -1030,6 +1095,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -1048,6 +1114,10 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: {
+          cast: z.array(z.record(z.string(), z.unknown())),
+          crew: z.array(z.record(z.string(), z.unknown())),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_person_tv_credits", async (args) => {
@@ -1062,6 +1132,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -1083,6 +1154,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_search_collections", async (args) => {
@@ -1098,6 +1170,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -1116,6 +1189,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_collection_details", async (args) => {
@@ -1130,6 +1204,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -1148,6 +1223,7 @@ export function createTMDBTools(
             "Page number (1-1000)",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_search_keywords", async (args) => {
@@ -1162,6 +1238,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -1186,6 +1263,7 @@ export function createTMDBTools(
             "Include adult movies",
           ),
         },
+        outputSchema: paginatedOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_movies_by_keyword", async (args) => {
@@ -1202,6 +1280,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -1219,6 +1298,7 @@ export function createTMDBTools(
             "Media type for certifications",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_certifications", async (args) => {
@@ -1232,6 +1312,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -1248,6 +1329,7 @@ export function createTMDBTools(
           mediaType: z.enum(["movie", "tv"]).describe("Media type"),
           mediaId: z.number().describe("The TMDB ID of the movie or TV show"),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_watch_providers", async (args) => {
@@ -1262,6 +1344,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -1275,6 +1358,7 @@ export function createTMDBTools(
         title: "Get TMDB API configuration including image base URLs",
         description: "Get TMDB API configuration including image base URLs",
         inputSchema: {},
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_configuration", async () => {
@@ -1285,6 +1369,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -1302,6 +1387,9 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        outputSchema: {
+          countries: z.array(z.record(z.string(), z.unknown())),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_countries", async (args) => {
@@ -1312,6 +1400,10 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: { countries: result } as unknown as Record<
+            string,
+            unknown
+          >,
         };
       }),
     );
@@ -1325,6 +1417,9 @@ export function createTMDBTools(
         title: "Get list of languages used in TMDB",
         description: "Get list of languages used in TMDB",
         inputSchema: {},
+        outputSchema: {
+          languages: z.array(z.record(z.string(), z.unknown())),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_languages", async () => {
@@ -1335,6 +1430,10 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: { languages: result } as unknown as Record<
+            string,
+            unknown
+          >,
         };
       }),
     );
@@ -1350,6 +1449,10 @@ export function createTMDBTools(
         inputSchema: {
           movieId: z.number().describe("The TMDB movie ID"),
         },
+        outputSchema: {
+          cast: z.array(z.record(z.string(), z.unknown())),
+          crew: z.array(z.record(z.string(), z.unknown())),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_movie_credits", async (args) => {
@@ -1360,6 +1463,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -1375,6 +1479,10 @@ export function createTMDBTools(
         inputSchema: {
           tvId: z.number().describe("The TMDB TV show ID"),
         },
+        outputSchema: {
+          cast: z.array(z.record(z.string(), z.unknown())),
+          crew: z.array(z.record(z.string(), z.unknown())),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_tv_credits", async (args) => {
@@ -1385,6 +1493,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
