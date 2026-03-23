@@ -1,13 +1,19 @@
 {
   "name": "@wyattjoh/tmdb",
-  "version": "0.4.1",
+  "version": "1.0.0",
   "license": "MIT",
   "exports": "./mod.ts",
   "imports": {
     "@logtape/logtape": "jsr:@logtape/logtape@^2.0.4"
   },
   "publish": {
-    "include": ["LICENSE", "README.md", "mod.ts", "src/**/*.ts", "deno.json"]
+    "include": [
+      "LICENSE",
+      "README.md",
+      "mod.ts",
+      "src/**/*.ts",
+      "deno.json"
+    ]
   },
   "repository": {
     "type": "git",
