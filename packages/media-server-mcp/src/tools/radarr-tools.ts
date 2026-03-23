@@ -25,6 +25,13 @@ export function createRadarrTools(
             "Number of results to skip (for pagination)",
           ),
         },
+        outputSchema: {
+          data: z.array(z.record(z.string(), z.unknown())),
+          total: z.number(),
+          returned: z.number(),
+          skip: z.number(),
+          limit: z.number().optional(),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_search_movie", async (args) => {
@@ -39,6 +46,7 @@ export function createRadarrTools(
             type: "text",
             text: JSON.stringify(results, null, 2),
           }],
+          structuredContent: results as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -76,6 +84,7 @@ export function createRadarrTools(
             "Tag IDs to apply to the movie",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { openWorldHint: false },
       },
       wrapToolHandler("radarr_add_movie", async (args) => {
@@ -91,6 +100,7 @@ export function createRadarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -112,6 +122,7 @@ export function createRadarrTools(
             "Whether to add import exclusion",
           ),
         },
+        outputSchema: { message: z.string() },
         annotations: { destructiveHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_delete_movie", async (args) => {
@@ -121,11 +132,13 @@ export function createRadarrTools(
           args.deleteFiles,
           args.addImportExclusion,
         );
+        const result = { message: `Movie ${args.id} deleted successfully` };
         return {
           content: [{
             type: "text",
-            text: `Movie ${args.id} deleted successfully`,
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -141,15 +154,20 @@ export function createRadarrTools(
         inputSchema: {
           id: z.number().describe("Movie ID in Radarr"),
         },
+        outputSchema: { message: z.string() },
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_refresh_movie", async (args) => {
         await radarrClient.refreshMovie(config, args.id);
+        const result = {
+          message: `Movie ${args.id} refresh initiated successfully`,
+        };
         return {
           content: [{
             type: "text",
-            text: `Movie ${args.id} refresh initiated successfully`,
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -165,15 +183,21 @@ export function createRadarrTools(
         inputSchema: {
           id: z.number().describe("Movie ID in Radarr"),
         },
+        outputSchema: { message: z.string() },
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_search_movie_releases", async (args) => {
         await radarrClient.searchMovieReleases(config, args.id);
+        const result = {
+          message:
+            `Search for movie ${args.id} releases initiated successfully`,
+        };
         return {
           content: [{
             type: "text",
-            text: `Search for movie ${args.id} releases initiated successfully`,
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -240,6 +264,13 @@ export function createRadarrTools(
             direction: z.enum(["asc", "desc"]).describe("Sort direction"),
           }).optional().describe("Sort options for movies"),
         },
+        outputSchema: {
+          data: z.array(z.record(z.string(), z.unknown())),
+          total: z.number(),
+          returned: z.number(),
+          skip: z.number(),
+          limit: z.number().optional(),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_get_movies", async (args) => {
@@ -255,6 +286,7 @@ export function createRadarrTools(
             type: "text",
             text: JSON.stringify(results, null, 2),
           }],
+          structuredContent: results as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -273,6 +305,7 @@ export function createRadarrTools(
             "The Movie Database (TMDB) ID",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_get_movie", async (args) => {
@@ -316,6 +349,7 @@ export function createRadarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -331,6 +365,10 @@ export function createRadarrTools(
         description:
           "Get Radarr configuration including quality profiles, and root folders",
         inputSchema: {},
+        outputSchema: {
+          qualityProfiles: z.array(z.record(z.string(), z.unknown())),
+          rootFolders: z.array(z.record(z.string(), z.unknown())),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_get_configuration", async () => {
@@ -339,14 +377,18 @@ export function createRadarrTools(
           radarrClient.getRootFolders(config),
         ]);
         const result = {
-          qualityProfiles,
-          rootFolders,
+          qualityProfiles: qualityProfiles as unknown as Record<
+            string,
+            unknown
+          >[],
+          rootFolders: rootFolders as unknown as Record<string, unknown>[],
         };
         return {
           content: [{
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -377,6 +419,7 @@ export function createRadarrTools(
           ]).optional().describe("Minimum availability for monitoring"),
           tags: z.array(z.number()).optional().describe("Tag IDs"),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_update_movie", async (args) => {
@@ -401,6 +444,7 @@ export function createRadarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -414,15 +458,18 @@ export function createRadarrTools(
         title: "Refresh metadata for all movies in the library",
         description: "Refresh metadata for all movies in the library",
         inputSchema: {},
+        outputSchema: { message: z.string() },
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_refresh_all_movies", async () => {
         await radarrClient.refreshAllMovies(config);
+        const result = { message: "Refresh all movies initiated successfully" };
         return {
           content: [{
             type: "text",
-            text: "Refresh all movies initiated successfully",
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -436,15 +483,18 @@ export function createRadarrTools(
         title: "Rescan all movie folders for new/missing files",
         description: "Rescan all movie folders for new/missing files",
         inputSchema: {},
+        outputSchema: { message: z.string() },
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_disk_scan", async () => {
         await radarrClient.diskScan(config);
+        const result = { message: "Disk scan initiated successfully" };
         return {
           content: [{
             type: "text",
-            text: "Disk scan initiated successfully",
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
