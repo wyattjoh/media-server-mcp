@@ -3,5 +3,5 @@
   "packages/radarr": "1.1.0",
   "packages/sonarr": "1.1.0",
   "packages/tmdb": "1.1.0",
-  "packages/media-server-mcp": "2.1.0"
+  "packages/media-server-mcp": "2.1.1"
 }
