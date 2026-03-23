@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/media-server-mcp-v2.0.0...@wyattjoh/media-server-mcp-v2.1.0) (2026-03-23)
+
+
+### Features
+
+* MCP improvements - resources, prompts, annotations, structured output, error handling ([#7](https://github.com/wyattjoh/media-server-mcp/issues/7)) ([b252f6f](https://github.com/wyattjoh/media-server-mcp/commit/b252f6f216203c53f673cce858876d60ad18c40c))
+
 ## [2.0.0](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/media-server-mcp-v1.5.0...@wyattjoh/media-server-mcp-v2.0.0) (2026-03-23)
 
 
