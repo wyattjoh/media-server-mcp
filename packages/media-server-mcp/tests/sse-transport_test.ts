@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "jsr:@std/assert@^1.0.0";
+import { assertEquals, assertExists } from "@std/assert";
 
 // Tests for SSE transport functionality
 Deno.test("SSE transport module - can be imported without errors", async () => {

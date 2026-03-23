@@ -7,10 +7,12 @@
     "jsr:@cliffy/table@1.0.0": "1.0.0",
     "jsr:@logtape/logtape@^2.0.4": "2.0.4",
     "jsr:@std/assert@1": "1.0.19",
+    "jsr:@std/assert@^1.0.19": "1.0.19",
     "jsr:@std/dotenv@~0.225.6": "0.225.6",
     "jsr:@std/fmt@^1.0.9": "1.0.9",
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/text@^1.0.17": "1.0.17",
+    "npm:@modelcontextprotocol/sdk@*": "1.27.1_zod@4.3.6_hono@4.12.3_ajv@8.18.0_express@5.2.1",
     "npm:@modelcontextprotocol/sdk@^1.27.1": "1.27.1_zod@4.3.6_hono@4.12.3_ajv@8.18.0_express@5.2.1",
     "npm:zod@^4.3.6": "4.3.6"
   },
@@ -577,34 +579,17 @@
     }
   },
   "workspace": {
+    "dependencies": [
+      "jsr:@logtape/logtape@^2.0.4",
+      "jsr:@std/assert@^1.0.19"
+    ],
     "members": {
       "packages/media-server-mcp": {
         "dependencies": [
           "jsr:@cliffy/command@1",
-          "jsr:@logtape/logtape@^2.0.4",
           "jsr:@std/dotenv@~0.225.6",
           "npm:@modelcontextprotocol/sdk@^1.27.1",
           "npm:zod@^4.3.6"
-        ]
-      },
-      "packages/plex": {
-        "dependencies": [
-          "jsr:@logtape/logtape@^2.0.4"
-        ]
-      },
-      "packages/radarr": {
-        "dependencies": [
-          "jsr:@logtape/logtape@^2.0.4"
-        ]
-      },
-      "packages/sonarr": {
-        "dependencies": [
-          "jsr:@logtape/logtape@^2.0.4"
-        ]
-      },
-      "packages/tmdb": {
-        "dependencies": [
-          "jsr:@logtape/logtape@^2.0.4"
         ]
       }
     }

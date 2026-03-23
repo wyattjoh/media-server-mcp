@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@^1.0.0";
+import { assertEquals } from "@std/assert";
 import { createRadarrConfig, testConnection } from "../mod.ts";
 
 Deno.test("createRadarrConfig - creates valid config", () => {

@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "license": "MIT",
   "exports": "./mod.ts",
-  "imports": {
-    "@logtape/logtape": "jsr:@logtape/logtape@^2.0.4"
-  },
   "publish": {
     "include": [
       "LICENSE",

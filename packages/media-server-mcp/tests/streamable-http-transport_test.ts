@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@^1.0.0";
+import { assertEquals } from "@std/assert";
 
 Deno.test("Streamable HTTP transport module - can be imported without errors", async () => {
   const { createStreamableHTTPServer } = await import(
