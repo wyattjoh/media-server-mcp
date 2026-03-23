@@ -32,6 +32,13 @@ deno task start --debug
 # SSE mode with debug logging
 deno task dev:sse --debug
 deno task start:sse --debug
+
+# Streamable HTTP mode (recommended for remote MCP)
+deno task dev:http --debug
+deno task start:http --debug
+
+# Streamable HTTP mode with custom host/port
+deno task start:http --port 8080 --host 127.0.0.1
 ```
 
 ## Monorepo Structure
@@ -149,7 +156,7 @@ TMDB_API_KEY=your-tmdb-api-key
 PLEX_URL=http://localhost:32400
 PLEX_API_KEY=your-plex-api-key
 
-# Authentication Configuration (required for SSE mode only)
+# Authentication Configuration (required for SSE mode, recommended for HTTP mode)
 MCP_AUTH_TOKEN=your-secure-auth-token
 ```
 
@@ -168,6 +175,7 @@ MCP_AUTH_TOKEN=your-secure-auth-token
 - TMDB uses direct API access with `Authorization: Bearer {api_key}` header authentication
 - Plex uses direct API access with `X-Plex-Token` header authentication
 - **SSE Mode Security**: SSE mode requires `MCP_AUTH_TOKEN` environment variable and validates Bearer tokens on all endpoints except `/health`
+- **Streamable HTTP Mode Security**: HTTP mode requires `MCP_AUTH_TOKEN` when binding to non-loopback addresses. When set, all endpoints except `/health` require a valid Bearer token. Localhost development (`--host 127.0.0.1`) can run without auth.
 
 ## Available Tools by Service
 

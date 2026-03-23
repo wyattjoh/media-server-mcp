@@ -7,6 +7,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import deno from "../deno.json" with { type: "json" };
 import { createSSEServer } from "./transports/sse.ts";
 import { createStdioServer } from "./transports/stdio.ts";
+import { createStreamableHTTPServer } from "./transports/streamable-http.ts";
 import {
   createRadarrConfig,
   type RadarrConfig,
@@ -39,17 +40,26 @@ import {
 } from "./tools/tool-filter.ts";
 import { configureLogging, getLogger } from "./logging.ts";
 
-interface ServerState {
-  server: McpServer;
+interface ServiceConfig {
   radarrConfig?: RadarrConfig;
   sonarrConfig?: SonarrConfig;
   tmdbConfig?: TMDBConfig;
   plexConfig?: PlexConfig;
   authToken?: string;
+}
+
+interface ServerState extends ServiceConfig {
+  server: McpServer;
   transport?: { close: () => Promise<void> };
 }
 
-async function createServer(): Promise<ServerState> {
+/**
+ * Create a new McpServer instance with tools registered based on
+ * the given service configuration.
+ */
+async function createMcpServerWithTools(
+  config: ServiceConfig,
+): Promise<McpServer> {
   const logger = getLogger(["media-server-mcp"]);
 
   logger.debug("Creating MCP server", {
@@ -69,16 +79,23 @@ async function createServer(): Promise<ServerState> {
     },
   );
 
-  const state: ServerState = { server };
-  loadConfig(state);
-  await testConnections(state);
-  await setupTools(state);
+  await setupTools(server, config);
 
   logger.debug("Server created successfully");
-  return state;
+  return server;
 }
 
-function loadConfig(state: ServerState): void {
+async function createServer(): Promise<ServerState> {
+  const config: ServiceConfig = {};
+  loadConfig(config);
+  await testConnections(config);
+
+  const server = await createMcpServerWithTools(config);
+
+  return { ...config, server };
+}
+
+function loadConfig(state: ServiceConfig): void {
   const logger = getLogger(["media-server-mcp"]);
   logger.debug("Loading configuration from environment variables");
 
@@ -117,9 +134,7 @@ function loadConfig(state: ServerState): void {
   const authToken = Deno.env.get("MCP_AUTH_TOKEN");
   if (authToken) {
     state.authToken = authToken;
-  }
-  if (state.authToken) {
-    logger.debug("Authentication token loaded for SSE mode");
+    logger.debug("Authentication token loaded");
   }
 
   const configuredServices = [
@@ -140,7 +155,10 @@ function loadConfig(state: ServerState): void {
   }
 }
 
-async function setupTools(state: Readonly<ServerState>): Promise<void> {
+async function setupTools(
+  server: McpServer,
+  config: Readonly<ServiceConfig>,
+): Promise<void> {
   const logger = getLogger(["media-server-mcp", "tools"]);
   logger.debug("Setting up tools and filters");
 
@@ -155,41 +173,41 @@ async function setupTools(state: Readonly<ServerState>): Promise<void> {
   logToolConfiguration(toolConfig);
 
   // Register Radarr tools if configured
-  if (state.radarrConfig) {
+  if (config.radarrConfig) {
     logger.debug("Registering Radarr tools");
     createRadarrTools(
-      state.server,
-      state.radarrConfig,
+      server,
+      config.radarrConfig,
       isToolEnabled,
     );
   }
 
   // Register Sonarr tools if configured
-  if (state.sonarrConfig) {
+  if (config.sonarrConfig) {
     logger.debug("Registering Sonarr tools");
     createSonarrTools(
-      state.server,
-      state.sonarrConfig,
+      server,
+      config.sonarrConfig,
       isToolEnabled,
     );
   }
 
   // Register TMDB tools if configured
-  if (state.tmdbConfig) {
+  if (config.tmdbConfig) {
     logger.debug("Registering TMDB tools");
     createTMDBTools(
-      state.server,
-      state.tmdbConfig,
+      server,
+      config.tmdbConfig,
       isToolEnabled,
     );
   }
 
   // Register Plex tools if configured
-  if (state.plexConfig) {
+  if (config.plexConfig) {
     logger.debug("Registering Plex tools");
     createPlexTools(
-      state.server,
-      state.plexConfig,
+      server,
+      config.plexConfig,
       isToolEnabled,
     );
   }
@@ -197,13 +215,15 @@ async function setupTools(state: Readonly<ServerState>): Promise<void> {
   logger.info("Tools registration completed");
 }
 
-async function testConnections(state: ServerState): Promise<void> {
+async function testConnections(
+  config: Readonly<ServiceConfig>,
+): Promise<void> {
   const logger = getLogger(["media-server-mcp", "connection"]);
 
   // Test connections before starting
-  if (state.radarrConfig) {
+  if (config.radarrConfig) {
     try {
-      const result = await testRadarrConnection(state.radarrConfig);
+      const result = await testRadarrConnection(config.radarrConfig);
       if (result.success) {
         logger.info("Successfully connected to Radarr");
       } else {
@@ -216,9 +236,9 @@ async function testConnections(state: ServerState): Promise<void> {
     }
   }
 
-  if (state.sonarrConfig) {
+  if (config.sonarrConfig) {
     try {
-      const result = await testSonarrConnection(state.sonarrConfig);
+      const result = await testSonarrConnection(config.sonarrConfig);
       if (result.success) {
         logger.info("Successfully connected to Sonarr");
       } else {
@@ -231,9 +251,9 @@ async function testConnections(state: ServerState): Promise<void> {
     }
   }
 
-  if (state.tmdbConfig) {
+  if (config.tmdbConfig) {
     try {
-      const result = await testTMDBConnection(state.tmdbConfig);
+      const result = await testTMDBConnection(config.tmdbConfig);
       if (result.success) {
         logger.info("Successfully connected to TMDB");
       } else {
@@ -246,9 +266,9 @@ async function testConnections(state: ServerState): Promise<void> {
     }
   }
 
-  if (state.plexConfig) {
+  if (config.plexConfig) {
     try {
-      const result = await testPlexConnection(state.plexConfig);
+      const result = await testPlexConnection(config.plexConfig);
       if (result.success) {
         logger.info("Successfully connected to Plex");
       } else {
@@ -281,6 +301,29 @@ function runSSEServer(
   state.transport = createSSEServer({
     port,
     server: state.server,
+    authToken: state.authToken,
+  });
+}
+
+function runStreamableHTTPServer(
+  state: ServerState,
+  port: number,
+  host: string,
+): void {
+  // Require authentication when binding to non-loopback addresses
+  const isLoopback = host === "127.0.0.1" || host === "localhost" ||
+    host === "::1";
+  if (!state.authToken && !isLoopback) {
+    throw new Error(
+      "MCP_AUTH_TOKEN environment variable is required when binding to non-loopback addresses. " +
+        "Use --host 127.0.0.1 for unauthenticated local development.",
+    );
+  }
+
+  state.transport = createStreamableHTTPServer({
+    port,
+    host,
+    createMcpServer: () => createMcpServerWithTools(state),
     authToken: state.authToken,
   });
 }
@@ -345,23 +388,52 @@ async function main(): Promise<void> {
         "--sse",
         "Run server in SSE (Server-Sent Events) mode over HTTP instead of stdio",
       )
-      .option("-p, --port <port:number>", "Port to run SSE server on", {
+      .option(
+        "--http",
+        "Run server in Streamable HTTP mode (recommended for remote MCP)",
+      )
+      .option("-p, --port <port:number>", "Port to run HTTP server on", {
         default: 3000,
       })
+      .option(
+        "--host <host:string>",
+        "Host to bind the HTTP server to",
+        { default: "0.0.0.0" },
+      )
       .option("--debug", "Enable debug logging for verbose output")
       .action(async (options) => {
+        if (options.sse && options.http) {
+          throw new Error(
+            "Cannot use both --sse and --http flags. Choose one transport mode.",
+          );
+        }
+
+        const isRemote = options.sse || options.http;
+
         // Configure logging first
         await configureLogging({
           debug: options.debug || false,
-          useStdio: !options.sse,
+          useStdio: !isRemote,
         });
 
+        const logger = getLogger(["media-server-mcp"]);
         const serverState = await createServer();
 
         // Setup graceful shutdown handling
         setupGracefulShutdown(serverState);
 
-        if (options.sse) {
+        if (options.http) {
+          runStreamableHTTPServer(
+            serverState,
+            options.port,
+            options.host,
+          );
+        } else if (options.sse) {
+          if (options.host !== "0.0.0.0") {
+            logger.warn(
+              "--host option is not supported in SSE mode and will be ignored",
+            );
+          }
           runSSEServer(serverState, options.port);
         } else {
           await runStdioServer(serverState);
