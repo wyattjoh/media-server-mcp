@@ -139,16 +139,18 @@ Add to your MCP servers configuration using the JSR package:
 
 ### Environment Variables
 
-| Variable         | Description                                        | Required  |
-| ---------------- | -------------------------------------------------- | --------- |
-| `RADARR_URL`     | Base URL of your Radarr instance                   | Optional* |
-| `RADARR_API_KEY` | API key for Radarr authentication                  | Optional* |
-| `SONARR_URL`     | Base URL of your Sonarr instance                   | Optional* |
-| `SONARR_API_KEY` | API key for Sonarr authentication                  | Optional* |
-| `TMDB_API_KEY`   | TMDB API key for movie/TV metadata                 | Optional* |
-| `MCP_AUTH_TOKEN` | Authentication token for SSE mode (HTTP transport) | Optional  |
+| Variable         | Description                                   | Required  |
+| ---------------- | --------------------------------------------- | --------- |
+| `RADARR_URL`     | Base URL of your Radarr instance              | Optional* |
+| `RADARR_API_KEY` | API key for Radarr authentication             | Optional* |
+| `SONARR_URL`     | Base URL of your Sonarr instance              | Optional* |
+| `SONARR_API_KEY` | API key for Sonarr authentication             | Optional* |
+| `TMDB_API_KEY`   | TMDB API key for movie/TV metadata            | Optional* |
+| `PLEX_URL`       | Base URL of your Plex instance                | Optional* |
+| `PLEX_API_KEY`   | X-Plex-Token for Plex authentication          | Optional* |
+| `MCP_AUTH_TOKEN` | Authentication token for HTTP transport modes | Optional  |
 
-*_At least one service (Radarr, Sonarr, or TMDB) must be configured._
+*_At least one service (Radarr, Sonarr, TMDB, or Plex) must be configured._
 
 ### Example URLs
 
@@ -186,9 +188,9 @@ export MCP_AUTH_TOKEN=$(openssl rand -base64 32)
 
 When running in SSE mode, the server provides these endpoints:
 
-- **`/sse?sessionId=<id>`** - SSE event stream endpoint (requires Bearer auth)
-- **`/messages?sessionId=<id>`** - HTTP POST endpoint for client messages (requires Bearer auth)
-- **`/health`** - Health check endpoint (no authentication required)
+- **`GET /sse`** - SSE event stream endpoint; the server assigns a session ID and sends the message endpoint URL via an SSE `endpoint` event (requires Bearer auth)
+- **`POST /messages?sessionId=<id>`** - HTTP POST endpoint for client messages (requires Bearer auth)
+- **`GET /health`** - Health check endpoint (no authentication required)
 
 #### Example SSE Usage
 
@@ -203,8 +205,9 @@ deno run --allow-all jsr:@wyattjoh/media-server-mcp --sse --port 3000
 curl http://localhost:3000/health
 
 # Connect to SSE stream (requires Bearer token)
+# The server assigns a session ID and sends it via an SSE event
 curl -H "Authorization: Bearer your-secure-token" \
-     "http://localhost:3000/sse?sessionId=test-session"
+     http://localhost:3000/sse
 ```
 
 **Security Notes:**
@@ -213,6 +216,66 @@ curl -H "Authorization: Bearer your-secure-token" \
 - Use a strong, randomly generated `MCP_AUTH_TOKEN`
 - The health endpoint (`/health`) is the only unauthenticated endpoint
 - All other endpoints require valid Bearer token authentication
+
+### Streamable HTTP Mode (Recommended for Remote)
+
+Streamable HTTP is the recommended transport for remote MCP server deployments. It uses a single `/mcp` endpoint with session management via the `Mcp-Session-Id` header, following the [MCP 2025-03-26 specification](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports).
+
+#### Running in Streamable HTTP Mode
+
+```bash
+# Start server in Streamable HTTP mode on port 3000 (default)
+deno run --allow-all jsr:@wyattjoh/media-server-mcp --http
+
+# Specify a custom port and host
+deno run --allow-all jsr:@wyattjoh/media-server-mcp --http --port 8080 --host 127.0.0.1
+```
+
+#### Endpoints
+
+- **`POST /mcp`** - Send JSON-RPC requests (Initialize creates a session; subsequent requests require `Mcp-Session-Id` header)
+- **`GET /mcp`** - Open SSE stream for server-initiated notifications (requires `Mcp-Session-Id` header)
+- **`DELETE /mcp`** - Terminate a session (requires `Mcp-Session-Id` header)
+- **`GET /health`** - Health check endpoint (no authentication required)
+
+#### Authentication
+
+Authentication via `MCP_AUTH_TOKEN` is optional but strongly recommended for any deployment accessible over a network. When set, all requests (except `/health`) must include a `Authorization: Bearer <token>` header.
+
+```bash
+# Set authentication token (recommended)
+export MCP_AUTH_TOKEN=$(openssl rand -base64 32)
+
+# Start server
+deno run --allow-all jsr:@wyattjoh/media-server-mcp --http
+```
+
+#### Connecting from Claude Code
+
+```bash
+# Without authentication
+claude mcp add --transport http media-server http://your-server:3000/mcp
+
+# With authentication (set the token as a header)
+claude mcp add --transport http media-server http://your-server:3000/mcp \
+  --header "Authorization: Bearer your-secure-token"
+```
+
+#### Connecting from Claude.com
+
+1. Go to Settings > Custom Connectors
+2. Add a new MCP server with Transport type "Streamable HTTP"
+3. Enter the URL: `https://your-server:3000/mcp`
+4. If using authentication, configure the Bearer token
+
+#### Security Best Practices
+
+- **Always use HTTPS** in production — terminate TLS with a reverse proxy (nginx, Caddy, etc.) in front of the MCP server
+- **Set `MCP_AUTH_TOKEN`** with a strong, randomly generated value for any network-accessible deployment
+- **Bind to specific interfaces** using `--host` to limit which network interfaces accept connections (e.g., `--host 127.0.0.1` for localhost only)
+- **Use a reverse proxy** for rate limiting, request size limits, and TLS termination
+- **Restrict network access** using firewall rules or VPN to limit who can reach the server
+- **CORS**: Both SSE and Streamable HTTP transports set `Access-Control-Allow-Origin: *` to support MCP clients across environments. Bearer tokens in `Authorization` headers are not automatically sent by browsers, but if tighter origin control is needed, configure CORS restrictions in your reverse proxy
 
 ## Tool Configuration System
 
