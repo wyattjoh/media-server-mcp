@@ -17,6 +17,8 @@ import { isValidationErrorArray, ValidationException } from "./validation.ts";
 import type { SortOptions } from "./shared-types.ts";
 import { applyRadarrMovieFilters, sortRadarrMovies } from "./radarr-filters.ts";
 
+const REQUEST_TIMEOUT_MS = 30_000;
+
 export interface RadarrConfig {
   readonly baseUrl: string;
   readonly apiKey: string;
@@ -55,6 +57,7 @@ async function makeRequest<T>(
     const response = await fetch(url, {
       ...options,
       headers,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     if (!response.ok) {

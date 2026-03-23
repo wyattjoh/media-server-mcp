@@ -30,6 +30,8 @@ import type {
   TMDBWatchProvidersResponse,
 } from "./types.ts";
 
+const REQUEST_TIMEOUT_MS = 30_000;
+
 export interface TMDBConfig {
   readonly baseUrl: string;
   readonly apiKey: string;
@@ -67,6 +69,7 @@ async function makeRequest<T>(
     const response = await fetch(url, {
       ...options,
       headers,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     if (!response.ok) {
