@@ -30,6 +30,7 @@ export function createPlexTools(
         description:
           "Get Plex server capabilities, version, and system information",
         inputSchema: {},
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_capabilities", async () => {
@@ -39,6 +40,7 @@ export function createPlexTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -52,6 +54,7 @@ export function createPlexTools(
         title: "Get Plex media libraries",
         description: "List all media libraries available on the Plex server",
         inputSchema: {},
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_libraries", async () => {
@@ -61,6 +64,7 @@ export function createPlexTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -85,6 +89,7 @@ export function createPlexTools(
             "Filter by content types. If not provided, searches all types",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_search", async (args) => {
@@ -99,6 +104,7 @@ export function createPlexTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -117,6 +123,7 @@ export function createPlexTools(
             "The rating key (unique identifier) of the media item",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_metadata", async (args) => {
@@ -126,6 +133,7 @@ export function createPlexTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -144,15 +152,20 @@ export function createPlexTools(
             "The library key (section ID) to refresh",
           ),
         },
+        outputSchema: { message: z.string() },
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_refresh_library", async (args) => {
         await plexClient.refreshLibrary(config, args.key);
+        const result = {
+          message: `Library refresh initiated for section ${args.key}`,
+        };
         return {
           content: [{
             type: "text",
-            text: `Library refresh initiated for section ${args.key}`,
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -190,6 +203,7 @@ export function createPlexTools(
             "Number of items per page (default: 200). Use start for pagination.",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_library_items", async (args) => {
@@ -207,6 +221,7 @@ export function createPlexTools(
             type: "text",
             text: JSON.stringify(result, slimReplacer, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -228,6 +243,7 @@ export function createPlexTools(
             "Number of collections per page (default: 100). Use start for pagination.",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_collections", async (args) => {
@@ -240,6 +256,7 @@ export function createPlexTools(
             type: "text",
             text: JSON.stringify(result, slimReplacer, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -257,6 +274,7 @@ export function createPlexTools(
             "The collection rating key/ID",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_collection_items", async (args) => {
@@ -269,6 +287,7 @@ export function createPlexTools(
             type: "text",
             text: JSON.stringify(result, slimReplacer, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -289,6 +308,7 @@ export function createPlexTools(
             "Rating keys of items to add to the collection",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { openWorldHint: false },
       },
       wrapToolHandler("plex_create_collection", async (args) => {
@@ -303,6 +323,7 @@ export function createPlexTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -323,6 +344,7 @@ export function createPlexTools(
             "Rating keys of items to add to the collection",
           ),
         },
+        outputSchema: { message: z.string() },
         annotations: { openWorldHint: false },
       },
       wrapToolHandler("plex_add_to_collection", async (args) => {
@@ -331,12 +353,16 @@ export function createPlexTools(
           args.collectionId,
           args.ratingKeys,
         );
+        const result = {
+          message:
+            `Successfully added ${args.ratingKeys.length} item(s) to collection ${args.collectionId}`,
+        };
         return {
           content: [{
             type: "text",
-            text:
-              `Successfully added ${args.ratingKeys.length} item(s) to collection ${args.collectionId}`,
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -357,6 +383,7 @@ export function createPlexTools(
             "Rating keys of items to remove",
           ),
         },
+        outputSchema: { message: z.string() },
         annotations: { destructiveHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_remove_from_collection", async (args) => {
@@ -367,12 +394,16 @@ export function createPlexTools(
             ratingKey,
           );
         }
+        const result = {
+          message:
+            `Removed ${args.ratingKeys.length} item(s) from collection ${args.collectionId}`,
+        };
         return {
           content: [{
             type: "text",
-            text:
-              `Removed ${args.ratingKeys.length} item(s) from collection ${args.collectionId}`,
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -390,15 +421,20 @@ export function createPlexTools(
             "The collection rating key/ID to delete",
           ),
         },
+        outputSchema: { message: z.string() },
         annotations: { destructiveHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_delete_collection", async (args) => {
         await plexClient.deleteCollection(config, args.collectionId);
+        const result = {
+          message: `Successfully deleted collection ${args.collectionId}`,
+        };
         return {
           content: [{
             type: "text",
-            text: `Successfully deleted collection ${args.collectionId}`,
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
