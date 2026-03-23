@@ -1,0 +1,61 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "separate-pull-requests": false,
+  "packages": {
+    "packages/plex": {
+      "package-name": "@wyattjoh/plex",
+      "release-type": "simple",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "deno.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    },
+    "packages/radarr": {
+      "package-name": "@wyattjoh/radarr",
+      "release-type": "simple",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "deno.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    },
+    "packages/sonarr": {
+      "package-name": "@wyattjoh/sonarr",
+      "release-type": "simple",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "deno.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    },
+    "packages/tmdb": {
+      "package-name": "@wyattjoh/tmdb",
+      "release-type": "simple",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "deno.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    },
+    "packages/media-server-mcp": {
+      "package-name": "@wyattjoh/media-server-mcp",
+      "release-type": "simple",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "deno.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    }
+  }
+}
