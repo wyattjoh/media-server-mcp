@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { PlexConfig } from "@wyattjoh/plex";
 import * as plexClient from "@wyattjoh/plex";
 import { SearchType } from "@wyattjoh/plex";
+import { wrapToolHandler } from "./tool-wrapper.ts";
 
 const SLIM_OMIT_KEYS = new Set([
   "Media",
@@ -29,27 +30,17 @@ export function createPlexTools(
         description:
           "Get Plex server capabilities, version, and system information",
         inputSchema: {},
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async () => {
-        try {
-          const result = await plexClient.getCapabilities(config);
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("plex_get_capabilities", async () => {
+        const result = await plexClient.getCapabilities(config);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -61,27 +52,17 @@ export function createPlexTools(
         title: "Get Plex media libraries",
         description: "List all media libraries available on the Plex server",
         inputSchema: {},
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async () => {
-        try {
-          const result = await plexClient.getLibraries(config);
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("plex_get_libraries", async () => {
+        const result = await plexClient.getLibraries(config);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -104,32 +85,22 @@ export function createPlexTools(
             "Filter by content types. If not provided, searches all types",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await plexClient.search(
-            config,
-            args.query,
-            args.limit,
-            args.searchTypes,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("plex_search", async (args) => {
+        const result = await plexClient.search(
+          config,
+          args.query,
+          args.limit,
+          args.searchTypes,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -146,27 +117,17 @@ export function createPlexTools(
             "The rating key (unique identifier) of the media item",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await plexClient.getMetadata(config, args.ratingKey);
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("plex_get_metadata", async (args) => {
+        const result = await plexClient.getMetadata(config, args.ratingKey);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -183,27 +144,17 @@ export function createPlexTools(
             "The library key (section ID) to refresh",
           ),
         },
+        annotations: { idempotentHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          await plexClient.refreshLibrary(config, args.key);
-          return {
-            content: [{
-              type: "text",
-              text: `Library refresh initiated for section ${args.key}`,
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("plex_refresh_library", async (args) => {
+        await plexClient.refreshLibrary(config, args.key);
+        return {
+          content: [{
+            type: "text",
+            text: `Library refresh initiated for section ${args.key}`,
+          }],
+        };
+      }),
     );
   }
 
@@ -239,35 +190,25 @@ export function createPlexTools(
             "Number of items per page (default: 200). Use start for pagination.",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await plexClient.getLibraryItems(config, args.key, {
-            type: args.type,
-            studio: args.studio,
-            genre: args.genre,
-            year: args.year,
-            sort: args.sort,
-            start: args.start,
-            size: args.size,
-          });
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, slimReplacer, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("plex_get_library_items", async (args) => {
+        const result = await plexClient.getLibraryItems(config, args.key, {
+          type: args.type,
+          studio: args.studio,
+          genre: args.genre,
+          year: args.year,
+          sort: args.sort,
+          start: args.start,
+          size: args.size,
+        });
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, slimReplacer, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -287,30 +228,20 @@ export function createPlexTools(
             "Number of collections per page (default: 100). Use start for pagination.",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await plexClient.getCollections(config, args.key, {
-            ...(args.start !== undefined && { start: args.start }),
-            size: args.size,
-          });
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, slimReplacer, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("plex_get_collections", async (args) => {
+        const result = await plexClient.getCollections(config, args.key, {
+          ...(args.start !== undefined && { start: args.start }),
+          size: args.size,
+        });
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, slimReplacer, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -326,30 +257,20 @@ export function createPlexTools(
             "The collection rating key/ID",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await plexClient.getCollectionItems(
-            config,
-            args.collectionId,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, slimReplacer, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("plex_get_collection_items", async (args) => {
+        const result = await plexClient.getCollectionItems(
+          config,
+          args.collectionId,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, slimReplacer, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -368,32 +289,22 @@ export function createPlexTools(
             "Rating keys of items to add to the collection",
           ),
         },
+        annotations: { openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await plexClient.createCollection(
-            config,
-            args.sectionKey,
-            args.title,
-            args.ratingKeys,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("plex_create_collection", async (args) => {
+        const result = await plexClient.createCollection(
+          config,
+          args.sectionKey,
+          args.title,
+          args.ratingKeys,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -412,32 +323,22 @@ export function createPlexTools(
             "Rating keys of items to add to the collection",
           ),
         },
+        annotations: { openWorldHint: false },
       },
-      async (args) => {
-        try {
-          await plexClient.addToCollection(
-            config,
-            args.collectionId,
-            args.ratingKeys,
-          );
-          return {
-            content: [{
-              type: "text",
-              text:
-                `Successfully added ${args.ratingKeys.length} item(s) to collection ${args.collectionId}`,
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("plex_add_to_collection", async (args) => {
+        await plexClient.addToCollection(
+          config,
+          args.collectionId,
+          args.ratingKeys,
+        );
+        return {
+          content: [{
+            type: "text",
+            text:
+              `Successfully added ${args.ratingKeys.length} item(s) to collection ${args.collectionId}`,
+          }],
+        };
+      }),
     );
   }
 
@@ -456,34 +357,24 @@ export function createPlexTools(
             "Rating keys of items to remove",
           ),
         },
+        annotations: { destructiveHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          for (const ratingKey of args.ratingKeys) {
-            await plexClient.removeFromCollection(
-              config,
-              args.collectionId,
-              ratingKey,
-            );
-          }
-          return {
-            content: [{
-              type: "text",
-              text:
-                `Removed ${args.ratingKeys.length} item(s) from collection ${args.collectionId}`,
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
+      wrapToolHandler("plex_remove_from_collection", async (args) => {
+        for (const ratingKey of args.ratingKeys) {
+          await plexClient.removeFromCollection(
+            config,
+            args.collectionId,
+            ratingKey,
+          );
         }
-      },
+        return {
+          content: [{
+            type: "text",
+            text:
+              `Removed ${args.ratingKeys.length} item(s) from collection ${args.collectionId}`,
+          }],
+        };
+      }),
     );
   }
 
@@ -499,27 +390,17 @@ export function createPlexTools(
             "The collection rating key/ID to delete",
           ),
         },
+        annotations: { destructiveHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          await plexClient.deleteCollection(config, args.collectionId);
-          return {
-            content: [{
-              type: "text",
-              text: `Successfully deleted collection ${args.collectionId}`,
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("plex_delete_collection", async (args) => {
+        await plexClient.deleteCollection(config, args.collectionId);
+        return {
+          content: [{
+            type: "text",
+            text: `Successfully deleted collection ${args.collectionId}`,
+          }],
+        };
+      }),
     );
   }
 }
