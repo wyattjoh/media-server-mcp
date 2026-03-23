@@ -7,12 +7,15 @@
     "jsr:@cliffy/table@1.0.0": "1.0.0",
     "jsr:@logtape/logtape@^2.0.4": "2.0.4",
     "jsr:@std/assert@1": "1.0.19",
+    "jsr:@std/assert@^1.0.17": "1.0.19",
     "jsr:@std/assert@^1.0.19": "1.0.19",
     "jsr:@std/dotenv@~0.225.6": "0.225.6",
     "jsr:@std/fmt@^1.0.9": "1.0.9",
     "jsr:@std/internal@^1.0.12": "1.0.12",
+    "jsr:@std/testing@^1.0.11": "1.0.17",
     "jsr:@std/text@^1.0.17": "1.0.17",
     "npm:@modelcontextprotocol/sdk@*": "1.27.1_zod@4.3.6_hono@4.12.3_ajv@8.18.0_express@5.2.1",
+    "npm:@modelcontextprotocol/sdk@1.27.1": "1.27.1_zod@4.3.6_hono@4.12.3_ajv@8.18.0_express@5.2.1",
     "npm:@modelcontextprotocol/sdk@^1.27.1": "1.27.1_zod@4.3.6_hono@4.12.3_ajv@8.18.0_express@5.2.1",
     "npm:zod@^4.3.6": "4.3.6"
   },
@@ -60,6 +63,12 @@
     },
     "@std/internal@1.0.12": {
       "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
+    },
+    "@std/testing@1.0.17": {
+      "integrity": "87bdc2700fa98249d48a17cd72413352d3d3680dcfbdb64947fd0982d6bbf681",
+      "dependencies": [
+        "jsr:@std/assert@^1.0.17"
+      ]
     },
     "@std/text@1.0.17": {
       "integrity": "4b2c4ef67ae5b6c1dfd447c81c83a43718f52e3c7e748d8b33f694aba9895f95"
@@ -581,7 +590,8 @@
   "workspace": {
     "dependencies": [
       "jsr:@logtape/logtape@^2.0.4",
-      "jsr:@std/assert@^1.0.19"
+      "jsr:@std/assert@^1.0.19",
+      "jsr:@std/testing@^1.0.11"
     ],
     "members": {
       "packages/media-server-mcp": {

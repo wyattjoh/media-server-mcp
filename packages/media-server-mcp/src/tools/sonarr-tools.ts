@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { SonarrConfig, SonarrSeries } from "@wyattjoh/sonarr";
 import * as sonarrClient from "@wyattjoh/sonarr";
+import { wrapToolHandler } from "./tool-wrapper.ts";
 
 export function createSonarrTools(
   server: McpServer,
@@ -24,32 +25,30 @@ export function createSonarrTools(
             "Number of results to skip (for pagination)",
           ),
         },
+        outputSchema: {
+          data: z.array(z.record(z.string(), z.unknown())),
+          total: z.number(),
+          returned: z.number(),
+          skip: z.number(),
+          limit: z.number().optional(),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const results = await sonarrClient.searchSeries(
-            config,
-            args.term,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(results, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_search_series", async (args) => {
+        const results = await sonarrClient.searchSeries(
+          config,
+          args.term,
+          args.limit,
+          args.skip,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
+          }],
+          structuredContent: results as unknown as Record<string, unknown>,
+        };
+      }),
     );
   }
 
@@ -89,43 +88,35 @@ export function createSonarrTools(
           searchForMissingEpisodes: z.boolean().optional().default(false)
             .describe("Whether to search for missing episodes after adding"),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
+        annotations: { openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const params = {
-            ...args,
-            languageProfileId: args.languageProfileId || undefined,
-            monitored: args.monitored ?? undefined,
-            seasonFolder: args.seasonFolder ?? undefined,
-            seriesType: args.seriesType || undefined,
-            tags: args.tags || undefined,
-            seasons: args.seasons || undefined,
-            addOptions: args.searchForMissingEpisodes !== undefined
-              ? {
-                searchForMissingEpisodes: args.searchForMissingEpisodes,
-                ignoreEpisodesWithFiles: undefined,
-                ignoreEpisodesWithoutFiles: undefined,
-              }
-              : undefined,
-          };
-          const result = await sonarrClient.addSeries(config, params);
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_add_series", async (args) => {
+        const params = {
+          ...args,
+          languageProfileId: args.languageProfileId || undefined,
+          monitored: args.monitored ?? undefined,
+          seasonFolder: args.seasonFolder ?? undefined,
+          seriesType: args.seriesType || undefined,
+          tags: args.tags || undefined,
+          seasons: args.seasons || undefined,
+          addOptions: args.searchForMissingEpisodes !== undefined
+            ? {
+              searchForMissingEpisodes: args.searchForMissingEpisodes,
+              ignoreEpisodesWithFiles: undefined,
+              ignoreEpisodesWithoutFiles: undefined,
+            }
+            : undefined,
+        };
+        const result = await sonarrClient.addSeries(config, params);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+          structuredContent: result as unknown as Record<string, unknown>,
+        };
+      }),
     );
   }
 
@@ -145,32 +136,25 @@ export function createSonarrTools(
             "Whether to add import exclusion",
           ),
         },
+        outputSchema: { message: z.string() },
+        annotations: { destructiveHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          await sonarrClient.deleteSeries(
-            config,
-            args.id,
-            args.deleteFiles,
-            args.addImportExclusion,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: `Series ${args.id} deleted successfully`,
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_delete_series", async (args) => {
+        await sonarrClient.deleteSeries(
+          config,
+          args.id,
+          args.deleteFiles,
+          args.addImportExclusion,
+        );
+        const result = { message: `Series ${args.id} deleted successfully` };
+        return {
+          content: [{
+            type: "text",
+            text: result.message,
+          }],
+          structuredContent: result,
+        };
+      }),
     );
   }
 
@@ -189,32 +173,27 @@ export function createSonarrTools(
             "Whether to monitor or unmonitor the episodes",
           ),
         },
+        outputSchema: { message: z.string() },
+        annotations: { idempotentHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          await sonarrClient.updateEpisodeMonitoring(
-            config,
-            args.episodeIds,
-            args.monitored,
-          );
-          return {
-            content: [{
-              type: "text",
-              text:
-                `Episode monitoring updated for ${args.episodeIds.length} episodes`,
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_update_episode_monitoring", async (args) => {
+        await sonarrClient.updateEpisodeMonitoring(
+          config,
+          args.episodeIds,
+          args.monitored,
+        );
+        const result = {
+          message:
+            `Episode monitoring updated for ${args.episodeIds.length} episodes`,
+        };
+        return {
+          content: [{
+            type: "text",
+            text: result.message,
+          }],
+          structuredContent: result,
+        };
+      }),
     );
   }
 
@@ -228,27 +207,22 @@ export function createSonarrTools(
         inputSchema: {
           id: z.number().describe("Series ID in Sonarr"),
         },
+        outputSchema: { message: z.string() },
+        annotations: { idempotentHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          await sonarrClient.refreshSeries(config, args.id);
-          return {
-            content: [{
-              type: "text",
-              text: `Series ${args.id} refresh initiated successfully`,
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_refresh_series", async (args) => {
+        await sonarrClient.refreshSeries(config, args.id);
+        const result = {
+          message: `Series ${args.id} refresh initiated successfully`,
+        };
+        return {
+          content: [{
+            type: "text",
+            text: result.message,
+          }],
+          structuredContent: result,
+        };
+      }),
     );
   }
 
@@ -262,28 +236,23 @@ export function createSonarrTools(
         inputSchema: {
           id: z.number().describe("Series ID in Sonarr"),
         },
+        outputSchema: { message: z.string() },
+        annotations: { idempotentHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          await sonarrClient.searchSeriesEpisodes(config, args.id);
-          return {
-            content: [{
-              type: "text",
-              text:
-                `Search for series ${args.id} episodes initiated successfully`,
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_search_series_episodes", async (args) => {
+        await sonarrClient.searchSeriesEpisodes(config, args.id);
+        const result = {
+          message:
+            `Search for series ${args.id} episodes initiated successfully`,
+        };
+        return {
+          content: [{
+            type: "text",
+            text: result.message,
+          }],
+          structuredContent: result,
+        };
+      }),
     );
   }
 
@@ -298,32 +267,27 @@ export function createSonarrTools(
           seriesId: z.number().describe("Series ID in Sonarr"),
           seasonNumber: z.number().describe("Season number to search"),
         },
+        outputSchema: { message: z.string() },
+        annotations: { idempotentHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          await sonarrClient.searchSeason(
-            config,
-            args.seriesId,
-            args.seasonNumber,
-          );
-          return {
-            content: [{
-              type: "text",
-              text:
-                `Search for series ${args.seriesId} season ${args.seasonNumber} initiated successfully`,
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_search_season", async (args) => {
+        await sonarrClient.searchSeason(
+          config,
+          args.seriesId,
+          args.seasonNumber,
+        );
+        const result = {
+          message:
+            `Search for series ${args.seriesId} season ${args.seasonNumber} initiated successfully`,
+        };
+        return {
+          content: [{
+            type: "text",
+            text: result.message,
+          }],
+          structuredContent: result,
+        };
+      }),
     );
   }
 
@@ -380,33 +344,31 @@ export function createSonarrTools(
             direction: z.enum(["asc", "desc"]).describe("Sort direction"),
           }).optional().describe("Sort options for series"),
         },
+        outputSchema: {
+          data: z.array(z.record(z.string(), z.unknown())),
+          total: z.number(),
+          returned: z.number(),
+          skip: z.number(),
+          limit: z.number().optional(),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const results = await sonarrClient.getSeries(
-            config,
-            args.limit,
-            args.skip,
-            args.filters,
-            args.sort,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(results, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_get_series", async (args) => {
+        const results = await sonarrClient.getSeries(
+          config,
+          args.limit,
+          args.skip,
+          args.filters,
+          args.sort,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
+          }],
+          structuredContent: results as unknown as Record<string, unknown>,
+        };
+      }),
     );
   }
 
@@ -422,61 +384,55 @@ export function createSonarrTools(
           id: z.number().optional().describe("Series ID in Sonarr"),
           tvdbId: z.number().optional().describe("The TV Database (TVDB) ID"),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          // Validate that exactly one identifier is provided
-          if ((args.id === undefined) === (args.tvdbId === undefined)) {
-            return {
-              content: [{
-                type: "text",
-                text:
-                  "Error: Provide either 'id' (Sonarr ID) or 'tvdbId', but not both",
-              }],
-            };
-          }
-
-          let result;
-          if (args.id !== undefined) {
-            // Use Sonarr ID
-            result = await sonarrClient.getSeriesById(config, args.id);
-          } else if (args.tvdbId !== undefined) {
-            // Use TVDB ID
-            result = await sonarrClient.getSeriesById(config, {
-              tvdbId: args.tvdbId,
-            });
-          }
-
-          if (!result) {
-            return {
-              content: [{
-                type: "text",
-                text: `Series not found with ${
-                  args.id !== undefined
-                    ? `Sonarr ID ${args.id}`
-                    : `TVDB ID ${args.tvdbId}`
-                }`,
-              }],
-            };
-          }
-
+      wrapToolHandler("sonarr_get_series_by_id", async (args) => {
+        // Validate that exactly one identifier is provided
+        if ((args.id === undefined) === (args.tvdbId === undefined)) {
           return {
             content: [{
               type: "text",
-              text: JSON.stringify(result, null, 2),
+              text:
+                "Error: Provide either 'id' (Sonarr ID) or 'tvdbId', but not both",
             }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
+            isError: true,
           };
         }
-      },
+
+        let result;
+        if (args.id !== undefined) {
+          // Use Sonarr ID
+          result = await sonarrClient.getSeriesById(config, args.id);
+        } else if (args.tvdbId !== undefined) {
+          // Use TVDB ID
+          result = await sonarrClient.getSeriesById(config, {
+            tvdbId: args.tvdbId,
+          });
+        }
+
+        if (!result) {
+          return {
+            content: [{
+              type: "text",
+              text: `Series not found with ${
+                args.id !== undefined
+                  ? `Sonarr ID ${args.id}`
+                  : `TVDB ID ${args.tvdbId}`
+              }`,
+            }],
+            isError: true,
+          };
+        }
+
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+          structuredContent: result as unknown as Record<string, unknown>,
+        };
+      }),
     );
   }
 
@@ -499,33 +455,31 @@ export function createSonarrTools(
             "Number of results to skip (for pagination)",
           ),
         },
+        outputSchema: {
+          data: z.array(z.record(z.string(), z.unknown())),
+          total: z.number(),
+          returned: z.number(),
+          skip: z.number(),
+          limit: z.number().optional(),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const results = await sonarrClient.getEpisodes(
-            config,
-            args.seriesId,
-            args.seasonNumber,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(results, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_get_episodes", async (args) => {
+        const results = await sonarrClient.getEpisodes(
+          config,
+          args.seriesId,
+          args.seasonNumber,
+          args.limit,
+          args.skip,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
+          }],
+          structuredContent: results as unknown as Record<string, unknown>,
+        };
+      }),
     );
   }
 
@@ -556,35 +510,33 @@ export function createSonarrTools(
             "Number of results to skip (for pagination)",
           ),
         },
+        outputSchema: {
+          data: z.array(z.record(z.string(), z.unknown())),
+          total: z.number(),
+          returned: z.number(),
+          skip: z.number(),
+          limit: z.number().optional(),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const results = await sonarrClient.getCalendar(
-            config,
-            args.start,
-            args.end,
-            args.includeEpisodeFile,
-            args.includeSeries,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(results, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_get_calendar", async (args) => {
+        const results = await sonarrClient.getCalendar(
+          config,
+          args.start,
+          args.end,
+          args.includeEpisodeFile,
+          args.includeSeries,
+          args.limit,
+          args.skip,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
+          }],
+          structuredContent: results as unknown as Record<string, unknown>,
+        };
+      }),
     );
   }
 
@@ -603,31 +555,29 @@ export function createSonarrTools(
             "Number of results to skip (for pagination)",
           ),
         },
+        outputSchema: {
+          data: z.array(z.record(z.string(), z.unknown())),
+          total: z.number(),
+          returned: z.number(),
+          skip: z.number(),
+          limit: z.number().optional(),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const results = await sonarrClient.getQueue(
-            config,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(results, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_get_queue", async (args) => {
+        const results = await sonarrClient.getQueue(
+          config,
+          args.limit,
+          args.skip,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
+          }],
+          structuredContent: results as unknown as Record<string, unknown>,
+        };
+      }),
     );
   }
 
@@ -641,37 +591,32 @@ export function createSonarrTools(
         description:
           "Get Sonarr configuration including quality profiles and root folders",
         inputSchema: {},
+        outputSchema: {
+          qualityProfiles: z.array(z.record(z.string(), z.unknown())),
+          rootFolders: z.array(z.record(z.string(), z.unknown())),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async () => {
-        try {
-          const [qualityProfiles, rootFolders] = await Promise.all([
-            sonarrClient.getQualityProfiles(config),
-            sonarrClient.getRootFolders(config),
-          ]);
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(
-                {
-                  qualityProfiles,
-                  rootFolders,
-                },
-                null,
-                2,
-              ),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_get_configuration", async () => {
+        const [qualityProfiles, rootFolders] = await Promise.all([
+          sonarrClient.getQualityProfiles(config),
+          sonarrClient.getRootFolders(config),
+        ]);
+        const result = {
+          qualityProfiles: qualityProfiles as unknown as Record<
+            string,
+            unknown
+          >[],
+          rootFolders: rootFolders as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+          structuredContent: result,
+        };
+      }),
     );
   }
 
@@ -683,27 +628,19 @@ export function createSonarrTools(
         title: "Get Sonarr system status",
         description: "Get Sonarr system status",
         inputSchema: {},
+        outputSchema: z.record(z.string(), z.unknown()),
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async () => {
-        try {
-          const result = await sonarrClient.getSystemStatus(config);
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_get_system_status", async () => {
+        const result = await sonarrClient.getSystemStatus(config);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+          structuredContent: result as unknown as Record<string, unknown>,
+        };
+      }),
     );
   }
 
@@ -715,27 +652,24 @@ export function createSonarrTools(
         title: "Get Sonarr health check results",
         description: "Get Sonarr health check results",
         inputSchema: {},
+        outputSchema: {
+          data: z.array(z.record(z.string(), z.unknown())),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async () => {
-        try {
-          const results = await sonarrClient.getHealth(config);
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(results, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_get_health", async () => {
+        const results = await sonarrClient.getHealth(config);
+        const result = {
+          data: results as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
+          }],
+          structuredContent: result,
+        };
+      }),
     );
   }
 
@@ -752,28 +686,20 @@ export function createSonarrTools(
             "Series object with updated fields",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
+        annotations: { idempotentHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const series = { ...args.series, id: args.id } as SonarrSeries;
-          const result = await sonarrClient.updateSeries(config, series);
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_update_series", async (args) => {
+        const series = { ...args.series, id: args.id } as SonarrSeries;
+        const result = await sonarrClient.updateSeries(config, series);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+          structuredContent: result as unknown as Record<string, unknown>,
+        };
+      }),
     );
   }
 
@@ -787,27 +713,19 @@ export function createSonarrTools(
         inputSchema: {
           id: z.number().describe("Episode ID in Sonarr"),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await sonarrClient.getEpisodeById(config, args.id);
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_get_episode", async (args) => {
+        const result = await sonarrClient.getEpisodeById(config, args.id);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+          structuredContent: result as unknown as Record<string, unknown>,
+        };
+      }),
     );
   }
 
@@ -819,27 +737,22 @@ export function createSonarrTools(
         title: "Refresh metadata for all series in the library",
         description: "Refresh metadata for all series in the library",
         inputSchema: {},
+        outputSchema: { message: z.string() },
+        annotations: { idempotentHint: true, openWorldHint: false },
       },
-      async () => {
-        try {
-          await sonarrClient.refreshAllSeries(config);
-          return {
-            content: [{
-              type: "text",
-              text: "Refresh initiated for all series in the library",
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_refresh_all_series", async () => {
+        await sonarrClient.refreshAllSeries(config);
+        const result = {
+          message: "Refresh initiated for all series in the library",
+        };
+        return {
+          content: [{
+            type: "text",
+            text: result.message,
+          }],
+          structuredContent: result,
+        };
+      }),
     );
   }
 
@@ -855,27 +768,22 @@ export function createSonarrTools(
             "Array of episode IDs to search for",
           ),
         },
+        outputSchema: { message: z.string() },
+        annotations: { idempotentHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          await sonarrClient.searchEpisodes(config, args.episodeIds);
-          return {
-            content: [{
-              type: "text",
-              text: `Search initiated for ${args.episodeIds.length} episodes`,
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_search_episodes", async (args) => {
+        await sonarrClient.searchEpisodes(config, args.episodeIds);
+        const result = {
+          message: `Search initiated for ${args.episodeIds.length} episodes`,
+        };
+        return {
+          content: [{
+            type: "text",
+            text: result.message,
+          }],
+          structuredContent: result,
+        };
+      }),
     );
   }
 
@@ -887,27 +795,22 @@ export function createSonarrTools(
         title: "Rescan all series folders for new/missing files",
         description: "Rescan all series folders for new/missing files",
         inputSchema: {},
+        outputSchema: { message: z.string() },
+        annotations: { idempotentHint: true, openWorldHint: false },
       },
-      async () => {
-        try {
-          await sonarrClient.diskScan(config);
-          return {
-            content: [{
-              type: "text",
-              text: "Disk scan initiated for all series folders",
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("sonarr_disk_scan", async () => {
+        await sonarrClient.diskScan(config);
+        const result = {
+          message: "Disk scan initiated for all series folders",
+        };
+        return {
+          content: [{
+            type: "text",
+            text: result.message,
+          }],
+          structuredContent: result,
+        };
+      }),
     );
   }
 }

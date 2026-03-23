@@ -69,7 +69,7 @@ Each package is independently publishable and has its own `deno.json` configurat
 
 ## Architecture Overview
 
-This is a **Model Context Protocol (MCP) server** that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series), and Plex media servers, and access TMDB data through their APIs.
+This is a **Model Context Protocol (MCP) server** that provides AI assistants with tools, resources, and prompts to manage Radarr (movies), Sonarr (TV series), and Plex media servers, and access TMDB data through their APIs.
 
 ### Core Architecture Pattern
 
@@ -77,13 +77,15 @@ The codebase follows a **layered architecture**:
 
 1. **MCP Server Layer** (`packages/media-server-mcp/src/index.ts`): Main server that handles MCP protocol communication
 2. **Tool Layer** (`packages/media-server-mcp/src/tools/`): MCP tool definitions and handlers that bridge MCP and API clients
-3. **Client Packages** (`packages/{radarr,sonarr,tmdb,plex}/`): Standalone client libraries for each service
-4. **Type Definitions**: Each package contains its own TypeScript definitions
-5. **Shared Components**: Client packages include filtering and validation utilities
+3. **Resource Layer** (`packages/media-server-mcp/src/resources/`): MCP resources that expose service configs and dynamic data as readable URIs
+4. **Prompt Layer** (`packages/media-server-mcp/src/prompts/`): MCP prompts for common media management workflows
+5. **Client Packages** (`packages/{radarr,sonarr,tmdb,plex}/`): Standalone client libraries for each service
+6. **Type Definitions**: Each package contains its own TypeScript definitions
+7. **Shared Components**: Client packages include filtering and validation utilities
 
 ### Key Architectural Decisions
 
-**Direct Tool Registration**: Tools are registered directly on the `McpServer` instance via `createRadarrTools()`, `createSonarrTools()`, `createTMDBTools()`, and `createPlexTools()` functions. Each function accepts the server, service config, and a tool filter function, then registers tools as side effects using `server.registerTool()`. Tool handlers are closures that capture the service config at registration time.
+**Direct Tool Registration**: Tools are registered directly on the `McpServer` instance via `createRadarrTools()`, `createSonarrTools()`, `createTMDBTools()`, and `createPlexTools()` functions. Each function accepts the server, service config, and a tool filter function, then registers tools as side effects using `server.registerTool()`. Tool handlers are closures that capture the service config at registration time. All tool handlers are wrapped with `wrapToolHandler()` from `tool-wrapper.ts`, which centralizes error handling (returning `isError: true` on failure), logging, and execution timing. Individual tool handlers do not need their own try/catch blocks.
 
 **Tool Filtering System**: A configurable tool filtering system (`tool-categories.ts`, `tool-filter.ts`) allows enabling/disabling tools via profiles, branches, include/exclude lists, or config files. This controls which tools are registered on the server.
 
@@ -137,7 +139,7 @@ This codebase **ALWAYS** follows a **functional architecture** approach rather t
 ### Error Handling Pattern
 
 - Unknown errors must be handled with `error instanceof Error ? error.message : String(error)`
-- Tool handlers catch all errors and return error results with `isError: true`
+- Tool error handling is centralized in `wrapToolHandler()` (`tool-wrapper.ts`). It catches all errors and returns `isError: true` with the error message. Individual tool handlers should not wrap their own logic in try/catch.
 - Connection testing on startup logs warnings but doesn't prevent server launch
 
 ## Environment Variables
@@ -182,10 +184,12 @@ TOOL_CONFIG_PATH=./tools.json # Path to JSON configuration file for tool setting
 - The server tests API connections on startup but continues running even if services are unavailable
 - Tools are registered directly on the `McpServer` via `server.registerTool()` during setup
 - Each service's tools are only registered if that service is properly configured
+- All API client fetch calls use `AbortSignal.timeout(30_000)` to enforce a 30-second request timeout
 - Radarr and Sonarr use the same base URL + endpoint pattern with API key authentication via `X-Api-Key` header
 - TMDB uses direct API access with `Authorization: Bearer {api_key}` header authentication
 - Plex uses direct API access with `X-Plex-Token` header authentication
 - **SSE Mode Security**: SSE mode requires `MCP_AUTH_TOKEN` environment variable and validates Bearer tokens on all endpoints except `/health`
+- **SSE Deprecation**: SSE transport is deprecated. A warning is logged on startup when `--sse` is used. Prefer Streamable HTTP (`--http`) for remote deployments.
 - **Streamable HTTP Mode Security**: HTTP mode requires `MCP_AUTH_TOKEN` when binding to non-loopback addresses. When set, all endpoints except `/health` require a valid Bearer token. Localhost development (`--host 127.0.0.1`) can run without auth.
 
 ## Available Tools by Service
@@ -351,12 +355,46 @@ TOOL_CONFIG_PATH=./tools.json # Path to JSON configuration file for tool setting
 - `plex_remove_from_collection` - Remove a single item from a collection
 - `plex_delete_collection` - Delete an entire collection
 
+## Available Resources by Service
+
+MCP resources expose structured data as readable URIs. They are registered when the corresponding service is configured.
+
+### Radarr Resources (when `RADARR_URL` and `RADARR_API_KEY` are configured)
+
+- `config://radarr` - Radarr configuration (quality profiles, root folders, tags)
+- `radarr://movies/{movieId}` - Details for a specific movie by Radarr ID
+
+### Sonarr Resources (when `SONARR_URL` and `SONARR_API_KEY` are configured)
+
+- `config://sonarr` - Sonarr configuration (quality profiles, root folders, tags)
+- `sonarr://series/{seriesId}` - Details for a specific series by Sonarr ID
+
+### TMDB Resources (when `TMDB_API_KEY` is configured)
+
+- `config://tmdb` - TMDB API configuration (image base URLs, supported sizes)
+- `tmdb://genres/movies` - Full list of TMDB movie genres
+- `tmdb://genres/tv` - Full list of TMDB TV genres
+
+### Plex Resources (when `PLEX_URL` and `PLEX_API_KEY` are configured)
+
+- `plex://libraries` - All Plex library sections with metadata
+- `plex://collections/{collectionId}` - Items in a specific Plex collection
+
+## Available Prompts
+
+MCP prompts provide reusable, parameterized templates for common workflows. All 4 prompts are registered when at least one relevant service is configured.
+
+- `add-movie` - Guided workflow for searching and adding a movie (uses TMDB search + Radarr add)
+- `add-series` - Guided workflow for searching and adding a TV series (uses TMDB search + Sonarr add)
+- `library-report` - Generate a summary report of the current media library state across configured services
+- `recommendations` - Get personalized media recommendations based on existing library content
+
 ## Tool Implementation Pattern
 
 All tool files follow the same pattern:
 
-1. **Zod Schemas**: Define parameter validation schemas at the top
-2. **createXXXTools()**: Function that registers tools directly on the `McpServer`, checking `isToolEnabled()` before each registration
+1. **Zod Schemas**: Define parameter validation schemas and output schemas at the top
+2. **createXXXTools()**: Function that registers tools directly on the `McpServer`, checking `isToolEnabled()` before each registration. Each tool is registered with `annotations`, `outputSchema`, and a handler wrapped in `wrapToolHandler()`.
 3. **Single File**: Each service's tools are defined and registered from a single file
 
 Example structure:
@@ -364,6 +402,13 @@ Example structure:
 ```typescript
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { wrapToolHandler } from "../tool-wrapper.ts";
+
+// Output schema for structured content
+const ServiceToolOutputSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+});
 
 // Tool registration (with config injection and filtering)
 export function createServiceTools(
@@ -377,15 +422,25 @@ export function createServiceTools(
       {
         title: "Tool title",
         description: "Tool description",
+        annotations: {
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
         inputSchema: {
           param: z.string().describe("Parameter description"),
         },
+        outputSchema: ServiceToolOutputSchema,
       },
-      async (args) => {
-        // Tool handler with config captured via closure
+      wrapToolHandler("service_tool_name", async (args) => {
+        // Tool handler with config captured via closure; no try/catch needed
         const result = await serviceClient.doSomething(config, args.param);
-        return { content: [{ type: "text", text: JSON.stringify(result) }] };
-      },
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          structuredContent: result,
+        };
+      }),
     );
   }
 }
