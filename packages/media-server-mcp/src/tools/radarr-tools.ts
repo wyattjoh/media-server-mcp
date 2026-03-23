@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { RadarrConfig, RadarrMovie } from "@wyattjoh/radarr";
 import * as radarrClient from "@wyattjoh/radarr";
+import { wrapToolHandler } from "./tool-wrapper.ts";
 
 export function createRadarrTools(
   server: McpServer,
@@ -24,32 +25,22 @@ export function createRadarrTools(
             "Number of results to skip (for pagination)",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const results = await radarrClient.searchMovie(
-            config,
-            args.term,
-            args.limit,
-            args.skip,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(results, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("radarr_search_movie", async (args) => {
+        const results = await radarrClient.searchMovie(
+          config,
+          args.term,
+          args.limit,
+          args.skip,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -85,33 +76,23 @@ export function createRadarrTools(
             "Tag IDs to apply to the movie",
           ),
         },
+        annotations: { openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const params = {
-            ...args,
-            tags: args.tags || undefined,
-            monitored: args.monitored ?? undefined,
-            searchForMovie: args.searchForMovie ?? undefined,
-          };
-          const result = await radarrClient.addMovie(config, params);
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("radarr_add_movie", async (args) => {
+        const params = {
+          ...args,
+          tags: args.tags || undefined,
+          monitored: args.monitored ?? undefined,
+          searchForMovie: args.searchForMovie ?? undefined,
+        };
+        const result = await radarrClient.addMovie(config, params);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -131,32 +112,22 @@ export function createRadarrTools(
             "Whether to add import exclusion",
           ),
         },
+        annotations: { destructiveHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          await radarrClient.deleteMovie(
-            config,
-            args.id,
-            args.deleteFiles,
-            args.addImportExclusion,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: `Movie ${args.id} deleted successfully`,
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("radarr_delete_movie", async (args) => {
+        await radarrClient.deleteMovie(
+          config,
+          args.id,
+          args.deleteFiles,
+          args.addImportExclusion,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: `Movie ${args.id} deleted successfully`,
+          }],
+        };
+      }),
     );
   }
 
@@ -170,27 +141,17 @@ export function createRadarrTools(
         inputSchema: {
           id: z.number().describe("Movie ID in Radarr"),
         },
+        annotations: { idempotentHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          await radarrClient.refreshMovie(config, args.id);
-          return {
-            content: [{
-              type: "text",
-              text: `Movie ${args.id} refresh initiated successfully`,
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("radarr_refresh_movie", async (args) => {
+        await radarrClient.refreshMovie(config, args.id);
+        return {
+          content: [{
+            type: "text",
+            text: `Movie ${args.id} refresh initiated successfully`,
+          }],
+        };
+      }),
     );
   }
 
@@ -204,28 +165,17 @@ export function createRadarrTools(
         inputSchema: {
           id: z.number().describe("Movie ID in Radarr"),
         },
+        annotations: { idempotentHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          await radarrClient.searchMovieReleases(config, args.id);
-          return {
-            content: [{
-              type: "text",
-              text:
-                `Search for movie ${args.id} releases initiated successfully`,
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("radarr_search_movie_releases", async (args) => {
+        await radarrClient.searchMovieReleases(config, args.id);
+        return {
+          content: [{
+            type: "text",
+            text: `Search for movie ${args.id} releases initiated successfully`,
+          }],
+        };
+      }),
     );
   }
 
@@ -290,33 +240,23 @@ export function createRadarrTools(
             direction: z.enum(["asc", "desc"]).describe("Sort direction"),
           }).optional().describe("Sort options for movies"),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const results = await radarrClient.getMovies(
-            config,
-            args.limit,
-            args.skip,
-            args.filters,
-            args.sort,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(results, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("radarr_get_movies", async (args) => {
+        const results = await radarrClient.getMovies(
+          config,
+          args.limit,
+          args.skip,
+          args.filters,
+          args.sort,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(results, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -333,61 +273,51 @@ export function createRadarrTools(
             "The Movie Database (TMDB) ID",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          // Validate that exactly one identifier is provided
-          if ((args.id === undefined) === (args.tmdbId === undefined)) {
-            return {
-              content: [{
-                type: "text",
-                text:
-                  "Error: Provide either 'id' (Radarr ID) or 'tmdbId', but not both",
-              }],
-            };
-          }
-
-          let result;
-          if (args.id !== undefined) {
-            // Use Radarr ID
-            result = await radarrClient.getMovie(config, args.id);
-          } else if (args.tmdbId !== undefined) {
-            // Use TMDB ID
-            result = await radarrClient.getMovie(config, {
-              tmdbId: args.tmdbId,
-            });
-          }
-
-          if (!result) {
-            return {
-              content: [{
-                type: "text",
-                text: `Movie not found with ${
-                  args.id !== undefined
-                    ? `Radarr ID ${args.id}`
-                    : `TMDB ID ${args.tmdbId}`
-                }`,
-              }],
-            };
-          }
-
+      wrapToolHandler("radarr_get_movie", async (args) => {
+        // Validate that exactly one identifier is provided
+        if ((args.id === undefined) === (args.tmdbId === undefined)) {
           return {
             content: [{
               type: "text",
-              text: JSON.stringify(result, null, 2),
+              text:
+                "Error: Provide either 'id' (Radarr ID) or 'tmdbId', but not both",
             }],
           };
-        } catch (error) {
+        }
+
+        let result;
+        if (args.id !== undefined) {
+          // Use Radarr ID
+          result = await radarrClient.getMovie(config, args.id);
+        } else if (args.tmdbId !== undefined) {
+          // Use TMDB ID
+          result = await radarrClient.getMovie(config, {
+            tmdbId: args.tmdbId,
+          });
+        }
+
+        if (!result) {
           return {
             content: [{
               type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
+              text: `Movie not found with ${
+                args.id !== undefined
+                  ? `Radarr ID ${args.id}`
+                  : `TMDB ID ${args.tmdbId}`
               }`,
             }],
           };
         }
-      },
+
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -401,34 +331,24 @@ export function createRadarrTools(
         description:
           "Get Radarr configuration including quality profiles, and root folders",
         inputSchema: {},
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async () => {
-        try {
-          const [qualityProfiles, rootFolders] = await Promise.all([
-            radarrClient.getQualityProfiles(config),
-            radarrClient.getRootFolders(config),
-          ]);
-          const result = {
-            qualityProfiles,
-            rootFolders,
-          };
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("radarr_get_configuration", async () => {
+        const [qualityProfiles, rootFolders] = await Promise.all([
+          radarrClient.getQualityProfiles(config),
+          radarrClient.getRootFolders(config),
+        ]);
+        const result = {
+          qualityProfiles,
+          rootFolders,
+        };
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -457,42 +377,32 @@ export function createRadarrTools(
           ]).optional().describe("Minimum availability for monitoring"),
           tags: z.array(z.number()).optional().describe("Tag IDs"),
         },
+        annotations: { idempotentHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          // First get the current movie data
-          const currentMovie = await radarrClient.getMovie(config, args.id);
+      wrapToolHandler("radarr_update_movie", async (args) => {
+        // First get the current movie data
+        const currentMovie = await radarrClient.getMovie(config, args.id);
 
-          // Update only the specified fields
-          const updatedMovie = {
-            ...currentMovie,
-            ...(args.monitored !== undefined &&
-              { monitored: args.monitored }),
-            ...(args.qualityProfileId !== undefined &&
-              { qualityProfileId: args.qualityProfileId }),
-            ...(args.minimumAvailability !== undefined &&
-              { minimumAvailability: args.minimumAvailability }),
-            ...(args.tags !== undefined && { tags: args.tags }),
-          } as RadarrMovie;
+        // Update only the specified fields
+        const updatedMovie = {
+          ...currentMovie,
+          ...(args.monitored !== undefined &&
+            { monitored: args.monitored }),
+          ...(args.qualityProfileId !== undefined &&
+            { qualityProfileId: args.qualityProfileId }),
+          ...(args.minimumAvailability !== undefined &&
+            { minimumAvailability: args.minimumAvailability }),
+          ...(args.tags !== undefined && { tags: args.tags }),
+        } as RadarrMovie;
 
-          const result = await radarrClient.updateMovie(config, updatedMovie);
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        const result = await radarrClient.updateMovie(config, updatedMovie);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -504,27 +414,17 @@ export function createRadarrTools(
         title: "Refresh metadata for all movies in the library",
         description: "Refresh metadata for all movies in the library",
         inputSchema: {},
+        annotations: { idempotentHint: true, openWorldHint: false },
       },
-      async () => {
-        try {
-          await radarrClient.refreshAllMovies(config);
-          return {
-            content: [{
-              type: "text",
-              text: "Refresh all movies initiated successfully",
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("radarr_refresh_all_movies", async () => {
+        await radarrClient.refreshAllMovies(config);
+        return {
+          content: [{
+            type: "text",
+            text: "Refresh all movies initiated successfully",
+          }],
+        };
+      }),
     );
   }
 
@@ -536,27 +436,17 @@ export function createRadarrTools(
         title: "Rescan all movie folders for new/missing files",
         description: "Rescan all movie folders for new/missing files",
         inputSchema: {},
+        annotations: { idempotentHint: true, openWorldHint: false },
       },
-      async () => {
-        try {
-          await radarrClient.diskScan(config);
-          return {
-            content: [{
-              type: "text",
-              text: "Disk scan initiated successfully",
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("radarr_disk_scan", async () => {
+        await radarrClient.diskScan(config);
+        return {
+          content: [{
+            type: "text",
+            text: "Disk scan initiated successfully",
+          }],
+        };
+      }),
     );
   }
 }
