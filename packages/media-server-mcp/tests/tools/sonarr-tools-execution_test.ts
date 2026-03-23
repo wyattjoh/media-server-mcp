@@ -120,6 +120,64 @@ Deno.test(
 );
 
 Deno.test(
+  "sonarr_get_series_by_id - happy path returns structuredContent with catchall outputSchema",
+  async () => {
+    const mockSeries = {
+      id: 1,
+      tvdbId: 153021,
+      title: "Breaking Bad",
+      year: 2008,
+      status: "ended",
+      monitored: true,
+      seasons: [],
+    };
+
+    const fetchStub = stub(
+      globalThis,
+      "fetch",
+      () =>
+        Promise.resolve(
+          new Response(JSON.stringify(mockSeries), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+    );
+
+    try {
+      const server = new McpServer({ name: "test", version: "1.0.0" });
+      const config = createSonarrConfig(
+        "http://localhost:8989",
+        "test-api-key",
+      );
+      createSonarrTools(server, config, () => true);
+
+      const { client, cleanup } = await createConnectedClient(server);
+
+      try {
+        const result = await client.callTool({
+          name: "sonarr_get_series_by_id",
+          arguments: { id: 1 },
+        });
+
+        assertExists(result.structuredContent);
+        assertEquals(result.isError, undefined);
+
+        const structured = result.structuredContent as Record<string, unknown>;
+        assertEquals(structured.id, 1);
+        assertEquals(structured.tvdbId, 153021);
+        assertEquals(structured.title, "Breaking Bad");
+        assertEquals(structured.year, 2008);
+      } finally {
+        await cleanup();
+      }
+    } finally {
+      fetchStub.restore();
+    }
+  },
+);
+
+Deno.test(
   "sonarr_get_series - happy path returns structuredContent with series list",
   async () => {
     const mockSeries = [

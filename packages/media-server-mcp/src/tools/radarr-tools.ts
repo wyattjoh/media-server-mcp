@@ -84,7 +84,7 @@ export function createRadarrTools(
             "Tag IDs to apply to the movie",
           ),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { openWorldHint: false },
       },
       wrapToolHandler("radarr_add_movie", async (args) => {
@@ -305,7 +305,7 @@ export function createRadarrTools(
             "The Movie Database (TMDB) ID",
           ),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_get_movie", async (args) => {
@@ -421,7 +421,7 @@ export function createRadarrTools(
           ]).optional().describe("Minimum availability for monitoring"),
           tags: z.array(z.number()).optional().describe("Tag IDs"),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_update_movie", async (args) => {

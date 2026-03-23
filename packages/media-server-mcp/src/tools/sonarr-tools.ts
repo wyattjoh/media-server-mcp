@@ -88,7 +88,7 @@ export function createSonarrTools(
           searchForMissingEpisodes: z.boolean().optional().default(false)
             .describe("Whether to search for missing episodes after adding"),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { openWorldHint: false },
       },
       wrapToolHandler("sonarr_add_series", async (args) => {
@@ -384,7 +384,7 @@ export function createSonarrTools(
           id: z.number().optional().describe("Series ID in Sonarr"),
           tvdbId: z.number().optional().describe("The TV Database (TVDB) ID"),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_series_by_id", async (args) => {
@@ -628,7 +628,7 @@ export function createSonarrTools(
         title: "Get Sonarr system status",
         description: "Get Sonarr system status",
         inputSchema: {},
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_system_status", async () => {
@@ -686,7 +686,7 @@ export function createSonarrTools(
             "Series object with updated fields",
           ),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_update_series", async (args) => {
@@ -713,7 +713,7 @@ export function createSonarrTools(
         inputSchema: {
           id: z.number().describe("Episode ID in Sonarr"),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_episode", async (args) => {

@@ -14,6 +14,15 @@
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/testing@^1.0.11": "1.0.17",
     "jsr:@std/text@^1.0.17": "1.0.17",
+    "jsr:@wyattjoh/media-server-mcp@2.1.0": "2.1.0",
+    "jsr:@wyattjoh/plex@0.5": "0.5.0",
+    "jsr:@wyattjoh/plex@0.5.0": "0.5.0",
+    "jsr:@wyattjoh/radarr@1.1.0": "1.1.0",
+    "jsr:@wyattjoh/radarr@^1.1.0": "1.1.0",
+    "jsr:@wyattjoh/sonarr@1.1.0": "1.1.0",
+    "jsr:@wyattjoh/sonarr@^1.1.0": "1.1.0",
+    "jsr:@wyattjoh/tmdb@1.1.0": "1.1.0",
+    "jsr:@wyattjoh/tmdb@^1.1.0": "1.1.0",
     "npm:@modelcontextprotocol/sdk@*": "1.27.1_zod@4.3.6_hono@4.12.3_ajv@8.18.0_express@5.2.1",
     "npm:@modelcontextprotocol/sdk@1.27.1": "1.27.1_zod@4.3.6_hono@4.12.3_ajv@8.18.0_express@5.2.1",
     "npm:@modelcontextprotocol/sdk@^1.27.1": "1.27.1_zod@4.3.6_hono@4.12.3_ajv@8.18.0_express@5.2.1",
@@ -72,6 +81,44 @@
     },
     "@std/text@1.0.17": {
       "integrity": "4b2c4ef67ae5b6c1dfd447c81c83a43718f52e3c7e748d8b33f694aba9895f95"
+    },
+    "@wyattjoh/media-server-mcp@2.1.0": {
+      "integrity": "433746039d085fd7237a5183bc02bf6e064d0c8416ecaf55d00157c29eb8a1ef",
+      "dependencies": [
+        "jsr:@cliffy/command",
+        "jsr:@logtape/logtape",
+        "jsr:@std/dotenv",
+        "jsr:@wyattjoh/plex@0.5",
+        "jsr:@wyattjoh/radarr@^1.1.0",
+        "jsr:@wyattjoh/sonarr@^1.1.0",
+        "jsr:@wyattjoh/tmdb@^1.1.0",
+        "npm:@modelcontextprotocol/sdk@^1.27.1",
+        "npm:zod"
+      ]
+    },
+    "@wyattjoh/plex@0.5.0": {
+      "integrity": "550a48cff79b18d5ed5bd64bdb2ccb0001d40ebd9fb0c60d95bed611333e2126",
+      "dependencies": [
+        "jsr:@logtape/logtape"
+      ]
+    },
+    "@wyattjoh/radarr@1.1.0": {
+      "integrity": "8b0b744ad5a416a06da5c2fb6dbb5fc3549dc0ddaea27d291c571929825d9c00",
+      "dependencies": [
+        "jsr:@logtape/logtape"
+      ]
+    },
+    "@wyattjoh/sonarr@1.1.0": {
+      "integrity": "242adda2678d7cada8f649982535136e428a0ec6f8a178f5428d1824629671b1",
+      "dependencies": [
+        "jsr:@logtape/logtape"
+      ]
+    },
+    "@wyattjoh/tmdb@1.1.0": {
+      "integrity": "376e1a0738f136e9bb267673f437c4faa4ab7a41ba5e4164f850a71282925eab",
+      "dependencies": [
+        "jsr:@logtape/logtape"
+      ]
     }
   },
   "npm": {

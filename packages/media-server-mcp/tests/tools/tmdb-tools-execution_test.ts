@@ -132,6 +132,59 @@ Deno.test(
 );
 
 Deno.test(
+  "tmdb_find_by_external_id - happy path returns structuredContent with catchall outputSchema",
+  async () => {
+    const mockResponse = {
+      movie_results: [{ id: 550, title: "Fight Club" }],
+      tv_results: [],
+      person_results: [],
+    };
+
+    const fetchStub = stub(
+      globalThis,
+      "fetch",
+      () =>
+        Promise.resolve(
+          new Response(JSON.stringify(mockResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+    );
+
+    try {
+      const server = new McpServer({ name: "test", version: "1.0.0" });
+      const config = createTMDBConfig("test-api-key");
+      createTMDBTools(server, config, () => true);
+
+      const { client, cleanup } = await createConnectedClient(server);
+
+      try {
+        const result = await client.callTool({
+          name: "tmdb_find_by_external_id",
+          arguments: { externalId: "tt0137523" },
+        });
+
+        assertExists(result.structuredContent);
+        assertEquals(result.isError, undefined);
+
+        const structured = result.structuredContent as Record<string, unknown>;
+        assertEquals(Array.isArray(structured.movie_results), true);
+        const movies = structured.movie_results as Array<
+          Record<string, unknown>
+        >;
+        assertEquals(movies[0].id, 550);
+        assertEquals(movies[0].title, "Fight Club");
+      } finally {
+        await cleanup();
+      }
+    } finally {
+      fetchStub.restore();
+    }
+  },
+);
+
+Deno.test(
   "tmdb_search_movies - error path returns isError when fetch returns 401",
   async () => {
     const fetchStub = stub(

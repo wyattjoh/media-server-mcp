@@ -35,7 +35,7 @@ export function createTMDBTools(
             "External source (default: 'imdb_id')",
           ),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_find_by_external_id", async (args) => {
@@ -746,7 +746,7 @@ export function createTMDBTools(
             "Comma-separated list of additional details to append (e.g., 'credits,videos')",
           ),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_movie_details", async (args) => {
@@ -779,7 +779,7 @@ export function createTMDBTools(
             "Comma-separated list of additional details to append (e.g., 'credits,videos')",
           ),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_tv_details", async (args) => {
@@ -1042,7 +1042,7 @@ export function createTMDBTools(
             "Comma-separated list of additional details to append (e.g., 'movie_credits,tv_credits')",
           ),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_person_details", async (args) => {
@@ -1189,7 +1189,7 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_collection_details", async (args) => {
@@ -1298,7 +1298,7 @@ export function createTMDBTools(
             "Media type for certifications",
           ),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_certifications", async (args) => {
@@ -1329,7 +1329,7 @@ export function createTMDBTools(
           mediaType: z.enum(["movie", "tv"]).describe("Media type"),
           mediaId: z.number().describe("The TMDB ID of the movie or TV show"),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_watch_providers", async (args) => {
@@ -1358,7 +1358,7 @@ export function createTMDBTools(
         title: "Get TMDB API configuration including image base URLs",
         description: "Get TMDB API configuration including image base URLs",
         inputSchema: {},
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("tmdb_get_configuration", async () => {

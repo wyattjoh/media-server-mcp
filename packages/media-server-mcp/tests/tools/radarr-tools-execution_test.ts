@@ -121,6 +121,63 @@ Deno.test(
 );
 
 Deno.test(
+  "radarr_get_movie - happy path returns structuredContent with catchall outputSchema",
+  async () => {
+    const mockMovie = {
+      id: 1,
+      tmdbId: 550,
+      title: "Fight Club",
+      year: 1999,
+      monitored: true,
+      hasFile: true,
+    };
+
+    const fetchStub = stub(
+      globalThis,
+      "fetch",
+      () =>
+        Promise.resolve(
+          new Response(JSON.stringify(mockMovie), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+    );
+
+    try {
+      const server = new McpServer({ name: "test", version: "1.0.0" });
+      const config = createRadarrConfig(
+        "http://localhost:7878",
+        "test-api-key",
+      );
+      createRadarrTools(server, config, () => true);
+
+      const { client, cleanup } = await createConnectedClient(server);
+
+      try {
+        const result = await client.callTool({
+          name: "radarr_get_movie",
+          arguments: { id: 1 },
+        });
+
+        assertExists(result.structuredContent);
+        assertEquals(result.isError, undefined);
+
+        const structured = result.structuredContent as Record<string, unknown>;
+        assertEquals(structured.id, 1);
+        assertEquals(structured.tmdbId, 550);
+        assertEquals(structured.title, "Fight Club");
+        assertEquals(structured.year, 1999);
+      } finally {
+        await cleanup();
+      }
+    } finally {
+      fetchStub.restore();
+    }
+  },
+);
+
+Deno.test(
   "radarr_get_movies - happy path returns structuredContent with movie list",
   async () => {
     const mockMovies = [

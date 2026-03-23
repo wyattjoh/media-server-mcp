@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { PlexConfig } from "@wyattjoh/plex";
 import * as plexClient from "@wyattjoh/plex";
-import { SearchType } from "@wyattjoh/plex";
+import type { SearchType } from "@wyattjoh/plex";
 import { wrapToolHandler } from "./tool-wrapper.ts";
 
 const SLIM_OMIT_KEYS = new Set([
@@ -30,7 +30,7 @@ export function createPlexTools(
         description:
           "Get Plex server capabilities, version, and system information",
         inputSchema: {},
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_capabilities", async () => {
@@ -54,7 +54,7 @@ export function createPlexTools(
         title: "Get Plex media libraries",
         description: "List all media libraries available on the Plex server",
         inputSchema: {},
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_libraries", async () => {
@@ -84,12 +84,12 @@ export function createPlexTools(
             "Maximum number of results to return (default: 100)",
           ),
           searchTypes: z.array(
-            z.nativeEnum(SearchType),
+            z.enum(["movies", "tv", "otherVideos", "people"]),
           ).optional().describe(
             "Filter by content types. If not provided, searches all types",
           ),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_search", async (args) => {
@@ -97,7 +97,7 @@ export function createPlexTools(
           config,
           args.query,
           args.limit,
-          args.searchTypes,
+          args.searchTypes as SearchType[] | undefined,
         );
         return {
           content: [{
@@ -123,7 +123,7 @@ export function createPlexTools(
             "The rating key (unique identifier) of the media item",
           ),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_metadata", async (args) => {
@@ -203,7 +203,7 @@ export function createPlexTools(
             "Number of items per page (default: 200). Use start for pagination.",
           ),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_library_items", async (args) => {
@@ -243,7 +243,7 @@ export function createPlexTools(
             "Number of collections per page (default: 100). Use start for pagination.",
           ),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_collections", async (args) => {
@@ -274,7 +274,7 @@ export function createPlexTools(
             "The collection rating key/ID",
           ),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_collection_items", async (args) => {
@@ -308,7 +308,7 @@ export function createPlexTools(
             "Rating keys of items to add to the collection",
           ),
         },
-        outputSchema: z.record(z.string(), z.unknown()),
+        outputSchema: z.object({}).catchall(z.unknown()),
         annotations: { openWorldHint: false },
       },
       wrapToolHandler("plex_create_collection", async (args) => {

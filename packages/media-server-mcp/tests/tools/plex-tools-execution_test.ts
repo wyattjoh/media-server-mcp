@@ -113,6 +113,186 @@ Deno.test(
 );
 
 Deno.test(
+  "plex_search - happy path returns structuredContent with catchall outputSchema",
+  async () => {
+    const mockResponse = {
+      MediaContainer: {
+        size: 1,
+        identifier: "com.plexapp.plugins.library",
+        Hub: [{
+          type: "movie",
+          title: "Movies",
+          size: 1,
+          Metadata: [{
+            ratingKey: "12345",
+            title: "Inception",
+            year: 2010,
+            type: "movie",
+          }],
+        }],
+      },
+    };
+
+    const fetchStub = stub(
+      globalThis,
+      "fetch",
+      () =>
+        Promise.resolve(
+          new Response(JSON.stringify(mockResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+    );
+
+    try {
+      const server = new McpServer({ name: "test", version: "1.0.0" });
+      const config = createPlexConfig(
+        "http://localhost:32400",
+        "test-plex-token",
+      );
+      createPlexTools(server, config, () => true);
+
+      const { client, cleanup } = await createConnectedClient(server);
+
+      try {
+        const result = await client.callTool({
+          name: "plex_search",
+          arguments: { query: "Inception" },
+        });
+
+        assertExists(result.structuredContent);
+        assertEquals(result.isError, undefined);
+
+        const structured = result.structuredContent as Record<string, unknown>;
+        const container = structured.MediaContainer as Record<string, unknown>;
+        assertExists(container);
+        assertEquals(container.size, 1);
+        assertEquals(Array.isArray(container.Hub), true);
+      } finally {
+        await cleanup();
+      }
+    } finally {
+      fetchStub.restore();
+    }
+  },
+);
+
+Deno.test(
+  "plex_get_capabilities - happy path returns structuredContent with catchall outputSchema",
+  async () => {
+    const mockResponse = {
+      MediaContainer: {
+        size: 0,
+        machineIdentifier: "abc123",
+        version: "1.43.0",
+      },
+    };
+
+    const fetchStub = stub(
+      globalThis,
+      "fetch",
+      () =>
+        Promise.resolve(
+          new Response(JSON.stringify(mockResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+    );
+
+    try {
+      const server = new McpServer({ name: "test", version: "1.0.0" });
+      const config = createPlexConfig(
+        "http://localhost:32400",
+        "test-plex-token",
+      );
+      createPlexTools(server, config, () => true);
+
+      const { client, cleanup } = await createConnectedClient(server);
+
+      try {
+        const result = await client.callTool({
+          name: "plex_get_capabilities",
+          arguments: {},
+        });
+
+        assertExists(result.structuredContent);
+        assertEquals(result.isError, undefined);
+
+        const structured = result.structuredContent as Record<string, unknown>;
+        const container = structured.MediaContainer as Record<string, unknown>;
+        assertExists(container);
+        assertEquals(container.machineIdentifier, "abc123");
+        assertEquals(container.version, "1.43.0");
+      } finally {
+        await cleanup();
+      }
+    } finally {
+      fetchStub.restore();
+    }
+  },
+);
+
+Deno.test(
+  "plex_get_libraries - happy path returns structuredContent with catchall outputSchema",
+  async () => {
+    const mockResponse = {
+      MediaContainer: {
+        size: 2,
+        Directory: [
+          { key: "1", title: "Movies", type: "movie" },
+          { key: "2", title: "TV Shows", type: "show" },
+        ],
+      },
+    };
+
+    const fetchStub = stub(
+      globalThis,
+      "fetch",
+      () =>
+        Promise.resolve(
+          new Response(JSON.stringify(mockResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+    );
+
+    try {
+      const server = new McpServer({ name: "test", version: "1.0.0" });
+      const config = createPlexConfig(
+        "http://localhost:32400",
+        "test-plex-token",
+      );
+      createPlexTools(server, config, () => true);
+
+      const { client, cleanup } = await createConnectedClient(server);
+
+      try {
+        const result = await client.callTool({
+          name: "plex_get_libraries",
+          arguments: {},
+        });
+
+        assertExists(result.structuredContent);
+        assertEquals(result.isError, undefined);
+
+        const structured = result.structuredContent as Record<string, unknown>;
+        const container = structured.MediaContainer as Record<string, unknown>;
+        assertExists(container);
+        assertEquals(container.size, 2);
+        assertEquals(Array.isArray(container.Directory), true);
+      } finally {
+        await cleanup();
+      }
+    } finally {
+      fetchStub.restore();
+    }
+  },
+);
+
+Deno.test(
   "plex_refresh_library - error path returns isError when Plex returns 500",
   async () => {
     const fetchStub = stub(
