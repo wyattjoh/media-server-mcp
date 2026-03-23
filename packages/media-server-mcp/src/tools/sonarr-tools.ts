@@ -25,6 +25,13 @@ export function createSonarrTools(
             "Number of results to skip (for pagination)",
           ),
         },
+        outputSchema: {
+          data: z.array(z.record(z.string(), z.unknown())),
+          total: z.number(),
+          returned: z.number(),
+          skip: z.number(),
+          limit: z.number().optional(),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_search_series", async (args) => {
@@ -39,6 +46,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(results, null, 2),
           }],
+          structuredContent: results as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -80,6 +88,7 @@ export function createSonarrTools(
           searchForMissingEpisodes: z.boolean().optional().default(false)
             .describe("Whether to search for missing episodes after adding"),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { openWorldHint: false },
       },
       wrapToolHandler("sonarr_add_series", async (args) => {
@@ -105,6 +114,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -126,6 +136,7 @@ export function createSonarrTools(
             "Whether to add import exclusion",
           ),
         },
+        outputSchema: { message: z.string() },
         annotations: { destructiveHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_delete_series", async (args) => {
@@ -135,11 +146,13 @@ export function createSonarrTools(
           args.deleteFiles,
           args.addImportExclusion,
         );
+        const result = { message: `Series ${args.id} deleted successfully` };
         return {
           content: [{
             type: "text",
-            text: `Series ${args.id} deleted successfully`,
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -160,6 +173,7 @@ export function createSonarrTools(
             "Whether to monitor or unmonitor the episodes",
           ),
         },
+        outputSchema: { message: z.string() },
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_update_episode_monitoring", async (args) => {
@@ -168,12 +182,16 @@ export function createSonarrTools(
           args.episodeIds,
           args.monitored,
         );
+        const result = {
+          message:
+            `Episode monitoring updated for ${args.episodeIds.length} episodes`,
+        };
         return {
           content: [{
             type: "text",
-            text:
-              `Episode monitoring updated for ${args.episodeIds.length} episodes`,
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -189,15 +207,20 @@ export function createSonarrTools(
         inputSchema: {
           id: z.number().describe("Series ID in Sonarr"),
         },
+        outputSchema: { message: z.string() },
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_refresh_series", async (args) => {
         await sonarrClient.refreshSeries(config, args.id);
+        const result = {
+          message: `Series ${args.id} refresh initiated successfully`,
+        };
         return {
           content: [{
             type: "text",
-            text: `Series ${args.id} refresh initiated successfully`,
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -213,16 +236,21 @@ export function createSonarrTools(
         inputSchema: {
           id: z.number().describe("Series ID in Sonarr"),
         },
+        outputSchema: { message: z.string() },
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_search_series_episodes", async (args) => {
         await sonarrClient.searchSeriesEpisodes(config, args.id);
+        const result = {
+          message:
+            `Search for series ${args.id} episodes initiated successfully`,
+        };
         return {
           content: [{
             type: "text",
-            text:
-              `Search for series ${args.id} episodes initiated successfully`,
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -239,6 +267,7 @@ export function createSonarrTools(
           seriesId: z.number().describe("Series ID in Sonarr"),
           seasonNumber: z.number().describe("Season number to search"),
         },
+        outputSchema: { message: z.string() },
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_search_season", async (args) => {
@@ -247,12 +276,16 @@ export function createSonarrTools(
           args.seriesId,
           args.seasonNumber,
         );
+        const result = {
+          message:
+            `Search for series ${args.seriesId} season ${args.seasonNumber} initiated successfully`,
+        };
         return {
           content: [{
             type: "text",
-            text:
-              `Search for series ${args.seriesId} season ${args.seasonNumber} initiated successfully`,
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -311,6 +344,13 @@ export function createSonarrTools(
             direction: z.enum(["asc", "desc"]).describe("Sort direction"),
           }).optional().describe("Sort options for series"),
         },
+        outputSchema: {
+          data: z.array(z.record(z.string(), z.unknown())),
+          total: z.number(),
+          returned: z.number(),
+          skip: z.number(),
+          limit: z.number().optional(),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_series", async (args) => {
@@ -326,6 +366,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(results, null, 2),
           }],
+          structuredContent: results as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -343,6 +384,7 @@ export function createSonarrTools(
           id: z.number().optional().describe("Series ID in Sonarr"),
           tvdbId: z.number().optional().describe("The TV Database (TVDB) ID"),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_series_by_id", async (args) => {
@@ -386,6 +428,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -410,6 +453,13 @@ export function createSonarrTools(
             "Number of results to skip (for pagination)",
           ),
         },
+        outputSchema: {
+          data: z.array(z.record(z.string(), z.unknown())),
+          total: z.number(),
+          returned: z.number(),
+          skip: z.number(),
+          limit: z.number().optional(),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_episodes", async (args) => {
@@ -425,6 +475,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(results, null, 2),
           }],
+          structuredContent: results as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -457,6 +508,13 @@ export function createSonarrTools(
             "Number of results to skip (for pagination)",
           ),
         },
+        outputSchema: {
+          data: z.array(z.record(z.string(), z.unknown())),
+          total: z.number(),
+          returned: z.number(),
+          skip: z.number(),
+          limit: z.number().optional(),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_calendar", async (args) => {
@@ -474,6 +532,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(results, null, 2),
           }],
+          structuredContent: results as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -494,6 +553,13 @@ export function createSonarrTools(
             "Number of results to skip (for pagination)",
           ),
         },
+        outputSchema: {
+          data: z.array(z.record(z.string(), z.unknown())),
+          total: z.number(),
+          returned: z.number(),
+          skip: z.number(),
+          limit: z.number().optional(),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_queue", async (args) => {
@@ -507,6 +573,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(results, null, 2),
           }],
+          structuredContent: results as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -522,6 +589,10 @@ export function createSonarrTools(
         description:
           "Get Sonarr configuration including quality profiles and root folders",
         inputSchema: {},
+        outputSchema: {
+          qualityProfiles: z.array(z.record(z.string(), z.unknown())),
+          rootFolders: z.array(z.record(z.string(), z.unknown())),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_configuration", async () => {
@@ -529,18 +600,19 @@ export function createSonarrTools(
           sonarrClient.getQualityProfiles(config),
           sonarrClient.getRootFolders(config),
         ]);
+        const result = {
+          qualityProfiles: qualityProfiles as unknown as Record<
+            string,
+            unknown
+          >[],
+          rootFolders: rootFolders as unknown as Record<string, unknown>[],
+        };
         return {
           content: [{
             type: "text",
-            text: JSON.stringify(
-              {
-                qualityProfiles,
-                rootFolders,
-              },
-              null,
-              2,
-            ),
+            text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -554,6 +626,7 @@ export function createSonarrTools(
         title: "Get Sonarr system status",
         description: "Get Sonarr system status",
         inputSchema: {},
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_system_status", async () => {
@@ -563,6 +636,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -576,15 +650,22 @@ export function createSonarrTools(
         title: "Get Sonarr health check results",
         description: "Get Sonarr health check results",
         inputSchema: {},
+        outputSchema: {
+          data: z.array(z.record(z.string(), z.unknown())),
+        },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_health", async () => {
         const results = await sonarrClient.getHealth(config);
+        const result = {
+          data: results as unknown as Record<string, unknown>[],
+        };
         return {
           content: [{
             type: "text",
             text: JSON.stringify(results, null, 2),
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -603,6 +684,7 @@ export function createSonarrTools(
             "Series object with updated fields",
           ),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_update_series", async (args) => {
@@ -613,6 +695,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -628,6 +711,7 @@ export function createSonarrTools(
         inputSchema: {
           id: z.number().describe("Episode ID in Sonarr"),
         },
+        outputSchema: z.record(z.string(), z.unknown()),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_episode", async (args) => {
@@ -637,6 +721,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
+          structuredContent: result as unknown as Record<string, unknown>,
         };
       }),
     );
@@ -650,15 +735,20 @@ export function createSonarrTools(
         title: "Refresh metadata for all series in the library",
         description: "Refresh metadata for all series in the library",
         inputSchema: {},
+        outputSchema: { message: z.string() },
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_refresh_all_series", async () => {
         await sonarrClient.refreshAllSeries(config);
+        const result = {
+          message: "Refresh initiated for all series in the library",
+        };
         return {
           content: [{
             type: "text",
-            text: "Refresh initiated for all series in the library",
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -676,15 +766,20 @@ export function createSonarrTools(
             "Array of episode IDs to search for",
           ),
         },
+        outputSchema: { message: z.string() },
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_search_episodes", async (args) => {
         await sonarrClient.searchEpisodes(config, args.episodeIds);
+        const result = {
+          message: `Search initiated for ${args.episodeIds.length} episodes`,
+        };
         return {
           content: [{
             type: "text",
-            text: `Search initiated for ${args.episodeIds.length} episodes`,
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
@@ -698,15 +793,20 @@ export function createSonarrTools(
         title: "Rescan all series folders for new/missing files",
         description: "Rescan all series folders for new/missing files",
         inputSchema: {},
+        outputSchema: { message: z.string() },
         annotations: { idempotentHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_disk_scan", async () => {
         await sonarrClient.diskScan(config);
+        const result = {
+          message: "Disk scan initiated for all series folders",
+        };
         return {
           content: [{
             type: "text",
-            text: "Disk scan initiated for all series folders",
+            text: result.message,
           }],
+          structuredContent: result,
         };
       }),
     );
