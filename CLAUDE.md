@@ -58,6 +58,7 @@ Each package is independently publishable and has its own `deno.json` configurat
 - Run `deno test --allow-net` to verify all tests pass before committing changes.
 - Tests are organized by layer in `packages/media-server-mcp/tests/`: `tests/clients/`, `tests/tools/`, and `tests/server_test.ts`.
 - After changing any of the available MCP tools or resources, evaluate if you need to update the README.md and CLAUDE.md to be reflective of those changes.
+- When creating pull requests, always use the PR template at `.github/pull_request_template.md`.
 
 ### File Naming Conventions
 
