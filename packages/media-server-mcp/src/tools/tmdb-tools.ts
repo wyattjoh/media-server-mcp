@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { TMDBConfig } from "@wyattjoh/tmdb";
 import * as tmdbClient from "@wyattjoh/tmdb";
+import { wrapToolHandler } from "./tool-wrapper.ts";
 
 export function createTMDBTools(
   server: McpServer,
@@ -25,31 +26,21 @@ export function createTMDBTools(
             "External source (default: 'imdb_id')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.findByExternalId(
-            config,
-            args.externalId,
-            args.externalSource,
-          );
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+      wrapToolHandler("tmdb_find_by_external_id", async (args) => {
+        const result = await tmdbClient.findByExternalId(
+          config,
+          args.externalId,
+          args.externalSource,
+        );
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -69,33 +60,23 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.searchMovies(
-            config,
-            args.query,
-            args.page,
-            args.language,
-          );
+      wrapToolHandler("tmdb_search_movies", async (args) => {
+        const result = await tmdbClient.searchMovies(
+          config,
+          args.query,
+          args.page,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -115,33 +96,23 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.searchTV(
-            config,
-            args.query,
-            args.page,
-            args.language,
-          );
+      wrapToolHandler("tmdb_search_tv", async (args) => {
+        const result = await tmdbClient.searchTV(
+          config,
+          args.query,
+          args.page,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -165,33 +136,23 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.searchMulti(
-            config,
-            args.query,
-            args.page,
-            args.language,
-          );
+      wrapToolHandler("tmdb_search_multi", async (args) => {
+        const result = await tmdbClient.searchMulti(
+          config,
+          args.query,
+          args.page,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -210,32 +171,22 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getPopularMovies(
-            config,
-            args.page,
-            args.language,
-          );
+      wrapToolHandler("tmdb_get_popular_movies", async (args) => {
+        const result = await tmdbClient.getPopularMovies(
+          config,
+          args.page,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -303,39 +254,29 @@ export function createTMDBTools(
           ),
           year: z.number().optional().describe("Filter by release year"),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          // Filter out undefined values
-          const cleanedOptions: Record<string, string | number | boolean> = {};
-          Object.entries(args).forEach(([key, value]) => {
-            if (value !== undefined) {
-              cleanedOptions[key] = value;
-            }
-          });
+      wrapToolHandler("tmdb_discover_movies", async (args) => {
+        // Filter out undefined values
+        const cleanedOptions: Record<string, string | number | boolean> = {};
+        Object.entries(args).forEach(([key, value]) => {
+          if (value !== undefined) {
+            cleanedOptions[key] = value;
+          }
+        });
 
-          const result = await tmdbClient.discoverMovies(
-            config,
-            cleanedOptions,
-          );
+        const result = await tmdbClient.discoverMovies(
+          config,
+          cleanedOptions,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -397,36 +338,26 @@ export function createTMDBTools(
             "Filter by theatrical screening",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          // Filter out undefined values
-          const cleanedOptions: Record<string, string | number | boolean> = {};
-          Object.entries(args).forEach(([key, value]) => {
-            if (value !== undefined) {
-              cleanedOptions[key] = value;
-            }
-          });
+      wrapToolHandler("tmdb_discover_tv", async (args) => {
+        // Filter out undefined values
+        const cleanedOptions: Record<string, string | number | boolean> = {};
+        Object.entries(args).forEach(([key, value]) => {
+          if (value !== undefined) {
+            cleanedOptions[key] = value;
+          }
+        });
 
-          const result = await tmdbClient.discoverTV(config, cleanedOptions);
+        const result = await tmdbClient.discoverTV(config, cleanedOptions);
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -443,30 +374,20 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = args.mediaType === "movie"
-            ? await tmdbClient.getMovieGenres(config, args.language)
-            : await tmdbClient.getTVGenres(config, args.language);
+      wrapToolHandler("tmdb_get_genres", async (args) => {
+        const result = args.mediaType === "movie"
+          ? await tmdbClient.getMovieGenres(config, args.language)
+          : await tmdbClient.getTVGenres(config, args.language);
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -493,34 +414,24 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getTrending(
-            config,
-            args.mediaType,
-            args.timeWindow,
-            args.page,
-            args.language,
-          );
+      wrapToolHandler("tmdb_get_trending", async (args) => {
+        const result = await tmdbClient.getTrending(
+          config,
+          args.mediaType,
+          args.timeWindow,
+          args.page,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -542,33 +453,23 @@ export function createTMDBTools(
             "Region for release dates (ISO 3166-1)",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getNowPlayingMovies(
-            config,
-            args.page,
-            args.language,
-            args.region,
-          );
+      wrapToolHandler("tmdb_get_now_playing_movies", async (args) => {
+        const result = await tmdbClient.getNowPlayingMovies(
+          config,
+          args.page,
+          args.language,
+          args.region,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -590,33 +491,23 @@ export function createTMDBTools(
             "Region for release dates (ISO 3166-1)",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getTopRatedMovies(
-            config,
-            args.page,
-            args.language,
-            args.region,
-          );
+      wrapToolHandler("tmdb_get_top_rated_movies", async (args) => {
+        const result = await tmdbClient.getTopRatedMovies(
+          config,
+          args.page,
+          args.language,
+          args.region,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -638,33 +529,23 @@ export function createTMDBTools(
             "Region for release dates (ISO 3166-1)",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getUpcomingMovies(
-            config,
-            args.page,
-            args.language,
-            args.region,
-          );
+      wrapToolHandler("tmdb_get_upcoming_movies", async (args) => {
+        const result = await tmdbClient.getUpcomingMovies(
+          config,
+          args.page,
+          args.language,
+          args.region,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -683,32 +564,22 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getPopularTV(
-            config,
-            args.page,
-            args.language,
-          );
+      wrapToolHandler("tmdb_get_popular_tv", async (args) => {
+        const result = await tmdbClient.getPopularTV(
+          config,
+          args.page,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -727,32 +598,22 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getTopRatedTV(
-            config,
-            args.page,
-            args.language,
-          );
+      wrapToolHandler("tmdb_get_top_rated_tv", async (args) => {
+        const result = await tmdbClient.getTopRatedTV(
+          config,
+          args.page,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -771,32 +632,22 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getOnTheAirTV(
-            config,
-            args.page,
-            args.language,
-          );
+      wrapToolHandler("tmdb_get_on_the_air_tv", async (args) => {
+        const result = await tmdbClient.getOnTheAirTV(
+          config,
+          args.page,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -816,33 +667,23 @@ export function createTMDBTools(
           ),
           timezone: z.string().optional().describe("Timezone for air dates"),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getAiringTodayTV(
-            config,
-            args.page,
-            args.language,
-            args.timezone,
-          );
+      wrapToolHandler("tmdb_get_airing_today_tv", async (args) => {
+        const result = await tmdbClient.getAiringTodayTV(
+          config,
+          args.page,
+          args.language,
+          args.timezone,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -862,28 +703,18 @@ export function createTMDBTools(
             "Comma-separated list of additional details to append (e.g., 'credits,videos')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getMovieDetails(config, args.movieId);
+      wrapToolHandler("tmdb_get_movie_details", async (args) => {
+        const result = await tmdbClient.getMovieDetails(config, args.movieId);
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -903,28 +734,18 @@ export function createTMDBTools(
             "Comma-separated list of additional details to append (e.g., 'credits,videos')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getTVDetails(config, args.tvId);
+      wrapToolHandler("tmdb_get_tv_details", async (args) => {
+        const result = await tmdbClient.getTVDetails(config, args.tvId);
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -944,33 +765,23 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getMovieRecommendations(
-            config,
-            args.movieId,
-            args.page,
-            args.language,
-          );
+      wrapToolHandler("tmdb_get_movie_recommendations", async (args) => {
+        const result = await tmdbClient.getMovieRecommendations(
+          config,
+          args.movieId,
+          args.page,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -990,33 +801,23 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getTVRecommendations(
-            config,
-            args.tvId,
-            args.page,
-            args.language,
-          );
+      wrapToolHandler("tmdb_get_tv_recommendations", async (args) => {
+        const result = await tmdbClient.getTVRecommendations(
+          config,
+          args.tvId,
+          args.page,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -1036,33 +837,23 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getSimilarMovies(
-            config,
-            args.movieId,
-            args.page,
-            args.language,
-          );
+      wrapToolHandler("tmdb_get_similar_movies", async (args) => {
+        const result = await tmdbClient.getSimilarMovies(
+          config,
+          args.movieId,
+          args.page,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -1082,33 +873,23 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getSimilarTV(
-            config,
-            args.tvId,
-            args.page,
-            args.language,
-          );
+      wrapToolHandler("tmdb_get_similar_tv", async (args) => {
+        const result = await tmdbClient.getSimilarTV(
+          config,
+          args.tvId,
+          args.page,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 
@@ -1131,36 +912,27 @@ export function createTMDBTools(
             "Include adult content",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.searchPeople(
-            config,
-            args.query,
-            args.page,
-            args.language,
-            args.include_adult,
-          );
+      wrapToolHandler("tmdb_search_people", async (args) => {
+        const result = await tmdbClient.searchPeople(
+          config,
+          args.query,
+          args.page,
+          args.language,
+          args.include_adult,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
+
   // tmdb_get_popular_people
   if (isToolEnabled("tmdb_get_popular_people")) {
     server.registerTool(
@@ -1176,34 +948,25 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getPopularPeople(
-            config,
-            args.page,
-            args.language,
-          );
+      wrapToolHandler("tmdb_get_popular_people", async (args) => {
+        const result = await tmdbClient.getPopularPeople(
+          config,
+          args.page,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
+
   // tmdb_get_person_details
   if (isToolEnabled("tmdb_get_person_details")) {
     server.registerTool(
@@ -1220,35 +983,26 @@ export function createTMDBTools(
             "Comma-separated list of additional details to append (e.g., 'movie_credits,tv_credits')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getPersonDetails(
-            config,
-            args.personId,
-            args.language,
-            args.appendToResponse,
-          );
+      wrapToolHandler("tmdb_get_person_details", async (args) => {
+        const result = await tmdbClient.getPersonDetails(
+          config,
+          args.personId,
+          args.language,
+          args.appendToResponse,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
+
   // tmdb_get_person_movie_credits
   if (isToolEnabled("tmdb_get_person_movie_credits")) {
     server.registerTool(
@@ -1262,34 +1016,25 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getPersonMovieCredits(
-            config,
-            args.personId,
-            args.language,
-          );
+      wrapToolHandler("tmdb_get_person_movie_credits", async (args) => {
+        const result = await tmdbClient.getPersonMovieCredits(
+          config,
+          args.personId,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
+
   // tmdb_get_person_tv_credits
   if (isToolEnabled("tmdb_get_person_tv_credits")) {
     server.registerTool(
@@ -1303,34 +1048,25 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getPersonTVCredits(
-            config,
-            args.personId,
-            args.language,
-          );
+      wrapToolHandler("tmdb_get_person_tv_credits", async (args) => {
+        const result = await tmdbClient.getPersonTVCredits(
+          config,
+          args.personId,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
+
   // tmdb_search_collections
   if (isToolEnabled("tmdb_search_collections")) {
     server.registerTool(
@@ -1347,35 +1083,26 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.searchCollections(
-            config,
-            args.query,
-            args.page,
-            args.language,
-          );
+      wrapToolHandler("tmdb_search_collections", async (args) => {
+        const result = await tmdbClient.searchCollections(
+          config,
+          args.query,
+          args.page,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
+
   // tmdb_get_collection_details
   if (isToolEnabled("tmdb_get_collection_details")) {
     server.registerTool(
@@ -1389,34 +1116,25 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getCollectionDetails(
-            config,
-            args.collectionId,
-            args.language,
-          );
+      wrapToolHandler("tmdb_get_collection_details", async (args) => {
+        const result = await tmdbClient.getCollectionDetails(
+          config,
+          args.collectionId,
+          args.language,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
+
   // tmdb_search_keywords
   if (isToolEnabled("tmdb_search_keywords")) {
     server.registerTool(
@@ -1430,34 +1148,25 @@ export function createTMDBTools(
             "Page number (1-1000)",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.searchKeywords(
-            config,
-            args.query,
-            args.page,
-          );
+      wrapToolHandler("tmdb_search_keywords", async (args) => {
+        const result = await tmdbClient.searchKeywords(
+          config,
+          args.query,
+          args.page,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
+
   // tmdb_get_movies_by_keyword
   if (isToolEnabled("tmdb_get_movies_by_keyword")) {
     server.registerTool(
@@ -1477,36 +1186,27 @@ export function createTMDBTools(
             "Include adult movies",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getMoviesByKeyword(
-            config,
-            args.keywordId,
-            args.page,
-            args.language,
-            args.include_adult,
-          );
+      wrapToolHandler("tmdb_get_movies_by_keyword", async (args) => {
+        const result = await tmdbClient.getMoviesByKeyword(
+          config,
+          args.keywordId,
+          args.page,
+          args.language,
+          args.include_adult,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
+
   // tmdb_get_certifications
   if (isToolEnabled("tmdb_get_certifications")) {
     server.registerTool(
@@ -1519,33 +1219,24 @@ export function createTMDBTools(
             "Media type for certifications",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getCertifications(
-            config,
-            args.mediaType,
-          );
+      wrapToolHandler("tmdb_get_certifications", async (args) => {
+        const result = await tmdbClient.getCertifications(
+          config,
+          args.mediaType,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
+
   // tmdb_get_watch_providers
   if (isToolEnabled("tmdb_get_watch_providers")) {
     server.registerTool(
@@ -1557,34 +1248,25 @@ export function createTMDBTools(
           mediaType: z.enum(["movie", "tv"]).describe("Media type"),
           mediaId: z.number().describe("The TMDB ID of the movie or TV show"),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getWatchProviders(
-            config,
-            args.mediaType,
-            args.mediaId,
-          );
+      wrapToolHandler("tmdb_get_watch_providers", async (args) => {
+        const result = await tmdbClient.getWatchProviders(
+          config,
+          args.mediaType,
+          args.mediaId,
+        );
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
+
   // tmdb_get_configuration
   if (isToolEnabled("tmdb_get_configuration")) {
     server.registerTool(
@@ -1593,30 +1275,21 @@ export function createTMDBTools(
         title: "Get TMDB API configuration including image base URLs",
         description: "Get TMDB API configuration including image base URLs",
         inputSchema: {},
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async () => {
-        try {
-          const result = await tmdbClient.getConfiguration(config);
+      wrapToolHandler("tmdb_get_configuration", async () => {
+        const result = await tmdbClient.getConfiguration(config);
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
+
   // tmdb_get_countries
   if (isToolEnabled("tmdb_get_countries")) {
     server.registerTool(
@@ -1629,30 +1302,21 @@ export function createTMDBTools(
             "Language code (e.g., 'en-US')",
           ),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getCountries(config, args.language);
+      wrapToolHandler("tmdb_get_countries", async (args) => {
+        const result = await tmdbClient.getCountries(config, args.language);
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
+
   // tmdb_get_languages
   if (isToolEnabled("tmdb_get_languages")) {
     server.registerTool(
@@ -1661,30 +1325,21 @@ export function createTMDBTools(
         title: "Get list of languages used in TMDB",
         description: "Get list of languages used in TMDB",
         inputSchema: {},
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async () => {
-        try {
-          const result = await tmdbClient.getLanguages(config);
+      wrapToolHandler("tmdb_get_languages", async () => {
+        const result = await tmdbClient.getLanguages(config);
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
+
   // tmdb_get_movie_credits
   if (isToolEnabled("tmdb_get_movie_credits")) {
     server.registerTool(
@@ -1695,30 +1350,21 @@ export function createTMDBTools(
         inputSchema: {
           movieId: z.number().describe("The TMDB movie ID"),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getMovieCredits(config, args.movieId);
+      wrapToolHandler("tmdb_get_movie_credits", async (args) => {
+        const result = await tmdbClient.getMovieCredits(config, args.movieId);
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
+
   // tmdb_get_tv_credits
   if (isToolEnabled("tmdb_get_tv_credits")) {
     server.registerTool(
@@ -1729,28 +1375,18 @@ export function createTMDBTools(
         inputSchema: {
           tvId: z.number().describe("The TMDB TV show ID"),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      async (args) => {
-        try {
-          const result = await tmdbClient.getTVCredits(config, args.tvId);
+      wrapToolHandler("tmdb_get_tv_credits", async (args) => {
+        const result = await tmdbClient.getTVCredits(config, args.tvId);
 
-          return {
-            content: [{
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: "text",
-              text: `Error: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }],
-          };
-        }
-      },
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }),
     );
   }
 }
