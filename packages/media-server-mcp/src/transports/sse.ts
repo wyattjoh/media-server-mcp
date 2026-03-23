@@ -19,6 +19,11 @@ export function createSSEServer(
 ): { close: () => Promise<void> } {
   const logger = getLogger(["media-server-mcp", "transport", "sse"]);
 
+  logger.warn(
+    "SSE transport is deprecated. Use Streamable HTTP (--http) instead. " +
+      "SSE will be removed in a future release.",
+  );
+
   // Store transports by session ID
   const transports = new Map<string, SSEServerTransport>();
 
