@@ -48,6 +48,7 @@ This repository is organized as a Deno workspace with the following packages:
 - **packages/radarr/** - `@wyattjoh/radarr` - Radarr API client library
 - **packages/sonarr/** - `@wyattjoh/sonarr` - Sonarr API client library
 - **packages/tmdb/** - `@wyattjoh/tmdb` - TMDB API client library
+- **packages/plex/** - `@wyattjoh/plex` - Plex API client library
 - **packages/media-server-mcp/** - `@wyattjoh/media-server-mcp` - Main MCP server
 
 Each package is independently publishable and has its own `deno.json` configuration.
@@ -56,7 +57,7 @@ Each package is independently publishable and has its own `deno.json` configurat
 
 - Always use `deno task fmt`, `deno task lint`, and `deno task check` after modifying or creating code to ensure that it's correct.
 - Run `deno test --allow-net` to verify all tests pass before committing changes.
-- Tests are organized by layer in `packages/media-server-mcp/tests/`: `tests/clients/`, `tests/tools/`, and `tests/server_test.ts`.
+- Tests are organized by layer: `packages/media-server-mcp/tests/` contains `tools/` (tool tests), `server_test.ts`, `auth_test.ts`, and transport tests (`sse-transport_test.ts`, `streamable-http-transport_test.ts`). Each client package also has its own `tests/` directory.
 - After changing any of the available MCP tools or resources, evaluate if you need to update the README.md and CLAUDE.md to be reflective of those changes.
 - When creating pull requests, always use the PR template at `.github/pull_request_template.md`.
 
@@ -68,7 +69,7 @@ Each package is independently publishable and has its own `deno.json` configurat
 
 ## Architecture Overview
 
-This is a **Model Context Protocol (MCP) server** that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series) media servers, and access TMDB data through their APIs.
+This is a **Model Context Protocol (MCP) server** that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series), and Plex media servers, and access TMDB data through their APIs.
 
 ### Core Architecture Pattern
 
@@ -76,15 +77,17 @@ The codebase follows a **layered architecture**:
 
 1. **MCP Server Layer** (`packages/media-server-mcp/src/index.ts`): Main server that handles MCP protocol communication
 2. **Tool Layer** (`packages/media-server-mcp/src/tools/`): MCP tool definitions and handlers that bridge MCP and API clients
-3. **Client Packages** (`packages/{radarr,sonarr,tmdb}/`): Standalone client libraries for each service
+3. **Client Packages** (`packages/{radarr,sonarr,tmdb,plex}/`): Standalone client libraries for each service
 4. **Type Definitions**: Each package contains its own TypeScript definitions
 5. **Shared Components**: Client packages include filtering and validation utilities
 
 ### Key Architectural Decisions
 
-**Separation of Tool Creation and Execution**: Tools are created as metadata-only definitions via `createRadarrTools()`, `createSonarrTools()`, and `createTMDBTools()` functions that don't require client configurations. Tool execution happens separately through `handleRadarrTool()`, `handleSonarrTool()`, and `handleTMDBTool()` functions that receive the service configurations at runtime.
+**Direct Tool Registration**: Tools are registered directly on the `McpServer` instance via `createRadarrTools()`, `createSonarrTools()`, `createTMDBTools()`, and `createPlexTools()` functions. Each function accepts the server, service config, and a tool filter function, then registers tools as side effects using `server.registerTool()`. Tool handlers are closures that capture the service config at registration time.
 
-**Configuration Injection**: The main server maintains optional service configurations (`radarrConfig`, `sonarrConfig`, `tmdbConfig`) and injects them into tool handlers during execution, allowing the server to work with any combination of services configured.
+**Tool Filtering System**: A configurable tool filtering system (`tool-categories.ts`, `tool-filter.ts`) allows enabling/disabling tools via profiles, branches, include/exclude lists, or config files. This controls which tools are registered on the server.
+
+**Configuration Injection**: The main server maintains optional service configurations (`radarrConfig`, `sonarrConfig`, `tmdbConfig`, `plexConfig`) and passes them into tool registration functions, allowing the server to work with any combination of services configured.
 
 **Environment-Based Configuration**: Service availability is determined by environment variables at startup. Missing configuration results in that service's tools being unavailable rather than failing the entire server.
 
@@ -92,7 +95,7 @@ The codebase follows a **layered architecture**:
 
 - **Strict TypeScript**: Uses `exactOptionalPropertyTypes: true` - optional properties must be explicitly `| undefined` rather than using `?:`
 - **Zod Validation**: All tool parameters use Zod schemas for runtime validation
-- **API Type Definitions**: Comprehensive interfaces for Radarr, Sonarr, and TMDB API responses in `src/types/`
+- **API Type Definitions**: Comprehensive interfaces for Radarr, Sonarr, TMDB, and Plex API responses in each package's `src/types.ts`
 
 ### Functional Architecture Pattern
 
@@ -111,7 +114,7 @@ This codebase **ALWAYS** follows a **functional architecture** approach rather t
 
 ### Plex API Notes (verified against Plex Media Server 1.43.x)
 
-**Collection item management changed in Plex 1.28+.** The legacy `server://` URI approach (`PUT /library/collections/{id}/items?uri=server://{machineId}/...`) no longer works — it returns 400 Bad Request on modern Plex versions. Do not attempt to implement or restore it.
+**Collection item management changed in Plex 1.28+.** The legacy `server://` URI approach (`PUT /library/collections/{id}/items?uri=server://{machineId}/...`) no longer works. It returns 400 Bad Request on modern Plex versions. Do not attempt to implement or restore it.
 
 **Current working API for manual (non-smart) collections:**
 
@@ -134,7 +137,7 @@ This codebase **ALWAYS** follows a **functional architecture** approach rather t
 ### Error Handling Pattern
 
 - Unknown errors must be handled with `error instanceof Error ? error.message : String(error)`
-- Tool handlers catch all errors and return `MCPToolResult` with `isError: true`
+- Tool handlers catch all errors and return error results with `isError: true`
 - Connection testing on startup logs warnings but doesn't prevent server launch
 
 ## Environment Variables
@@ -159,6 +162,13 @@ PLEX_API_KEY=your-plex-api-key
 
 # Authentication Configuration (required for SSE mode, recommended for HTTP mode)
 MCP_AUTH_TOKEN=your-secure-auth-token
+
+# Tool Configuration (all optional)
+TOOL_PROFILE=default          # Predefined profile: default, minimal, curator, maintainer, power-user, full
+TOOL_BRANCHES=discovery-add   # Comma-separated branches to enable
+TOOL_EXCLUDE=radarr_disk_scan # Comma-separated tools to exclude
+TOOL_INCLUDE=tmdb_search_movies # Comma-separated tools to force-include (overrides other settings)
+TOOL_CONFIG_PATH=./tools.json # Path to JSON configuration file for tool settings
 ```
 
 ### API Key Acquisition
@@ -170,7 +180,7 @@ MCP_AUTH_TOKEN=your-secure-auth-token
 ## Important Implementation Notes
 
 - The server tests API connections on startup but continues running even if services are unavailable
-- Tool execution happens through a routing system in the main server's `CallToolRequestSchema` handler
+- Tools are registered directly on the `McpServer` via `server.registerTool()` during setup
 - Each service's tools are only registered if that service is properly configured
 - Radarr and Sonarr use the same base URL + endpoint pattern with API key authentication via `X-Api-Key` header
 - TMDB uses direct API access with `Authorization: Bearer {api_key}` header authentication
@@ -346,25 +356,39 @@ MCP_AUTH_TOKEN=your-secure-auth-token
 All tool files follow the same pattern:
 
 1. **Zod Schemas**: Define parameter validation schemas at the top
-2. **createXXXTools()**: Function that returns tool definitions (metadata only)
-3. **handleXXXTool()**: Function that handles tool execution with runtime configuration
-4. **Single File**: Both functions exported from the same file for consistency
+2. **createXXXTools()**: Function that registers tools directly on the `McpServer`, checking `isToolEnabled()` before each registration
+3. **Single File**: Each service's tools are defined and registered from a single file
 
 Example structure:
 
 ```typescript
-// Zod schemas
-const SchemaName = z.object({...});
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 
-// Tool creation (metadata only)
-export function createServiceTools(): Tool[] { ... }
-
-// Tool execution (with config injection)
-export async function handleServiceTool(
-  name: string,
-  args: unknown,
-  config: ServiceConfig,
-): Promise<MCPToolResult> { ... }
+// Tool registration (with config injection and filtering)
+export function createServiceTools(
+  server: McpServer,
+  config: Readonly<ServiceConfig>,
+  isToolEnabled: (toolName: string) => boolean,
+): void {
+  if (isToolEnabled("service_tool_name")) {
+    server.registerTool(
+      "service_tool_name",
+      {
+        title: "Tool title",
+        description: "Tool description",
+        inputSchema: {
+          param: z.string().describe("Parameter description"),
+        },
+      },
+      async (args) => {
+        // Tool handler with config captured via closure
+        const result = await serviceClient.doSomething(config, args.param);
+        return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      },
+    );
+  }
+}
 ```
 
 ## Logging
@@ -389,6 +413,11 @@ deno task dev:sse --debug
 - **media-server-mcp.tools**: Tool configuration and registration
 - **media-server-mcp.transport.stdio**: STDIO transport logs
 - **media-server-mcp.transport.sse**: SSE transport logs
+- **media-server-mcp.transport.streamable-http**: Streamable HTTP transport logs
+- **radarr**: Radarr client library logs
+- **sonarr**: Sonarr client library logs
+- **tmdb**: TMDB client library logs
+- **plex**: Plex client library logs
 
 ### Log Levels
 
