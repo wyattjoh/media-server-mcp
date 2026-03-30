@@ -5,6 +5,7 @@ import type {
   RadarrMovie,
   RadarrMovieFilters,
   RadarrMovieSortField,
+  RadarrPaginatedApiResponse,
   RadarrQualityProfile,
   RadarrQueueItem,
   RadarrQueueResponse,
@@ -455,6 +456,46 @@ export async function diskScan(config: RadarrConfig): Promise<void> {
       name: "RescanMovie",
     }),
   });
+}
+
+// Get wanted/missing movies (monitored but not downloaded)
+export function getWantedMissing(
+  config: RadarrConfig,
+  page = 1,
+  pageSize = 20,
+  sortKey = "title",
+  sortDirection: "ascending" | "descending" = "ascending",
+): Promise<RadarrPaginatedApiResponse<RadarrMovie>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    sortKey,
+    sortDirection,
+  });
+  return makeRequest<RadarrPaginatedApiResponse<RadarrMovie>>(
+    config,
+    `/wanted/missing?${params}`,
+  );
+}
+
+// Get wanted/cutoff unmet movies (downloaded but below quality cutoff)
+export function getWantedCutoff(
+  config: RadarrConfig,
+  page = 1,
+  pageSize = 20,
+  sortKey = "title",
+  sortDirection: "ascending" | "descending" = "ascending",
+): Promise<RadarrPaginatedApiResponse<RadarrMovie>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    sortKey,
+    sortDirection,
+  });
+  return makeRequest<RadarrPaginatedApiResponse<RadarrMovie>>(
+    config,
+    `/wanted/cutoff?${params}`,
+  );
 }
 
 // Test connection

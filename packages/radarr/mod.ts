@@ -2,11 +2,13 @@
 export * from "./src/client.ts";
 export type {
   RadarrAddMovieOptions,
+  RadarrCalendarMovie,
   RadarrHealth,
   RadarrMovie,
   RadarrMovieFilters,
   RadarrMovieSortField,
   RadarrMovieSortOptions,
+  RadarrPaginatedApiResponse,
   RadarrQualityProfile,
   RadarrQueueItem,
   RadarrQueueResponse,

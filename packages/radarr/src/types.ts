@@ -369,6 +369,40 @@ export interface RadarrRootFolder {
   }>;
 }
 
+export interface RadarrPaginatedApiResponse<T> {
+  page: number;
+  pageSize: number;
+  sortKey: string;
+  sortDirection: string;
+  totalRecords: number;
+  records: T[];
+}
+
+export interface RadarrCalendarMovie {
+  id: number;
+  title: string;
+  sortTitle?: string;
+  sizeOnDisk?: number;
+  status: string;
+  overview?: string;
+  inCinemas?: string;
+  physicalRelease?: string;
+  digitalRelease?: string;
+  year: number;
+  hasFile: boolean;
+  path: string;
+  qualityProfileId: number;
+  monitored: boolean;
+  minimumAvailability: string;
+  isAvailable: boolean;
+  runtime: number;
+  imdbId?: string;
+  tmdbId: number;
+  genres?: string[];
+  tags?: number[];
+  added?: string;
+}
+
 export interface RadarrAddMovieOptions {
   title: string;
   qualityProfileId: number;
