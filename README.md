@@ -462,6 +462,26 @@ This helps verify your configuration is working as expected.
 - `radarr_refresh_all_movies` - Refresh metadata for all movies in the library
 - `radarr_disk_scan` - Rescan all movie folders for new/missing files
 
+#### Wanted/Missing and Quality Management
+
+- `radarr_get_wanted_missing` - Get movies that are monitored but not yet downloaded
+- `radarr_get_wanted_cutoff` - Get movies downloaded but below quality cutoff
+- `radarr_get_calendar` - Get upcoming movie releases within a date range
+
+#### History and Troubleshooting
+
+- `radarr_get_history` - Get paginated download history with event type filtering
+- `radarr_get_movie_history` - Get download history for a specific movie
+- `radarr_mark_failed` - Mark a download as failed to trigger re-grab
+
+#### Interactive Release Management
+
+- `radarr_get_releases` - Browse available releases from indexers for a movie
+- `radarr_grab_release` - Download a specific release
+- `radarr_search_all_missing` - Trigger search for all missing movies at once
+- `radarr_delete_queue_item` - Remove a stuck/failed item from the queue
+- `radarr_grab_queue_item` - Force download a queue item
+
 ### Sonarr Tools (when configured)
 
 #### Series Management
@@ -495,6 +515,25 @@ This helps verify your configuration is working as expected.
 - `sonarr_update_series` - Update a series' settings (quality profile, monitoring, etc.)
 - `sonarr_refresh_all_series` - Refresh metadata for all series in the library
 - `sonarr_disk_scan` - Rescan all series folders for new/missing files
+
+#### Wanted/Missing and Quality Management
+
+- `sonarr_get_wanted_missing` - Get episodes that are monitored but not yet downloaded
+- `sonarr_get_wanted_cutoff` - Get episodes downloaded but below quality cutoff
+
+#### History and Troubleshooting
+
+- `sonarr_get_history` - Get paginated download history with event type filtering
+- `sonarr_get_series_history` - Get download history for a specific series
+- `sonarr_mark_failed` - Mark a download as failed to trigger re-grab
+
+#### Interactive Release Management
+
+- `sonarr_get_releases` - Browse available releases from indexers for an episode
+- `sonarr_grab_release` - Download a specific release
+- `sonarr_search_all_missing` - Trigger search for all missing episodes at once
+- `sonarr_delete_queue_item` - Remove a stuck/failed item from the queue
+- `sonarr_grab_queue_item` - Force download a queue item
 
 ### TMDB Tools (when configured)
 
