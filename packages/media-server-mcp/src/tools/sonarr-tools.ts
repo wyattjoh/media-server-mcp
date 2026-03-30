@@ -813,4 +813,214 @@ export function createSonarrTools(
       }),
     );
   }
+
+  if (isToolEnabled("sonarr_get_wanted_missing")) {
+    server.registerTool(
+      "sonarr_get_wanted_missing",
+      {
+        title: "Get episodes that are monitored but not yet downloaded",
+        description:
+          "Get episodes that are monitored but not yet downloaded. Use this to find episodes that should have been downloaded but are still missing.",
+        inputSchema: {
+          page: z.number().optional().default(1).describe("Page number"),
+          pageSize: z.number().optional().default(20).describe(
+            "Number of results per page",
+          ),
+          sortKey: z.string().optional().default("airDateUtc").describe(
+            "Field to sort by",
+          ),
+          sortDirection: z.enum(["ascending", "descending"]).optional()
+            .default("descending").describe("Sort direction"),
+          includeSeries: z.boolean().optional().default(false).describe(
+            "Whether to include series data in results",
+          ),
+        },
+        outputSchema: {
+          page: z.number(),
+          pageSize: z.number(),
+          totalRecords: z.number(),
+          records: z.array(z.record(z.string(), z.unknown())),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("sonarr_get_wanted_missing", async (args) => {
+        const results = await sonarrClient.getWantedMissing(
+          config,
+          args.page,
+          args.pageSize,
+          args.sortKey,
+          args.sortDirection,
+          args.includeSeries,
+        );
+        const structured = {
+          page: results.page,
+          pageSize: results.pageSize,
+          totalRecords: results.totalRecords,
+          records: results.records as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("sonarr_get_wanted_cutoff")) {
+    server.registerTool(
+      "sonarr_get_wanted_cutoff",
+      {
+        title:
+          "Get episodes that have been downloaded but don't meet quality cutoff",
+        description:
+          "Get episodes that have been downloaded but don't meet the quality cutoff. Use this to find episodes that could be upgraded to better quality.",
+        inputSchema: {
+          page: z.number().optional().default(1).describe("Page number"),
+          pageSize: z.number().optional().default(20).describe(
+            "Number of results per page",
+          ),
+          sortKey: z.string().optional().default("airDateUtc").describe(
+            "Field to sort by",
+          ),
+          sortDirection: z.enum(["ascending", "descending"]).optional()
+            .default("descending").describe("Sort direction"),
+          includeSeries: z.boolean().optional().default(false).describe(
+            "Whether to include series data in results",
+          ),
+        },
+        outputSchema: {
+          page: z.number(),
+          pageSize: z.number(),
+          totalRecords: z.number(),
+          records: z.array(z.record(z.string(), z.unknown())),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("sonarr_get_wanted_cutoff", async (args) => {
+        const results = await sonarrClient.getWantedCutoff(
+          config,
+          args.page,
+          args.pageSize,
+          args.sortKey,
+          args.sortDirection,
+          args.includeSeries,
+        );
+        const structured = {
+          page: results.page,
+          pageSize: results.pageSize,
+          totalRecords: results.totalRecords,
+          records: results.records as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("sonarr_get_history")) {
+    server.registerTool(
+      "sonarr_get_history",
+      {
+        title: "Get download history for episodes",
+        description:
+          "Get the download history showing grabbed, downloaded, failed, and deleted events. Use eventType to filter (e.g. 'grabbed', 'downloadFolderImported', 'downloadFailed', 'episodeFileDeleted').",
+        inputSchema: {
+          page: z.number().optional().default(1).describe("Page number"),
+          pageSize: z.number().optional().default(20).describe(
+            "Number of results per page",
+          ),
+          sortKey: z.string().optional().default("date").describe(
+            "Field to sort by",
+          ),
+          sortDirection: z.enum(["ascending", "descending"]).optional()
+            .default("descending").describe("Sort direction"),
+          eventType: z.string().optional().describe(
+            "Filter by event type (grabbed, downloadFolderImported, downloadFailed, episodeFileDeleted)",
+          ),
+          includeSeries: z.boolean().optional().default(false).describe(
+            "Whether to include series data",
+          ),
+          includeEpisode: z.boolean().optional().default(false).describe(
+            "Whether to include episode data",
+          ),
+        },
+        outputSchema: {
+          page: z.number(),
+          pageSize: z.number(),
+          totalRecords: z.number(),
+          records: z.array(z.record(z.string(), z.unknown())),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("sonarr_get_history", async (args) => {
+        const results = await sonarrClient.getHistory(
+          config,
+          args.page,
+          args.pageSize,
+          args.sortKey,
+          args.sortDirection,
+          args.eventType,
+          args.includeSeries,
+          args.includeEpisode,
+        );
+        const structured = {
+          page: results.page,
+          pageSize: results.pageSize,
+          totalRecords: results.totalRecords,
+          records: results.records as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("sonarr_get_series_history")) {
+    server.registerTool(
+      "sonarr_get_series_history",
+      {
+        title: "Get download history for a specific series",
+        description:
+          "Get the download history for a specific series, optionally filtered by season.",
+        inputSchema: {
+          seriesId: z.number().describe("Series ID in Sonarr"),
+          seasonNumber: z.number().optional().describe(
+            "Filter by season number",
+          ),
+          eventType: z.string().optional().describe(
+            "Filter by event type",
+          ),
+          includeSeries: z.boolean().optional().default(false).describe(
+            "Whether to include series data",
+          ),
+          includeEpisode: z.boolean().optional().default(false).describe(
+            "Whether to include episode data",
+          ),
+        },
+        outputSchema: { data: z.array(z.record(z.string(), z.unknown())) },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("sonarr_get_series_history", async (args) => {
+        const results = await sonarrClient.getSeriesHistory(
+          config,
+          args.seriesId,
+          args.seasonNumber,
+          args.eventType,
+          args.includeSeries,
+          args.includeEpisode,
+        );
+        const structured = {
+          data: results as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
 }
