@@ -4,6 +4,7 @@ export type {
   RadarrAddMovieOptions,
   RadarrCalendarMovie,
   RadarrHealth,
+  RadarrHistoryRecord,
   RadarrMovie,
   RadarrMovieFilters,
   RadarrMovieSortField,

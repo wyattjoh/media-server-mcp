@@ -414,3 +414,21 @@ export interface RadarrAddMovieOptions {
   tags: number[] | undefined;
   searchForMovie: boolean | undefined;
 }
+
+export interface RadarrHistoryRecord {
+  id: number;
+  movieId: number;
+  sourceTitle: string;
+  languages: Array<{ id: number; name: string }>;
+  quality: {
+    quality: { id: number; name: string; source: string; resolution: number };
+    revision: { version: number; real: number; isRepack: boolean };
+  };
+  customFormats: Array<{ id: number; name: string }>;
+  qualityCutoffNotMet: boolean;
+  date: string;
+  downloadId?: string;
+  eventType: string;
+  data: Record<string, string>;
+  movie?: RadarrMovie;
+}

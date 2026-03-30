@@ -2,6 +2,7 @@ import { getLogger } from "@logtape/logtape";
 import type {
   RadarrAddMovieOptions,
   RadarrHealth,
+  RadarrHistoryRecord,
   RadarrMovie,
   RadarrMovieFilters,
   RadarrMovieSortField,
@@ -496,6 +497,58 @@ export function getWantedCutoff(
     config,
     `/wanted/cutoff?${params}`,
   );
+}
+
+// Get download history (paginated)
+export function getHistory(
+  config: RadarrConfig,
+  page = 1,
+  pageSize = 20,
+  sortKey = "date",
+  sortDirection: "ascending" | "descending" = "descending",
+  eventType?: string,
+  includeMovie = false,
+): Promise<RadarrPaginatedApiResponse<RadarrHistoryRecord>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    sortKey,
+    sortDirection,
+  });
+  if (eventType) params.append("eventType", eventType);
+  if (includeMovie) params.append("includeMovie", "true");
+
+  return makeRequest<RadarrPaginatedApiResponse<RadarrHistoryRecord>>(
+    config,
+    `/history?${params}`,
+  );
+}
+
+// Get history for a specific movie
+export function getMovieHistory(
+  config: RadarrConfig,
+  movieId: number,
+  eventType?: string,
+  includeMovie = false,
+): Promise<RadarrHistoryRecord[]> {
+  const params = new URLSearchParams({ movieId: movieId.toString() });
+  if (eventType) params.append("eventType", eventType);
+  if (includeMovie) params.append("includeMovie", "true");
+
+  return makeRequest<RadarrHistoryRecord[]>(
+    config,
+    `/history/movie?${params}`,
+  );
+}
+
+// Mark a history item as failed (triggers re-download)
+export async function markHistoryFailed(
+  config: RadarrConfig,
+  historyId: number,
+): Promise<void> {
+  await makeRequest<void>(config, `/history/failed/${historyId}`, {
+    method: "POST",
+  });
 }
 
 // Test connection
