@@ -735,4 +735,172 @@ export function createRadarrTools(
       }),
     );
   }
+
+  if (isToolEnabled("radarr_get_releases")) {
+    server.registerTool(
+      "radarr_get_releases",
+      {
+        title: "Browse available releases for a movie",
+        description:
+          "Search indexers for available releases of a specific movie. Returns a list of releases with quality, size, seeders, and approval status. Use radarr_grab_release to download a specific release.",
+        inputSchema: { movieId: z.number().describe("Movie ID in Radarr") },
+        outputSchema: { data: z.array(z.record(z.string(), z.unknown())) },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_get_releases", async (args) => {
+        const results = await radarrClient.getReleases(config, args.movieId);
+        const structured = {
+          data: results as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("radarr_grab_release")) {
+    server.registerTool(
+      "radarr_grab_release",
+      {
+        title: "Download a specific release for a movie",
+        description:
+          "Grab (download) a specific release found via radarr_get_releases. Requires the guid and indexerId from the release.",
+        inputSchema: {
+          guid: z.string().describe("Release GUID from radarr_get_releases"),
+          indexerId: z.number().describe(
+            "Indexer ID from radarr_get_releases",
+          ),
+        },
+        outputSchema: { message: z.string() },
+        annotations: { openWorldHint: false },
+      },
+      wrapToolHandler("radarr_grab_release", async (args) => {
+        await radarrClient.grabRelease(config, args.guid, args.indexerId);
+        const result = { message: "Release grabbed successfully" };
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("radarr_delete_queue_item")) {
+    server.registerTool(
+      "radarr_delete_queue_item",
+      {
+        title: "Remove an item from the download queue",
+        description:
+          "Remove a stuck or failed item from the download queue. Optionally blocklist the release or skip re-download.",
+        inputSchema: {
+          id: z.number().describe("Queue item ID"),
+          removeFromClient: z.boolean().optional().default(true).describe(
+            "Remove from download client",
+          ),
+          blocklist: z.boolean().optional().default(false).describe(
+            "Add release to blocklist",
+          ),
+          skipRedownload: z.boolean().optional().default(false).describe(
+            "Skip automatic re-download",
+          ),
+        },
+        outputSchema: { message: z.string() },
+        annotations: { destructiveHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_delete_queue_item", async (args) => {
+        await radarrClient.deleteQueueItem(
+          config,
+          args.id,
+          args.removeFromClient,
+          args.blocklist,
+          args.skipRedownload,
+        );
+        const result = {
+          message: `Queue item ${args.id} removed successfully`,
+        };
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("radarr_grab_queue_item")) {
+    server.registerTool(
+      "radarr_grab_queue_item",
+      {
+        title: "Force download a queue item",
+        description: "Force download a specific item in the queue.",
+        inputSchema: { id: z.number().describe("Queue item ID") },
+        outputSchema: { message: z.string() },
+        annotations: { openWorldHint: false },
+      },
+      wrapToolHandler("radarr_grab_queue_item", async (args) => {
+        await radarrClient.grabQueueItem(config, args.id);
+        const result = {
+          message: `Queue item ${args.id} grab initiated successfully`,
+        };
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("radarr_search_all_missing")) {
+    server.registerTool(
+      "radarr_search_all_missing",
+      {
+        title: "Search for all missing movies",
+        description:
+          "Trigger a backlog search for all monitored movies that are missing. This searches indexers for every missing movie at once.",
+        inputSchema: {},
+        outputSchema: { message: z.string() },
+        annotations: { idempotentHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_search_all_missing", async () => {
+        await radarrClient.searchAllMissing(config);
+        const result = {
+          message: "Search for all missing movies initiated successfully",
+        };
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("radarr_mark_failed")) {
+    server.registerTool(
+      "radarr_mark_failed",
+      {
+        title: "Mark a download history item as failed",
+        description:
+          "Mark a download as failed, which triggers Radarr to search for and grab a replacement release.",
+        inputSchema: {
+          historyId: z.number().describe(
+            "History record ID from radarr_get_history",
+          ),
+        },
+        outputSchema: { message: z.string() },
+        annotations: { openWorldHint: false },
+      },
+      wrapToolHandler("radarr_mark_failed", async (args) => {
+        await radarrClient.markHistoryFailed(config, args.historyId);
+        const result = {
+          message:
+            `History item ${args.historyId} marked as failed, re-download triggered`,
+        };
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
 }
