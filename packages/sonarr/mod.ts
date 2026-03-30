@@ -5,6 +5,7 @@ export type {
   SonarrCalendarItem,
   SonarrEpisode,
   SonarrHealth,
+  SonarrHistoryRecord,
   SonarrPaginatedApiResponse,
   SonarrQualityProfile,
   SonarrQueueItem,

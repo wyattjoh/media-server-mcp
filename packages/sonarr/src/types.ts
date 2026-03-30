@@ -498,6 +498,26 @@ export interface SonarrPaginatedApiResponse<T> {
   records: T[];
 }
 
+export interface SonarrHistoryRecord {
+  id: number;
+  episodeId: number;
+  seriesId: number;
+  sourceTitle: string;
+  languages: Array<{ id: number; name: string }>;
+  quality: {
+    quality: { id: number; name: string; source: string; resolution: number };
+    revision: { version: number; real: number; isRepack: boolean };
+  };
+  customFormats: Array<{ id: number; name: string }>;
+  qualityCutoffNotMet: boolean;
+  date: string;
+  downloadId?: string;
+  eventType: string;
+  data: Record<string, string>;
+  episode?: SonarrEpisode;
+  series?: SonarrSeries;
+}
+
 export interface SonarrAddSeriesOptions {
   title: string;
   qualityProfileId: number;

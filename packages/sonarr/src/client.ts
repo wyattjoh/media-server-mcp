@@ -4,6 +4,7 @@ import type {
   SonarrCalendarItem,
   SonarrEpisode,
   SonarrHealth,
+  SonarrHistoryRecord,
   SonarrPaginatedApiResponse,
   SonarrQualityProfile,
   SonarrQueueItem,
@@ -585,4 +586,64 @@ export async function testConnection(
       error: errorMessage,
     };
   }
+}
+
+// Get download history (paginated)
+export function getHistory(
+  config: SonarrConfig,
+  page = 1,
+  pageSize = 20,
+  sortKey = "date",
+  sortDirection: "ascending" | "descending" = "descending",
+  eventType?: string,
+  includeSeries = false,
+  includeEpisode = false,
+): Promise<SonarrPaginatedApiResponse<SonarrHistoryRecord>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    sortKey,
+    sortDirection,
+  });
+  if (eventType) params.append("eventType", eventType);
+  if (includeSeries) params.append("includeSeries", "true");
+  if (includeEpisode) params.append("includeEpisode", "true");
+
+  return makeRequest<SonarrPaginatedApiResponse<SonarrHistoryRecord>>(
+    config,
+    `/history?${params}`,
+  );
+}
+
+// Get history for a specific series
+export function getSeriesHistory(
+  config: SonarrConfig,
+  seriesId: number,
+  seasonNumber?: number,
+  eventType?: string,
+  includeSeries = false,
+  includeEpisode = false,
+): Promise<SonarrHistoryRecord[]> {
+  const params = new URLSearchParams({ seriesId: seriesId.toString() });
+  if (seasonNumber !== undefined) {
+    params.append("seasonNumber", seasonNumber.toString());
+  }
+  if (eventType) params.append("eventType", eventType);
+  if (includeSeries) params.append("includeSeries", "true");
+  if (includeEpisode) params.append("includeEpisode", "true");
+
+  return makeRequest<SonarrHistoryRecord[]>(
+    config,
+    `/history/series?${params}`,
+  );
+}
+
+// Mark a history item as failed (triggers re-download)
+export async function markHistoryFailed(
+  config: SonarrConfig,
+  historyId: number,
+): Promise<void> {
+  await makeRequest<void>(config, `/history/failed/${historyId}`, {
+    method: "POST",
+  });
 }
