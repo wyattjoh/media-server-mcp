@@ -501,4 +501,238 @@ export function createRadarrTools(
       }),
     );
   }
+
+  // radarr_get_wanted_missing
+  if (isToolEnabled("radarr_get_wanted_missing")) {
+    server.registerTool(
+      "radarr_get_wanted_missing",
+      {
+        title: "Get movies that are monitored but not yet downloaded",
+        description:
+          "Get movies that are monitored but not yet downloaded. Use this to find movies that should have been downloaded but are still missing.",
+        inputSchema: {
+          page: z.number().optional().default(1).describe("Page number"),
+          pageSize: z.number().optional().default(20).describe(
+            "Number of results per page",
+          ),
+          sortKey: z.string().optional().default("title").describe(
+            "Field to sort by",
+          ),
+          sortDirection: z.enum(["ascending", "descending"]).optional()
+            .default("ascending").describe("Sort direction"),
+        },
+        outputSchema: {
+          page: z.number(),
+          pageSize: z.number(),
+          totalRecords: z.number(),
+          records: z.array(z.record(z.string(), z.unknown())),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_get_wanted_missing", async (args) => {
+        const results = await radarrClient.getWantedMissing(
+          config,
+          args.page,
+          args.pageSize,
+          args.sortKey,
+          args.sortDirection,
+        );
+        const structured = {
+          page: results.page,
+          pageSize: results.pageSize,
+          totalRecords: results.totalRecords,
+          records: results.records as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
+
+  // radarr_get_wanted_cutoff
+  if (isToolEnabled("radarr_get_wanted_cutoff")) {
+    server.registerTool(
+      "radarr_get_wanted_cutoff",
+      {
+        title:
+          "Get movies that have been downloaded but don't meet quality cutoff",
+        description:
+          "Get movies that have been downloaded but don't meet the quality cutoff. Use this to find movies that could be upgraded to better quality.",
+        inputSchema: {
+          page: z.number().optional().default(1).describe("Page number"),
+          pageSize: z.number().optional().default(20).describe(
+            "Number of results per page",
+          ),
+          sortKey: z.string().optional().default("title").describe(
+            "Field to sort by",
+          ),
+          sortDirection: z.enum(["ascending", "descending"]).optional()
+            .default("ascending").describe("Sort direction"),
+        },
+        outputSchema: {
+          page: z.number(),
+          pageSize: z.number(),
+          totalRecords: z.number(),
+          records: z.array(z.record(z.string(), z.unknown())),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_get_wanted_cutoff", async (args) => {
+        const results = await radarrClient.getWantedCutoff(
+          config,
+          args.page,
+          args.pageSize,
+          args.sortKey,
+          args.sortDirection,
+        );
+        const structured = {
+          page: results.page,
+          pageSize: results.pageSize,
+          totalRecords: results.totalRecords,
+          records: results.records as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
+
+  // radarr_get_history
+  if (isToolEnabled("radarr_get_history")) {
+    server.registerTool(
+      "radarr_get_history",
+      {
+        title: "Get download history for movies",
+        description:
+          "Get the download history showing grabbed, downloaded, failed, and deleted events. Use eventType to filter (e.g. 'grabbed', 'downloadFolderImported', 'downloadFailed', 'movieFileDeleted').",
+        inputSchema: {
+          page: z.number().optional().default(1).describe("Page number"),
+          pageSize: z.number().optional().default(20).describe(
+            "Number of results per page",
+          ),
+          sortKey: z.string().optional().default("date").describe(
+            "Field to sort by",
+          ),
+          sortDirection: z.enum(["ascending", "descending"]).optional()
+            .default("descending").describe("Sort direction"),
+          eventType: z.string().optional().describe(
+            "Filter by event type (grabbed, downloadFolderImported, downloadFailed, movieFileDeleted)",
+          ),
+          includeMovie: z.boolean().optional().default(false).describe(
+            "Whether to include movie data in results",
+          ),
+        },
+        outputSchema: {
+          page: z.number(),
+          pageSize: z.number(),
+          totalRecords: z.number(),
+          records: z.array(z.record(z.string(), z.unknown())),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_get_history", async (args) => {
+        const results = await radarrClient.getHistory(
+          config,
+          args.page,
+          args.pageSize,
+          args.sortKey,
+          args.sortDirection,
+          args.eventType,
+          args.includeMovie,
+        );
+        const structured = {
+          page: results.page,
+          pageSize: results.pageSize,
+          totalRecords: results.totalRecords,
+          records: results.records as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
+
+  // radarr_get_movie_history
+  if (isToolEnabled("radarr_get_movie_history")) {
+    server.registerTool(
+      "radarr_get_movie_history",
+      {
+        title: "Get download history for a specific movie",
+        description:
+          "Get the download history for a specific movie, showing all events like grabs, imports, and failures.",
+        inputSchema: {
+          movieId: z.number().describe("Movie ID in Radarr"),
+          eventType: z.string().optional().describe(
+            "Filter by event type",
+          ),
+          includeMovie: z.boolean().optional().default(false).describe(
+            "Whether to include movie data",
+          ),
+        },
+        outputSchema: { data: z.array(z.record(z.string(), z.unknown())) },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_get_movie_history", async (args) => {
+        const results = await radarrClient.getMovieHistory(
+          config,
+          args.movieId,
+          args.eventType,
+          args.includeMovie,
+        );
+        const structured = {
+          data: results as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
+
+  // radarr_get_calendar
+  if (isToolEnabled("radarr_get_calendar")) {
+    server.registerTool(
+      "radarr_get_calendar",
+      {
+        title: "Get upcoming movie releases",
+        description:
+          "Get movies with upcoming physical, digital, or theatrical releases within a date range.",
+        inputSchema: {
+          start: z.string().optional().describe(
+            "Start date (ISO format, optional)",
+          ),
+          end: z.string().optional().describe(
+            "End date (ISO format, optional)",
+          ),
+          unmonitored: z.boolean().optional().default(false).describe(
+            "Include unmonitored movies",
+          ),
+        },
+        outputSchema: { data: z.array(z.record(z.string(), z.unknown())) },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_get_calendar", async (args) => {
+        const results = await radarrClient.getCalendar(
+          config,
+          args.start,
+          args.end,
+          args.unmonitored,
+        );
+        const structured = {
+          data: results as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
 }
