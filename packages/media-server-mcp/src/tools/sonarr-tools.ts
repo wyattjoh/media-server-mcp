@@ -1023,4 +1023,176 @@ export function createSonarrTools(
       }),
     );
   }
+
+  if (isToolEnabled("sonarr_get_releases")) {
+    server.registerTool(
+      "sonarr_get_releases",
+      {
+        title: "Browse available releases for an episode",
+        description:
+          "Search indexers for available releases of a specific episode. Returns a list of releases with quality, size, seeders, and approval status. Use sonarr_grab_release to download a specific release.",
+        inputSchema: {
+          episodeId: z.number().describe("Episode ID in Sonarr"),
+        },
+        outputSchema: { data: z.array(z.record(z.string(), z.unknown())) },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("sonarr_get_releases", async (args) => {
+        const results = await sonarrClient.getReleases(config, args.episodeId);
+        const structured = {
+          data: results as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("sonarr_grab_release")) {
+    server.registerTool(
+      "sonarr_grab_release",
+      {
+        title: "Download a specific release for an episode",
+        description:
+          "Grab (download) a specific release found via sonarr_get_releases. Requires the guid and indexerId from the release.",
+        inputSchema: {
+          guid: z.string().describe("Release GUID from sonarr_get_releases"),
+          indexerId: z.number().describe(
+            "Indexer ID from sonarr_get_releases",
+          ),
+        },
+        outputSchema: { message: z.string() },
+        annotations: { openWorldHint: false },
+      },
+      wrapToolHandler("sonarr_grab_release", async (args) => {
+        await sonarrClient.grabRelease(config, args.guid, args.indexerId);
+        const result = { message: "Release grabbed successfully" };
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("sonarr_delete_queue_item")) {
+    server.registerTool(
+      "sonarr_delete_queue_item",
+      {
+        title: "Remove an item from the download queue",
+        description:
+          "Remove a stuck or failed item from the download queue. Optionally blocklist the release or skip re-download.",
+        inputSchema: {
+          id: z.number().describe("Queue item ID"),
+          removeFromClient: z.boolean().optional().default(true).describe(
+            "Remove from download client",
+          ),
+          blocklist: z.boolean().optional().default(false).describe(
+            "Add release to blocklist",
+          ),
+          skipRedownload: z.boolean().optional().default(false).describe(
+            "Skip automatic re-download",
+          ),
+        },
+        outputSchema: { message: z.string() },
+        annotations: { destructiveHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("sonarr_delete_queue_item", async (args) => {
+        await sonarrClient.deleteQueueItem(
+          config,
+          args.id,
+          args.removeFromClient,
+          args.blocklist,
+          args.skipRedownload,
+        );
+        const result = {
+          message: `Queue item ${args.id} removed successfully`,
+        };
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("sonarr_grab_queue_item")) {
+    server.registerTool(
+      "sonarr_grab_queue_item",
+      {
+        title: "Force download a queue item",
+        description: "Force download a specific item in the queue.",
+        inputSchema: {
+          id: z.number().describe("Queue item ID"),
+        },
+        outputSchema: { message: z.string() },
+        annotations: { openWorldHint: false },
+      },
+      wrapToolHandler("sonarr_grab_queue_item", async (args) => {
+        await sonarrClient.grabQueueItem(config, args.id);
+        const result = {
+          message: `Queue item ${args.id} grab initiated successfully`,
+        };
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("sonarr_search_all_missing")) {
+    server.registerTool(
+      "sonarr_search_all_missing",
+      {
+        title: "Search for all missing episodes",
+        description:
+          "Trigger a backlog search for all monitored episodes that are missing. This searches indexers for every missing episode at once.",
+        inputSchema: {},
+        outputSchema: { message: z.string() },
+        annotations: { idempotentHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("sonarr_search_all_missing", async () => {
+        await sonarrClient.searchAllMissing(config);
+        const result = {
+          message: "Search for all missing episodes initiated successfully",
+        };
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("sonarr_mark_failed")) {
+    server.registerTool(
+      "sonarr_mark_failed",
+      {
+        title: "Mark a download history item as failed",
+        description:
+          "Mark a download as failed, which triggers Sonarr to search for and grab a replacement release.",
+        inputSchema: {
+          historyId: z.number().describe(
+            "History record ID from sonarr_get_history",
+          ),
+        },
+        outputSchema: { message: z.string() },
+        annotations: { openWorldHint: false },
+      },
+      wrapToolHandler("sonarr_mark_failed", async (args) => {
+        await sonarrClient.markHistoryFailed(config, args.historyId);
+        const result = {
+          message:
+            `History item ${args.historyId} marked as failed, re-download triggered`,
+        };
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
 }
