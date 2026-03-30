@@ -10,6 +10,7 @@ export type {
   SonarrQualityProfile,
   SonarrQueueItem,
   SonarrQueueResponse,
+  SonarrRelease,
   SonarrRootFolder,
   SonarrSearchResult,
   SonarrSeries,

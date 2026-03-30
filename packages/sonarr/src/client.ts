@@ -9,6 +9,7 @@ import type {
   SonarrQualityProfile,
   SonarrQueueItem,
   SonarrQueueResponse,
+  SonarrRelease,
   SonarrRootFolder,
   SonarrSeries,
   SonarrSeriesFilters,
@@ -645,5 +646,64 @@ export async function markHistoryFailed(
 ): Promise<void> {
   await makeRequest<void>(config, `/history/failed/${historyId}`, {
     method: "POST",
+  });
+}
+
+// Get available releases for an episode (interactive search)
+export function getReleases(
+  config: SonarrConfig,
+  episodeId: number,
+): Promise<SonarrRelease[]> {
+  return makeRequest<SonarrRelease[]>(
+    config,
+    `/release?episodeId=${episodeId}`,
+  );
+}
+
+// Grab a specific release (download it)
+export async function grabRelease(
+  config: SonarrConfig,
+  guid: string,
+  indexerId: number,
+): Promise<void> {
+  await makeRequest<void>(config, "/release", {
+    method: "POST",
+    body: JSON.stringify({ guid, indexerId }),
+  });
+}
+
+// Delete a queue item
+export async function deleteQueueItem(
+  config: SonarrConfig,
+  id: number,
+  removeFromClient = true,
+  blocklist = false,
+  skipRedownload = false,
+): Promise<void> {
+  const params = new URLSearchParams();
+  if (removeFromClient) params.append("removeFromClient", "true");
+  if (blocklist) params.append("blocklist", "true");
+  if (skipRedownload) params.append("skipRedownload", "true");
+
+  await makeRequest<void>(config, `/queue/${id}?${params}`, {
+    method: "DELETE",
+  });
+}
+
+// Grab (force download) a queue item
+export async function grabQueueItem(
+  config: SonarrConfig,
+  id: number,
+): Promise<void> {
+  await makeRequest<void>(config, `/queue/grab/${id}`, {
+    method: "POST",
+  });
+}
+
+// Search for all missing episodes
+export async function searchAllMissing(config: SonarrConfig): Promise<void> {
+  await makeRequest<void>(config, "/command", {
+    method: "POST",
+    body: JSON.stringify({ name: "MissingEpisodeSearch" }),
   });
 }
