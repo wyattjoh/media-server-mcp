@@ -13,6 +13,7 @@ export type {
   RadarrQualityProfile,
   RadarrQueueItem,
   RadarrQueueResponse,
+  RadarrRelease,
   RadarrRootFolder,
   RadarrSearchResult,
   RadarrSystemStatus,

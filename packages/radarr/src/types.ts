@@ -403,6 +403,44 @@ export interface RadarrCalendarMovie {
   added?: string;
 }
 
+export interface RadarrRelease {
+  guid: string;
+  quality: {
+    quality: { id: number; name: string; source: string; resolution: number };
+    revision: { version: number; real: number; isRepack: boolean };
+  };
+  customFormats: Array<{ id: number; name: string }>;
+  customFormatScore: number;
+  qualityWeight: number;
+  age: number;
+  ageHours: number;
+  ageMinutes: number;
+  size: number;
+  indexerId: number;
+  indexer: string;
+  releaseGroup?: string;
+  releaseHash?: string;
+  title: string;
+  sceneSource: boolean;
+  movieTitles: string[];
+  languages: Array<{ id: number; name: string }>;
+  approved: boolean;
+  temporarilyRejected: boolean;
+  rejected: boolean;
+  rejections: Array<{ reason: string; type: string }>;
+  publishDate: string;
+  commentUrl?: string;
+  downloadUrl?: string;
+  infoUrl?: string;
+  downloadAllowed: boolean;
+  releaseWeight: number;
+  seeders?: number;
+  leechers?: number;
+  protocol: string;
+  indexerFlags: number;
+  movieId: number;
+}
+
 export interface RadarrAddMovieOptions {
   title: string;
   qualityProfileId: number;

@@ -1,6 +1,7 @@
 import { getLogger } from "@logtape/logtape";
 import type {
   RadarrAddMovieOptions,
+  RadarrCalendarMovie,
   RadarrHealth,
   RadarrHistoryRecord,
   RadarrMovie,
@@ -10,6 +11,7 @@ import type {
   RadarrQualityProfile,
   RadarrQueueItem,
   RadarrQueueResponse,
+  RadarrRelease,
   RadarrRootFolder,
   RadarrSearchResult,
   RadarrSystemStatus,
@@ -539,6 +541,84 @@ export function getMovieHistory(
     config,
     `/history/movie?${params}`,
   );
+}
+
+// Get available releases for a movie (interactive search)
+export function getReleases(
+  config: RadarrConfig,
+  movieId: number,
+): Promise<RadarrRelease[]> {
+  return makeRequest<RadarrRelease[]>(
+    config,
+    `/release?movieId=${movieId}`,
+  );
+}
+
+// Grab a specific release (download it)
+export async function grabRelease(
+  config: RadarrConfig,
+  guid: string,
+  indexerId: number,
+): Promise<void> {
+  await makeRequest<void>(config, "/release", {
+    method: "POST",
+    body: JSON.stringify({ guid, indexerId }),
+  });
+}
+
+// Get calendar (upcoming movie releases)
+export function getCalendar(
+  config: RadarrConfig,
+  start?: string,
+  end?: string,
+  unmonitored = false,
+): Promise<RadarrCalendarMovie[]> {
+  const params = new URLSearchParams();
+  if (start) params.append("start", start);
+  if (end) params.append("end", end);
+  if (unmonitored) params.append("unmonitored", "true");
+
+  const queryString = params.toString();
+  return makeRequest<RadarrCalendarMovie[]>(
+    config,
+    `/calendar${queryString ? `?${queryString}` : ""}`,
+  );
+}
+
+// Delete a queue item
+export async function deleteQueueItem(
+  config: RadarrConfig,
+  id: number,
+  removeFromClient = true,
+  blocklist = false,
+  skipRedownload = false,
+): Promise<void> {
+  const params = new URLSearchParams();
+  if (removeFromClient) params.append("removeFromClient", "true");
+  if (blocklist) params.append("blocklist", "true");
+  if (skipRedownload) params.append("skipRedownload", "true");
+
+  await makeRequest<void>(config, `/queue/${id}?${params}`, {
+    method: "DELETE",
+  });
+}
+
+// Grab (force download) a queue item
+export async function grabQueueItem(
+  config: RadarrConfig,
+  id: number,
+): Promise<void> {
+  await makeRequest<void>(config, `/queue/grab/${id}`, {
+    method: "POST",
+  });
+}
+
+// Search for all missing movies
+export async function searchAllMissing(config: RadarrConfig): Promise<void> {
+  await makeRequest<void>(config, "/command", {
+    method: "POST",
+    body: JSON.stringify({ name: "MissingMoviesSearch" }),
+  });
 }
 
 // Mark a history item as failed (triggers re-download)
