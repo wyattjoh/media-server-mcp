@@ -489,6 +489,15 @@ export interface SonarrQueueResponse {
   records: SonarrQueueItem[];
 }
 
+export interface SonarrPaginatedApiResponse<T> {
+  page: number;
+  pageSize: number;
+  sortKey: string;
+  sortDirection: string;
+  totalRecords: number;
+  records: T[];
+}
+
 export interface SonarrAddSeriesOptions {
   title: string;
   qualityProfileId: number;

@@ -4,6 +4,7 @@ import type {
   SonarrCalendarItem,
   SonarrEpisode,
   SonarrHealth,
+  SonarrPaginatedApiResponse,
   SonarrQualityProfile,
   SonarrQueueItem,
   SonarrQueueResponse,
@@ -512,6 +513,52 @@ export async function diskScan(config: SonarrConfig): Promise<void> {
       name: "RescanSeries",
     }),
   });
+}
+
+// Get wanted/missing episodes (monitored but not downloaded)
+export function getWantedMissing(
+  config: SonarrConfig,
+  page = 1,
+  pageSize = 20,
+  sortKey = "airDateUtc",
+  sortDirection: "ascending" | "descending" = "descending",
+  includeSeries = false,
+): Promise<SonarrPaginatedApiResponse<SonarrEpisode>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    sortKey,
+    sortDirection,
+  });
+  if (includeSeries) params.append("includeSeries", "true");
+
+  return makeRequest<SonarrPaginatedApiResponse<SonarrEpisode>>(
+    config,
+    `/wanted/missing?${params}`,
+  );
+}
+
+// Get wanted/cutoff unmet episodes (downloaded but below quality cutoff)
+export function getWantedCutoff(
+  config: SonarrConfig,
+  page = 1,
+  pageSize = 20,
+  sortKey = "airDateUtc",
+  sortDirection: "ascending" | "descending" = "descending",
+  includeSeries = false,
+): Promise<SonarrPaginatedApiResponse<SonarrEpisode>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    sortKey,
+    sortDirection,
+  });
+  if (includeSeries) params.append("includeSeries", "true");
+
+  return makeRequest<SonarrPaginatedApiResponse<SonarrEpisode>>(
+    config,
+    `/wanted/cutoff?${params}`,
+  );
 }
 
 // Test connection
