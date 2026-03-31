@@ -1,13 +1,17 @@
 import { getLogger } from "@logtape/logtape";
 import type {
   RadarrAddMovieOptions,
+  RadarrCalendarMovie,
   RadarrHealth,
+  RadarrHistoryRecord,
   RadarrMovie,
   RadarrMovieFilters,
   RadarrMovieSortField,
+  RadarrPaginatedApiResponse,
   RadarrQualityProfile,
   RadarrQueueItem,
   RadarrQueueResponse,
+  RadarrRelease,
   RadarrRootFolder,
   RadarrSearchResult,
   RadarrSystemStatus,
@@ -454,6 +458,176 @@ export async function diskScan(config: RadarrConfig): Promise<void> {
     body: JSON.stringify({
       name: "RescanMovie",
     }),
+  });
+}
+
+// Get wanted/missing movies (monitored but not downloaded)
+export function getWantedMissing(
+  config: RadarrConfig,
+  page = 1,
+  pageSize = 20,
+  sortKey = "title",
+  sortDirection: "ascending" | "descending" = "ascending",
+): Promise<RadarrPaginatedApiResponse<RadarrMovie>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    sortKey,
+    sortDirection,
+  });
+  return makeRequest<RadarrPaginatedApiResponse<RadarrMovie>>(
+    config,
+    `/wanted/missing?${params}`,
+  );
+}
+
+// Get wanted/cutoff unmet movies (downloaded but below quality cutoff)
+export function getWantedCutoff(
+  config: RadarrConfig,
+  page = 1,
+  pageSize = 20,
+  sortKey = "title",
+  sortDirection: "ascending" | "descending" = "ascending",
+): Promise<RadarrPaginatedApiResponse<RadarrMovie>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    sortKey,
+    sortDirection,
+  });
+  return makeRequest<RadarrPaginatedApiResponse<RadarrMovie>>(
+    config,
+    `/wanted/cutoff?${params}`,
+  );
+}
+
+// Get download history (paginated)
+export function getHistory(
+  config: RadarrConfig,
+  page = 1,
+  pageSize = 20,
+  sortKey = "date",
+  sortDirection: "ascending" | "descending" = "descending",
+  eventType?: string,
+  includeMovie = false,
+): Promise<RadarrPaginatedApiResponse<RadarrHistoryRecord>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    sortKey,
+    sortDirection,
+  });
+  if (eventType) params.append("eventType", eventType);
+  if (includeMovie) params.append("includeMovie", "true");
+
+  return makeRequest<RadarrPaginatedApiResponse<RadarrHistoryRecord>>(
+    config,
+    `/history?${params}`,
+  );
+}
+
+// Get history for a specific movie
+export function getMovieHistory(
+  config: RadarrConfig,
+  movieId: number,
+  eventType?: string,
+  includeMovie = false,
+): Promise<RadarrHistoryRecord[]> {
+  const params = new URLSearchParams({ movieId: movieId.toString() });
+  if (eventType) params.append("eventType", eventType);
+  if (includeMovie) params.append("includeMovie", "true");
+
+  return makeRequest<RadarrHistoryRecord[]>(
+    config,
+    `/history/movie?${params}`,
+  );
+}
+
+// Get available releases for a movie (interactive search)
+export function getReleases(
+  config: RadarrConfig,
+  movieId: number,
+): Promise<RadarrRelease[]> {
+  return makeRequest<RadarrRelease[]>(
+    config,
+    `/release?movieId=${movieId}`,
+  );
+}
+
+// Grab a specific release (download it)
+export async function grabRelease(
+  config: RadarrConfig,
+  guid: string,
+  indexerId: number,
+): Promise<void> {
+  await makeRequest<void>(config, "/release", {
+    method: "POST",
+    body: JSON.stringify({ guid, indexerId }),
+  });
+}
+
+// Get calendar (upcoming movie releases)
+export function getCalendar(
+  config: RadarrConfig,
+  start?: string,
+  end?: string,
+  unmonitored = false,
+): Promise<RadarrCalendarMovie[]> {
+  const params = new URLSearchParams();
+  if (start) params.append("start", start);
+  if (end) params.append("end", end);
+  if (unmonitored) params.append("unmonitored", "true");
+
+  const queryString = params.toString();
+  return makeRequest<RadarrCalendarMovie[]>(
+    config,
+    `/calendar${queryString ? `?${queryString}` : ""}`,
+  );
+}
+
+// Delete a queue item
+export async function deleteQueueItem(
+  config: RadarrConfig,
+  id: number,
+  removeFromClient = true,
+  blocklist = false,
+  skipRedownload = false,
+): Promise<void> {
+  const params = new URLSearchParams();
+  if (removeFromClient) params.append("removeFromClient", "true");
+  if (blocklist) params.append("blocklist", "true");
+  if (skipRedownload) params.append("skipRedownload", "true");
+
+  await makeRequest<void>(config, `/queue/${id}?${params}`, {
+    method: "DELETE",
+  });
+}
+
+// Grab (force download) a queue item
+export async function grabQueueItem(
+  config: RadarrConfig,
+  id: number,
+): Promise<void> {
+  await makeRequest<void>(config, `/queue/grab/${id}`, {
+    method: "POST",
+  });
+}
+
+// Search for all missing movies
+export async function searchAllMissing(config: RadarrConfig): Promise<void> {
+  await makeRequest<void>(config, "/command", {
+    method: "POST",
+    body: JSON.stringify({ name: "MissingMoviesSearch" }),
+  });
+}
+
+// Mark a history item as failed (triggers re-download)
+export async function markHistoryFailed(
+  config: RadarrConfig,
+  historyId: number,
+): Promise<void> {
+  await makeRequest<void>(config, `/history/failed/${historyId}`, {
+    method: "POST",
   });
 }
 

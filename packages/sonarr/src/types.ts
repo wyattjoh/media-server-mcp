@@ -489,6 +489,35 @@ export interface SonarrQueueResponse {
   records: SonarrQueueItem[];
 }
 
+export interface SonarrPaginatedApiResponse<T> {
+  page: number;
+  pageSize: number;
+  sortKey: string;
+  sortDirection: string;
+  totalRecords: number;
+  records: T[];
+}
+
+export interface SonarrHistoryRecord {
+  id: number;
+  episodeId: number;
+  seriesId: number;
+  sourceTitle: string;
+  languages: Array<{ id: number; name: string }>;
+  quality: {
+    quality: { id: number; name: string; source: string; resolution: number };
+    revision: { version: number; real: number; isRepack: boolean };
+  };
+  customFormats: Array<{ id: number; name: string }>;
+  qualityCutoffNotMet: boolean;
+  date: string;
+  downloadId?: string;
+  eventType: string;
+  data: Record<string, string>;
+  episode?: SonarrEpisode;
+  series?: SonarrSeries;
+}
+
 export interface SonarrAddSeriesOptions {
   title: string;
   qualityProfileId: number;
@@ -510,4 +539,45 @@ export interface SonarrAddSeriesOptions {
     ignoreEpisodesWithoutFiles: boolean | undefined;
     searchForMissingEpisodes: boolean | undefined;
   } | undefined;
+}
+
+export interface SonarrRelease {
+  guid: string;
+  quality: {
+    quality: { id: number; name: string; source: string; resolution: number };
+    revision: { version: number; real: number; isRepack: boolean };
+  };
+  customFormats: Array<{ id: number; name: string }>;
+  customFormatScore: number;
+  qualityWeight: number;
+  age: number;
+  ageHours: number;
+  ageMinutes: number;
+  size: number;
+  indexerId: number;
+  indexer: string;
+  releaseGroup?: string;
+  releaseHash?: string;
+  title: string;
+  fullSeason: boolean;
+  sceneSource: boolean;
+  seasonNumber: number;
+  languages: Array<{ id: number; name: string }>;
+  approved: boolean;
+  temporarilyRejected: boolean;
+  rejected: boolean;
+  rejections: Array<{ reason: string; type: string }>;
+  publishDate: string;
+  commentUrl?: string;
+  downloadUrl?: string;
+  infoUrl?: string;
+  downloadAllowed: boolean;
+  releaseWeight: number;
+  seeders?: number;
+  leechers?: number;
+  protocol: string;
+  indexerFlags: number;
+  seriesId?: number;
+  episodeId?: number;
+  episodeIds?: number[];
 }

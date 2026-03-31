@@ -4,9 +4,12 @@ import type {
   SonarrCalendarItem,
   SonarrEpisode,
   SonarrHealth,
+  SonarrHistoryRecord,
+  SonarrPaginatedApiResponse,
   SonarrQualityProfile,
   SonarrQueueItem,
   SonarrQueueResponse,
+  SonarrRelease,
   SonarrRootFolder,
   SonarrSeries,
   SonarrSeriesFilters,
@@ -514,6 +517,52 @@ export async function diskScan(config: SonarrConfig): Promise<void> {
   });
 }
 
+// Get wanted/missing episodes (monitored but not downloaded)
+export function getWantedMissing(
+  config: SonarrConfig,
+  page = 1,
+  pageSize = 20,
+  sortKey = "airDateUtc",
+  sortDirection: "ascending" | "descending" = "descending",
+  includeSeries = false,
+): Promise<SonarrPaginatedApiResponse<SonarrEpisode>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    sortKey,
+    sortDirection,
+  });
+  if (includeSeries) params.append("includeSeries", "true");
+
+  return makeRequest<SonarrPaginatedApiResponse<SonarrEpisode>>(
+    config,
+    `/wanted/missing?${params}`,
+  );
+}
+
+// Get wanted/cutoff unmet episodes (downloaded but below quality cutoff)
+export function getWantedCutoff(
+  config: SonarrConfig,
+  page = 1,
+  pageSize = 20,
+  sortKey = "airDateUtc",
+  sortDirection: "ascending" | "descending" = "descending",
+  includeSeries = false,
+): Promise<SonarrPaginatedApiResponse<SonarrEpisode>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    sortKey,
+    sortDirection,
+  });
+  if (includeSeries) params.append("includeSeries", "true");
+
+  return makeRequest<SonarrPaginatedApiResponse<SonarrEpisode>>(
+    config,
+    `/wanted/cutoff?${params}`,
+  );
+}
+
 // Test connection
 export async function testConnection(
   config: SonarrConfig,
@@ -538,4 +587,123 @@ export async function testConnection(
       error: errorMessage,
     };
   }
+}
+
+// Get download history (paginated)
+export function getHistory(
+  config: SonarrConfig,
+  page = 1,
+  pageSize = 20,
+  sortKey = "date",
+  sortDirection: "ascending" | "descending" = "descending",
+  eventType?: string,
+  includeSeries = false,
+  includeEpisode = false,
+): Promise<SonarrPaginatedApiResponse<SonarrHistoryRecord>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    sortKey,
+    sortDirection,
+  });
+  if (eventType) params.append("eventType", eventType);
+  if (includeSeries) params.append("includeSeries", "true");
+  if (includeEpisode) params.append("includeEpisode", "true");
+
+  return makeRequest<SonarrPaginatedApiResponse<SonarrHistoryRecord>>(
+    config,
+    `/history?${params}`,
+  );
+}
+
+// Get history for a specific series
+export function getSeriesHistory(
+  config: SonarrConfig,
+  seriesId: number,
+  seasonNumber?: number,
+  eventType?: string,
+  includeSeries = false,
+  includeEpisode = false,
+): Promise<SonarrHistoryRecord[]> {
+  const params = new URLSearchParams({ seriesId: seriesId.toString() });
+  if (seasonNumber !== undefined) {
+    params.append("seasonNumber", seasonNumber.toString());
+  }
+  if (eventType) params.append("eventType", eventType);
+  if (includeSeries) params.append("includeSeries", "true");
+  if (includeEpisode) params.append("includeEpisode", "true");
+
+  return makeRequest<SonarrHistoryRecord[]>(
+    config,
+    `/history/series?${params}`,
+  );
+}
+
+// Mark a history item as failed (triggers re-download)
+export async function markHistoryFailed(
+  config: SonarrConfig,
+  historyId: number,
+): Promise<void> {
+  await makeRequest<void>(config, `/history/failed/${historyId}`, {
+    method: "POST",
+  });
+}
+
+// Get available releases for an episode (interactive search)
+export function getReleases(
+  config: SonarrConfig,
+  episodeId: number,
+): Promise<SonarrRelease[]> {
+  return makeRequest<SonarrRelease[]>(
+    config,
+    `/release?episodeId=${episodeId}`,
+  );
+}
+
+// Grab a specific release (download it)
+export async function grabRelease(
+  config: SonarrConfig,
+  guid: string,
+  indexerId: number,
+): Promise<void> {
+  await makeRequest<void>(config, "/release", {
+    method: "POST",
+    body: JSON.stringify({ guid, indexerId }),
+  });
+}
+
+// Delete a queue item
+export async function deleteQueueItem(
+  config: SonarrConfig,
+  id: number,
+  removeFromClient = true,
+  blocklist = false,
+  skipRedownload = false,
+): Promise<void> {
+  const params = new URLSearchParams();
+  if (removeFromClient) params.append("removeFromClient", "true");
+  if (blocklist) params.append("blocklist", "true");
+  if (skipRedownload) params.append("skipRedownload", "true");
+
+  await makeRequest<void>(config, `/queue/${id}?${params}`, {
+    method: "DELETE",
+  });
+}
+
+// Grab (force download) a queue item
+export async function grabQueueItem(
+  config: SonarrConfig,
+  id: number,
+): Promise<void> {
+  await makeRequest<void>(config, `/queue/grab/${id}`, {
+    method: "POST",
+  });
+}
+
+// Search for all missing episodes
+export async function searchAllMissing(config: SonarrConfig): Promise<void> {
+  await makeRequest<void>(config, "/command", {
+    method: "POST",
+    body: JSON.stringify({ name: "MissingEpisodeSearch" }),
+  });
 }

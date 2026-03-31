@@ -501,4 +501,406 @@ export function createRadarrTools(
       }),
     );
   }
+
+  // radarr_get_wanted_missing
+  if (isToolEnabled("radarr_get_wanted_missing")) {
+    server.registerTool(
+      "radarr_get_wanted_missing",
+      {
+        title: "Get movies that are monitored but not yet downloaded",
+        description:
+          "Get movies that are monitored but not yet downloaded. Use this to find movies that should have been downloaded but are still missing.",
+        inputSchema: {
+          page: z.number().optional().default(1).describe("Page number"),
+          pageSize: z.number().optional().default(20).describe(
+            "Number of results per page",
+          ),
+          sortKey: z.string().optional().default("title").describe(
+            "Field to sort by",
+          ),
+          sortDirection: z.enum(["ascending", "descending"]).optional()
+            .default("ascending").describe("Sort direction"),
+        },
+        outputSchema: {
+          page: z.number(),
+          pageSize: z.number(),
+          totalRecords: z.number(),
+          records: z.array(z.record(z.string(), z.unknown())),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_get_wanted_missing", async (args) => {
+        const results = await radarrClient.getWantedMissing(
+          config,
+          args.page,
+          args.pageSize,
+          args.sortKey,
+          args.sortDirection,
+        );
+        const structured = {
+          page: results.page,
+          pageSize: results.pageSize,
+          totalRecords: results.totalRecords,
+          records: results.records as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
+
+  // radarr_get_wanted_cutoff
+  if (isToolEnabled("radarr_get_wanted_cutoff")) {
+    server.registerTool(
+      "radarr_get_wanted_cutoff",
+      {
+        title:
+          "Get movies that have been downloaded but don't meet quality cutoff",
+        description:
+          "Get movies that have been downloaded but don't meet the quality cutoff. Use this to find movies that could be upgraded to better quality.",
+        inputSchema: {
+          page: z.number().optional().default(1).describe("Page number"),
+          pageSize: z.number().optional().default(20).describe(
+            "Number of results per page",
+          ),
+          sortKey: z.string().optional().default("title").describe(
+            "Field to sort by",
+          ),
+          sortDirection: z.enum(["ascending", "descending"]).optional()
+            .default("ascending").describe("Sort direction"),
+        },
+        outputSchema: {
+          page: z.number(),
+          pageSize: z.number(),
+          totalRecords: z.number(),
+          records: z.array(z.record(z.string(), z.unknown())),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_get_wanted_cutoff", async (args) => {
+        const results = await radarrClient.getWantedCutoff(
+          config,
+          args.page,
+          args.pageSize,
+          args.sortKey,
+          args.sortDirection,
+        );
+        const structured = {
+          page: results.page,
+          pageSize: results.pageSize,
+          totalRecords: results.totalRecords,
+          records: results.records as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
+
+  // radarr_get_history
+  if (isToolEnabled("radarr_get_history")) {
+    server.registerTool(
+      "radarr_get_history",
+      {
+        title: "Get download history for movies",
+        description:
+          "Get the download history showing grabbed, downloaded, failed, and deleted events. Use eventType to filter (e.g. 'grabbed', 'downloadFolderImported', 'downloadFailed', 'movieFileDeleted').",
+        inputSchema: {
+          page: z.number().optional().default(1).describe("Page number"),
+          pageSize: z.number().optional().default(20).describe(
+            "Number of results per page",
+          ),
+          sortKey: z.string().optional().default("date").describe(
+            "Field to sort by",
+          ),
+          sortDirection: z.enum(["ascending", "descending"]).optional()
+            .default("descending").describe("Sort direction"),
+          eventType: z.string().optional().describe(
+            "Filter by event type (grabbed, downloadFolderImported, downloadFailed, movieFileDeleted)",
+          ),
+          includeMovie: z.boolean().optional().default(false).describe(
+            "Whether to include movie data in results",
+          ),
+        },
+        outputSchema: {
+          page: z.number(),
+          pageSize: z.number(),
+          totalRecords: z.number(),
+          records: z.array(z.record(z.string(), z.unknown())),
+        },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_get_history", async (args) => {
+        const results = await radarrClient.getHistory(
+          config,
+          args.page,
+          args.pageSize,
+          args.sortKey,
+          args.sortDirection,
+          args.eventType,
+          args.includeMovie,
+        );
+        const structured = {
+          page: results.page,
+          pageSize: results.pageSize,
+          totalRecords: results.totalRecords,
+          records: results.records as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
+
+  // radarr_get_movie_history
+  if (isToolEnabled("radarr_get_movie_history")) {
+    server.registerTool(
+      "radarr_get_movie_history",
+      {
+        title: "Get download history for a specific movie",
+        description:
+          "Get the download history for a specific movie, showing all events like grabs, imports, and failures.",
+        inputSchema: {
+          movieId: z.number().describe("Movie ID in Radarr"),
+          eventType: z.string().optional().describe(
+            "Filter by event type",
+          ),
+          includeMovie: z.boolean().optional().default(false).describe(
+            "Whether to include movie data",
+          ),
+        },
+        outputSchema: { data: z.array(z.record(z.string(), z.unknown())) },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_get_movie_history", async (args) => {
+        const results = await radarrClient.getMovieHistory(
+          config,
+          args.movieId,
+          args.eventType,
+          args.includeMovie,
+        );
+        const structured = {
+          data: results as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
+
+  // radarr_get_calendar
+  if (isToolEnabled("radarr_get_calendar")) {
+    server.registerTool(
+      "radarr_get_calendar",
+      {
+        title: "Get upcoming movie releases",
+        description:
+          "Get movies with upcoming physical, digital, or theatrical releases within a date range.",
+        inputSchema: {
+          start: z.string().optional().describe(
+            "Start date (ISO format, optional)",
+          ),
+          end: z.string().optional().describe(
+            "End date (ISO format, optional)",
+          ),
+          unmonitored: z.boolean().optional().default(false).describe(
+            "Include unmonitored movies",
+          ),
+        },
+        outputSchema: { data: z.array(z.record(z.string(), z.unknown())) },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_get_calendar", async (args) => {
+        const results = await radarrClient.getCalendar(
+          config,
+          args.start,
+          args.end,
+          args.unmonitored,
+        );
+        const structured = {
+          data: results as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("radarr_get_releases")) {
+    server.registerTool(
+      "radarr_get_releases",
+      {
+        title: "Browse available releases for a movie",
+        description:
+          "Search indexers for available releases of a specific movie. Returns a list of releases with quality, size, seeders, and approval status. Use radarr_grab_release to download a specific release.",
+        inputSchema: { movieId: z.number().describe("Movie ID in Radarr") },
+        outputSchema: { data: z.array(z.record(z.string(), z.unknown())) },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_get_releases", async (args) => {
+        const results = await radarrClient.getReleases(config, args.movieId);
+        const structured = {
+          data: results as unknown as Record<string, unknown>[],
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+          structuredContent: structured,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("radarr_grab_release")) {
+    server.registerTool(
+      "radarr_grab_release",
+      {
+        title: "Download a specific release for a movie",
+        description:
+          "Grab (download) a specific release found via radarr_get_releases. Requires the guid and indexerId from the release.",
+        inputSchema: {
+          guid: z.string().describe("Release GUID from radarr_get_releases"),
+          indexerId: z.number().describe(
+            "Indexer ID from radarr_get_releases",
+          ),
+        },
+        outputSchema: { message: z.string() },
+        annotations: { openWorldHint: false },
+      },
+      wrapToolHandler("radarr_grab_release", async (args) => {
+        await radarrClient.grabRelease(config, args.guid, args.indexerId);
+        const result = { message: "Release grabbed successfully" };
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("radarr_delete_queue_item")) {
+    server.registerTool(
+      "radarr_delete_queue_item",
+      {
+        title: "Remove an item from the download queue",
+        description:
+          "Remove a stuck or failed item from the download queue. Optionally blocklist the release or skip re-download.",
+        inputSchema: {
+          id: z.number().describe("Queue item ID"),
+          removeFromClient: z.boolean().optional().default(true).describe(
+            "Remove from download client",
+          ),
+          blocklist: z.boolean().optional().default(false).describe(
+            "Add release to blocklist",
+          ),
+          skipRedownload: z.boolean().optional().default(false).describe(
+            "Skip automatic re-download",
+          ),
+        },
+        outputSchema: { message: z.string() },
+        annotations: { destructiveHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_delete_queue_item", async (args) => {
+        await radarrClient.deleteQueueItem(
+          config,
+          args.id,
+          args.removeFromClient,
+          args.blocklist,
+          args.skipRedownload,
+        );
+        const result = {
+          message: `Queue item ${args.id} removed successfully`,
+        };
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("radarr_grab_queue_item")) {
+    server.registerTool(
+      "radarr_grab_queue_item",
+      {
+        title: "Force download a queue item",
+        description: "Force download a specific item in the queue.",
+        inputSchema: { id: z.number().describe("Queue item ID") },
+        outputSchema: { message: z.string() },
+        annotations: { openWorldHint: false },
+      },
+      wrapToolHandler("radarr_grab_queue_item", async (args) => {
+        await radarrClient.grabQueueItem(config, args.id);
+        const result = {
+          message: `Queue item ${args.id} grab initiated successfully`,
+        };
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("radarr_search_all_missing")) {
+    server.registerTool(
+      "radarr_search_all_missing",
+      {
+        title: "Search for all missing movies",
+        description:
+          "Trigger a backlog search for all monitored movies that are missing. This searches indexers for every missing movie at once.",
+        inputSchema: {},
+        outputSchema: { message: z.string() },
+        annotations: { idempotentHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("radarr_search_all_missing", async () => {
+        await radarrClient.searchAllMissing(config);
+        const result = {
+          message: "Search for all missing movies initiated successfully",
+        };
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
+
+  if (isToolEnabled("radarr_mark_failed")) {
+    server.registerTool(
+      "radarr_mark_failed",
+      {
+        title: "Mark a download history item as failed",
+        description:
+          "Mark a download as failed, which triggers Radarr to search for and grab a replacement release.",
+        inputSchema: {
+          historyId: z.number().describe(
+            "History record ID from radarr_get_history",
+          ),
+        },
+        outputSchema: { message: z.string() },
+        annotations: { openWorldHint: false },
+      },
+      wrapToolHandler("radarr_mark_failed", async (args) => {
+        await radarrClient.markHistoryFailed(config, args.historyId);
+        const result = {
+          message:
+            `History item ${args.historyId} marked as failed, re-download triggered`,
+        };
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
 }
