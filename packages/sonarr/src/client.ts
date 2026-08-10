@@ -619,7 +619,7 @@ export function getHistory(
   pageSize = 20,
   sortKey = "date",
   sortDirection: "ascending" | "descending" = "descending",
-  eventType?: string,
+  eventType?: number,
   includeSeries = false,
   includeEpisode = false,
 ): Promise<SonarrPaginatedApiResponse<SonarrHistoryRecord>> {
@@ -629,7 +629,9 @@ export function getHistory(
     sortKey,
     sortDirection,
   });
-  if (eventType) params.append("eventType", eventType);
+  if (eventType !== undefined) {
+    params.append("eventType", eventType.toString());
+  }
   if (includeSeries) params.append("includeSeries", "true");
   if (includeEpisode) params.append("includeEpisode", "true");
 

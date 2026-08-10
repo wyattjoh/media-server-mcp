@@ -4,6 +4,13 @@ import type { RadarrConfig, RadarrMovie } from "@wyattjoh/radarr";
 import * as radarrClient from "@wyattjoh/radarr";
 import { wrapToolHandler } from "./tool-wrapper.ts";
 
+const RADARR_PAGINATED_HISTORY_EVENT_TYPE_IDS = {
+  grabbed: 1,
+  downloadFolderImported: 3,
+  downloadFailed: 4,
+  movieFileDeleted: 5,
+} as const;
+
 export function createRadarrTools(
   server: McpServer,
   config: Readonly<RadarrConfig>,
@@ -619,7 +626,12 @@ export function createRadarrTools(
           ),
           sortDirection: z.enum(["ascending", "descending"]).optional()
             .default("descending").describe("Sort direction"),
-          eventType: z.string().optional().describe(
+          eventType: z.enum([
+            "grabbed",
+            "downloadFolderImported",
+            "downloadFailed",
+            "movieFileDeleted",
+          ]).optional().describe(
             "Filter by event type (grabbed, downloadFolderImported, downloadFailed, movieFileDeleted)",
           ),
           includeMovie: z.boolean().optional().default(false).describe(
@@ -641,7 +653,9 @@ export function createRadarrTools(
           args.pageSize,
           args.sortKey,
           args.sortDirection,
-          args.eventType,
+          args.eventType === undefined
+            ? undefined
+            : RADARR_PAGINATED_HISTORY_EVENT_TYPE_IDS[args.eventType],
           args.includeMovie,
         );
         const structured = {

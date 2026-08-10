@@ -4,6 +4,13 @@ import type { SonarrConfig, SonarrSeries } from "@wyattjoh/sonarr";
 import * as sonarrClient from "@wyattjoh/sonarr";
 import { wrapToolHandler } from "./tool-wrapper.ts";
 
+const SONARR_PAGINATED_HISTORY_EVENT_TYPE_IDS = {
+  grabbed: 1,
+  downloadFolderImported: 3,
+  downloadFailed: 4,
+  episodeFileDeleted: 5,
+} as const;
+
 export function createSonarrTools(
   server: McpServer,
   config: Readonly<SonarrConfig>,
@@ -943,7 +950,12 @@ export function createSonarrTools(
           ),
           sortDirection: z.enum(["ascending", "descending"]).optional()
             .default("descending").describe("Sort direction"),
-          eventType: z.string().optional().describe(
+          eventType: z.enum([
+            "grabbed",
+            "downloadFolderImported",
+            "downloadFailed",
+            "episodeFileDeleted",
+          ]).optional().describe(
             "Filter by event type (grabbed, downloadFolderImported, downloadFailed, episodeFileDeleted)",
           ),
           includeSeries: z.boolean().optional().default(false).describe(
@@ -968,7 +980,9 @@ export function createSonarrTools(
           args.pageSize,
           args.sortKey,
           args.sortDirection,
-          args.eventType,
+          args.eventType === undefined
+            ? undefined
+            : SONARR_PAGINATED_HISTORY_EVENT_TYPE_IDS[args.eventType],
           args.includeSeries,
           args.includeEpisode,
         );
