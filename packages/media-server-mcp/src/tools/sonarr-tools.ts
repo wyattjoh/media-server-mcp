@@ -548,10 +548,10 @@ export function createSonarrTools(
         title: "Get the download queue",
         description: "Get the download queue",
         inputSchema: {
-          limit: z.number().optional().describe(
+          limit: z.number().int().positive().optional().describe(
             "Maximum number of results to return",
           ),
-          skip: z.number().optional().describe(
+          skip: z.number().int().nonnegative().optional().describe(
             "Number of results to skip (for pagination)",
           ),
         },
@@ -565,17 +565,24 @@ export function createSonarrTools(
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_queue", async (args) => {
-        const results = await sonarrClient.getQueue(
+        const queue = await sonarrClient.getQueuePage(
           config,
           args.limit,
           args.skip,
         );
+        const structured = {
+          data: queue.records,
+          total: queue.totalRecords,
+          returned: queue.records.length,
+          skip: args.skip ?? 0,
+          limit: args.limit,
+        };
         return {
           content: [{
             type: "text",
-            text: JSON.stringify(results, null, 2),
+            text: JSON.stringify(structured, null, 2),
           }],
-          structuredContent: results as unknown as Record<string, unknown>,
+          structuredContent: structured,
         };
       }),
     );

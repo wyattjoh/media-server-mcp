@@ -2,6 +2,7 @@ import { assertEquals } from "@std/assert";
 import {
   createSonarrConfig,
   getHistory,
+  getQueuePage,
   getReleases,
   getWantedMissing,
   testConnection,
@@ -56,6 +57,35 @@ Deno.test("getWantedMissing - returns paginated missing episodes", async () => {
     assertEquals(result.totalRecords, 1);
     assertEquals(result.records.length, 1);
     assertEquals(result.records[0].hasFile, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("getQueuePage - preserves queue pagination metadata", async () => {
+  const config = createSonarrConfig("http://localhost:8989", "test-key");
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = () => {
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({
+          page: 2,
+          pageSize: 20,
+          sortKey: "timeleft",
+          sortDirection: "ascending",
+          totalRecords: 21,
+          records: [{ id: 1, seriesId: 2, episodeId: 3 }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+  };
+
+  try {
+    const result = await getQueuePage(config, 20, 20);
+    assertEquals(result.totalRecords, 21);
+    assertEquals(result.records.length, 1);
+    assertEquals(result.records[0].id, 1);
   } finally {
     globalThis.fetch = originalFetch;
   }

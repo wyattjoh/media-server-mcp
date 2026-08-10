@@ -394,12 +394,19 @@ export async function getCalendar(
   };
 }
 
-// Get queue
-export async function getQueue(
+/**
+ * Fetches one page of the Sonarr download queue with its pagination metadata.
+ *
+ * @param config Sonarr connection configuration.
+ * @param limit Maximum records to request from Sonarr.
+ * @param skip Number of records to skip before the requested page.
+ * @returns The queue records and Sonarr's pagination metadata.
+ */
+export function getQueuePage(
   config: SonarrConfig,
   limit?: number,
   skip?: number,
-): Promise<SonarrQueueItem[]> {
+): Promise<SonarrQueueResponse> {
   const params = new URLSearchParams();
   if (limit !== undefined) params.append("pageSize", limit.toString());
   if (skip !== undefined) {
@@ -409,7 +416,23 @@ export async function getQueue(
   const queryString = params.toString();
   const endpoint = `/queue${queryString ? `?${queryString}` : ""}`;
 
-  const response = await makeRequest<SonarrQueueResponse>(config, endpoint);
+  return makeRequest<SonarrQueueResponse>(config, endpoint);
+}
+
+/**
+ * Fetches the records from one page of the Sonarr download queue.
+ *
+ * @param config Sonarr connection configuration.
+ * @param limit Maximum records to request from Sonarr.
+ * @param skip Number of records to skip before the requested page.
+ * @returns The queue records without pagination metadata.
+ */
+export async function getQueue(
+  config: SonarrConfig,
+  limit?: number,
+  skip?: number,
+): Promise<SonarrQueueItem[]> {
+  const response = await getQueuePage(config, limit, skip);
   return response.records;
 }
 
