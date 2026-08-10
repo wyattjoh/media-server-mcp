@@ -290,3 +290,60 @@ Deno.test(
     }
   },
 );
+
+Deno.test(
+  "sonarr_get_queue - returns paginated structuredContent",
+  async () => {
+    const fetchStub = stub(
+      globalThis,
+      "fetch",
+      () =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              page: 1,
+              pageSize: 20,
+              totalRecords: 1,
+              records: [{ id: 1, title: "Downloading episode" }],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        ),
+    );
+
+    try {
+      const server = new McpServer({ name: "test", version: "1.0.0" });
+      const config = createSonarrConfig(
+        "http://localhost:8989",
+        "test-api-key",
+      );
+      createSonarrTools(server, config, () => true);
+
+      const { client, cleanup } = await createConnectedClient(server);
+
+      try {
+        const result = await client.callTool({
+          name: "sonarr_get_queue",
+          arguments: { limit: 20, skip: 0 },
+        });
+
+        assertExists(result.structuredContent);
+        assertEquals(result.isError, undefined);
+
+        const structured = result.structuredContent as Record<string, unknown>;
+        assertEquals(structured.total, 1);
+        assertEquals(structured.returned, 1);
+        assertEquals(structured.skip, 0);
+        assertEquals(structured.limit, 20);
+        assertEquals(structured.data, [{
+          id: 1,
+          title: "Downloading episode",
+        }]);
+      } finally {
+        await cleanup();
+      }
+    } finally {
+      fetchStub.restore();
+    }
+  },
+);
