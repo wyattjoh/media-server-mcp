@@ -191,6 +191,7 @@ TOOL_CONFIG_PATH=./tools.json # Path to JSON configuration file for tool setting
 - **SSE Mode Security**: SSE mode requires `MCP_AUTH_TOKEN` environment variable and validates Bearer tokens on all endpoints except `/health`
 - **SSE Deprecation**: SSE transport is deprecated. A warning is logged on startup when `--sse` is used. Prefer Streamable HTTP (`--http`) for remote deployments.
 - **Streamable HTTP Mode Security**: HTTP mode requires `MCP_AUTH_TOKEN` when binding to non-loopback addresses. When set, all endpoints except `/health` require a valid Bearer token. Localhost development (`--host 127.0.0.1`) can run without auth.
+- **MCP 2026-07-28**: Streamable HTTP is served by `createMcpHandler()` from `@modelcontextprotocol/server`, which provides stateless modern requests and 2025-era stateless compatibility. Do not reintroduce session maps or `Mcp-Session-Id` handling. Stdio uses `serveStdio()` so it can negotiate either era. Keep `--sse` on `@modelcontextprotocol/server-legacy/sse` only as the deprecated legacy bridge.
 
 ## Available Tools by Service
 
@@ -439,7 +440,7 @@ All tool files follow the same pattern:
 Example structure:
 
 ```typescript
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { wrapToolHandler } from "../tool-wrapper.ts";
 

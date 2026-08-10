@@ -223,7 +223,7 @@ curl -H "Authorization: Bearer your-secure-token" \
 
 ### Streamable HTTP Mode (Recommended for Remote)
 
-Streamable HTTP is the recommended transport for remote MCP server deployments. It uses a single `/mcp` endpoint with session management via the `Mcp-Session-Id` header, following the [MCP 2025-03-26 specification](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports).
+Streamable HTTP is the recommended transport for remote MCP server deployments. It supports the stateless [MCP 2026-07-28 specification](https://modelcontextprotocol.io/specification/2026-07-28) and the SDK's 2025-era stateless compatibility path. The deprecated `--sse` mode remains available for legacy SSE clients during the transition.
 
 #### Running in Streamable HTTP Mode
 
@@ -237,9 +237,8 @@ deno run --allow-all jsr:@wyattjoh/media-server-mcp --http --port 8080 --host 12
 
 #### Endpoints
 
-- **`POST /mcp`** - Send JSON-RPC requests (Initialize creates a session; subsequent requests require `Mcp-Session-Id` header)
-- **`GET /mcp`** - Open SSE stream for server-initiated notifications (requires `Mcp-Session-Id` header)
-- **`DELETE /mcp`** - Terminate a session (requires `Mcp-Session-Id` header)
+- **`POST /mcp`** - Send JSON-RPC requests. MCP 2026-07-28 clients use `server/discover` and include matching `MCP-Protocol-Version` and `Mcp-Method` headers on every request. `tools/call`, `resources/read`, and `prompts/get` also require `Mcp-Name`.
+- **`GET /mcp`** and **`DELETE /mcp`** - Not supported by the stateless 2026-07-28 transport. Use `subscriptions/listen` for opted-in notifications.
 - **`GET /health`** - Health check endpoint (no authentication required)
 
 #### Authentication
@@ -279,7 +278,8 @@ claude mcp add --transport http media-server http://your-server:3000/mcp \
 - **Bind to specific interfaces** using `--host` to limit which network interfaces accept connections (e.g., `--host 127.0.0.1` for localhost only)
 - **Use a reverse proxy** for rate limiting, request size limits, and TLS termination
 - **Restrict network access** using firewall rules or VPN to limit who can reach the server
-- **CORS**: Both SSE and Streamable HTTP transports set `Access-Control-Allow-Origin: *` to support MCP clients across environments. Bearer tokens in `Authorization` headers are not automatically sent by browsers, but if tighter origin control is needed, configure CORS restrictions in your reverse proxy
+- **CORS**: Both SSE and Streamable HTTP transports set `Access-Control-Allow-Origin: *` to support MCP clients across environments. Bearer tokens in `Authorization` headers are not automatically sent by browsers, but if tighter origin control is needed, configure CORS restrictions in your reverse proxy.
+- **Modern HTTP headers**: Ensure reverse proxies preserve `MCP-Protocol-Version`, `Mcp-Method`, and `Mcp-Name`, because the 2026-07-28 handler validates them against each JSON-RPC request.
 
 ## Tool Configuration System
 

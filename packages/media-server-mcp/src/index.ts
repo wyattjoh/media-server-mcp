@@ -3,7 +3,7 @@
 import "@std/dotenv/load";
 import process from "node:process";
 import { Command } from "@cliffy/command";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import deno from "../deno.json" with { type: "json" };
 import { createSSEServer } from "./transports/sse.ts";
 import { createStdioServer } from "./transports/stdio.ts";
@@ -57,8 +57,7 @@ interface ServiceConfig {
 }
 
 interface ServerState extends ServiceConfig {
-  server: McpServer;
-  transport?: { close: () => Promise<void> };
+  transport: { close: () => Promise<void> } | undefined;
 }
 
 /**
@@ -100,9 +99,7 @@ async function createServer(): Promise<ServerState> {
   loadConfig(config);
   await testConnections(config);
 
-  const server = await createMcpServerWithTools(config);
-
-  return { ...config, server };
+  return { ...config, transport: undefined };
 }
 
 function loadConfig(state: ServiceConfig): void {
@@ -222,7 +219,7 @@ async function setupTools(
     );
   }
 
-  logger.info("Tools registration completed");
+  logger.debug("Tools registration completed");
 
   // Register resources
   if (config.radarrConfig) createRadarrResources(server, config.radarrConfig);
@@ -309,7 +306,9 @@ async function testConnections(
 }
 
 async function runStdioServer(state: ServerState): Promise<void> {
-  state.transport = await createStdioServer({ server: state.server });
+  state.transport = await createStdioServer({
+    createMcpServer: () => createMcpServerWithTools(state),
+  });
 }
 
 function runSSEServer(
@@ -326,7 +325,7 @@ function runSSEServer(
   // Start SSE server with authentication token
   state.transport = createSSEServer({
     port,
-    server: state.server,
+    createMcpServer: () => createMcpServerWithTools(state),
     authToken: state.authToken,
   });
 }
@@ -365,9 +364,6 @@ function setupGracefulShutdown(state: ServerState): void {
       if (state.transport) {
         await state.transport.close();
       }
-
-      // Then close the MCP server
-      await state.server.close();
 
       logger.info("Graceful shutdown completed");
     } catch (error) {

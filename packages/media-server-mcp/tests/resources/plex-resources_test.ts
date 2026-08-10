@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { createPlexResources } from "../../src/resources/plex-resources.ts";
 import { createPlexConfig } from "@wyattjoh/plex";
 

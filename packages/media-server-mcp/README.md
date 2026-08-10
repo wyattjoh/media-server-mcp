@@ -61,8 +61,9 @@ deno run --allow-all jsr:@wyattjoh/media-server-mcp --sse --port 4000
 
 The server supports the following command line options:
 
-- `--sse` - Run server in SSE (Server-Sent Events) mode over HTTP instead of stdio
-- `-p, --port <port>` - Port to run SSE server on (default: 3000)
+- `--sse` - Run the deprecated legacy SSE transport instead of stdio
+- `--http` - Run dual-era Streamable HTTP, supporting MCP 2026-07-28 and the 2025-era stateless compatibility path
+- `-p, --port <port>` - Port to run an HTTP server on (default: 3000)
 - `--help` - Show help information
 - `--version` - Show version information
 
@@ -72,10 +73,10 @@ The server supports the following command line options:
 # Run in stdio mode (default)
 deno run --allow-all jsr:@wyattjoh/media-server-mcp
 
-# Run in SSE mode on default port (3000)
-deno run --allow-all jsr:@wyattjoh/media-server-mcp --sse
+# Run in Streamable HTTP mode on the default port
+deno run --allow-all jsr:@wyattjoh/media-server-mcp --http
 
-# Run in SSE mode on custom port
+# Run the legacy SSE transport on a custom port
 deno run --allow-all jsr:@wyattjoh/media-server-mcp --sse --port 8080
 ```
 
@@ -165,13 +166,19 @@ This package uses the following client libraries:
 # Run development server (stdio mode)
 deno task dev
 
-# Run development server (SSE mode)
+# Run development server (Streamable HTTP mode)
+deno task dev:http
+
+# Run development server (legacy SSE mode)
 deno task dev:sse
 
 # Run production server (stdio mode)
 deno task start
 
-# Run production server (SSE mode)
+# Run production server (Streamable HTTP mode)
+deno task start:http
+
+# Run production server (legacy SSE mode)
 deno task start:sse
 
 # Run tests

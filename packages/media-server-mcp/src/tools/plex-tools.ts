@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { PlexConfig } from "@wyattjoh/plex";
 import * as plexClient from "@wyattjoh/plex";

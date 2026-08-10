@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/server-legacy/sse";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { getLogger } from "../logging.ts";
 import { validateBearerToken } from "../auth.ts";
 import { closeTransportServer, readBody, setCorsHeaders } from "./shared.ts";
@@ -10,12 +10,12 @@ const MAX_SESSIONS = 100;
 
 interface SSEServerOptions {
   port: number;
-  server: McpServer;
+  createMcpServer: () => Promise<McpServer>;
   authToken: string;
 }
 
 export function createSSEServer(
-  { port, server, authToken }: SSEServerOptions,
+  { port, createMcpServer, authToken }: SSEServerOptions,
 ): { close: () => Promise<void> } {
   const logger = getLogger(["media-server-mcp", "transport", "sse"]);
 
@@ -85,7 +85,8 @@ export function createSSEServer(
 
         transports.set(sessionId, transport);
 
-        // Connect MCP server to this transport
+        // Each legacy SSE session gets its own server instance.
+        const server = await createMcpServer();
         await server.connect(transport);
 
         // Handle cleanup when connection closes

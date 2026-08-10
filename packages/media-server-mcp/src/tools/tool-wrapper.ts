@@ -1,14 +1,12 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import type {
-  ServerNotification,
-  ServerRequest,
-} from "@modelcontextprotocol/sdk/types.js";
+  CallToolResult,
+  ServerContext,
+} from "@modelcontextprotocol/server";
 import { getLogger } from "../logging.ts";
 
 const logger = getLogger(["media-server-mcp", "tools"]);
 
-type Extra = RequestHandlerExtra<ServerRequest, ServerNotification>;
+type Extra = ServerContext;
 
 /**
  * Wraps a tool handler callback to centralize error handling, timing, and
@@ -27,6 +25,7 @@ export function wrapToolHandler<Args>(
   ) => CallToolResult | Promise<CallToolResult>,
 ): (args: Args, extra: Extra) => Promise<CallToolResult> {
   return async (args: Args, extra: Extra): Promise<CallToolResult> => {
+    logger.info("Tool called: {toolName}", { toolName });
     const start = Date.now();
     try {
       const result = await handler(args, extra);

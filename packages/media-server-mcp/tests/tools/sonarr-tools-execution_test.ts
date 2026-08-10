@@ -1,8 +1,7 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { stub } from "@std/testing/mock";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
+import { Client } from "@modelcontextprotocol/client";
 import { createSonarrConfig } from "@wyattjoh/sonarr";
 import { createSonarrTools } from "../../src/tools/sonarr-tools.ts";
 
