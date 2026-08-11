@@ -49,7 +49,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -87,7 +87,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -125,7 +125,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -167,7 +167,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -203,7 +203,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -295,7 +295,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -378,7 +378,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -412,7 +412,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -458,7 +458,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -498,7 +498,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -538,7 +538,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -578,7 +578,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -614,7 +614,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -650,7 +650,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -686,7 +686,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -724,7 +724,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -757,7 +757,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -790,7 +790,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -828,7 +828,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -866,7 +866,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -904,7 +904,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -942,7 +942,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -984,7 +984,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -1020,7 +1020,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -1058,7 +1058,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -1095,7 +1095,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -1132,7 +1132,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -1170,7 +1170,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -1204,7 +1204,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -1238,7 +1238,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -1280,7 +1280,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -1312,7 +1312,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -1344,7 +1344,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -1369,7 +1369,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -1400,10 +1400,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: { countries: result } as unknown as Record<
-            string,
-            unknown
-          >,
+          structuredContent: { countries: result },
         };
       }),
     );
@@ -1430,10 +1427,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: { languages: result } as unknown as Record<
-            string,
-            unknown
-          >,
+          structuredContent: { languages: result },
         };
       }),
     );
@@ -1463,7 +1457,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -1493,7 +1487,7 @@ export function createTMDBTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );

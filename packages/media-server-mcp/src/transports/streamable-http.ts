@@ -2,7 +2,6 @@ import { createServer } from "node:http";
 import { createMcpHandler, type McpServer } from "@modelcontextprotocol/server";
 import {
   type NodeIncomingMessageLike,
-  type NodeServerResponseLike,
   toNodeHandler,
 } from "@modelcontextprotocol/node";
 import { validateBearerToken } from "../auth.ts";
@@ -90,13 +89,15 @@ export function createStreamableHTTPServer(
         return;
       }
 
-      // `node:http` models optional request fields as `T | undefined`, while
-      // the adapter uses optional properties. The values are passed through
-      // unchanged and satisfy the adapter's runtime contract.
-      await nodeMcpHandler(
-        req as unknown as NodeIncomingMessageLike,
-        res as NodeServerResponseLike,
-      );
+      // Normalize node:http's optional request fields to the adapter's
+      // structural request type without changing the request body stream.
+      const nodeRequest: NodeIncomingMessageLike = {
+        method: req.method ?? "GET",
+        url: req.url ?? "/",
+        headers: req.headers,
+        [Symbol.asyncIterator]: () => req[Symbol.asyncIterator](),
+      };
+      await nodeMcpHandler(nodeRequest, res);
     } catch (error) {
       logger.error("Unhandled error in HTTP handler", {
         method: req.method,

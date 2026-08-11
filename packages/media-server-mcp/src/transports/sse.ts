@@ -129,11 +129,7 @@ export function createSSEServer(
           return;
         }
 
-        await transport.handlePostMessage(
-          req,
-          res,
-          body as Record<string, unknown>,
-        );
+        await transport.handlePostMessage(req, res, body);
       } else if (pathname === "/health") {
         // Health check endpoint
         res.writeHead(200, { "Content-Type": "application/json" });

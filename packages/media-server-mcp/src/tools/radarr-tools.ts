@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import type { RadarrConfig, RadarrMovie } from "@wyattjoh/radarr";
+import type { RadarrConfig } from "@wyattjoh/radarr";
 import * as radarrClient from "@wyattjoh/radarr";
 import { wrapToolHandler } from "./tool-wrapper.ts";
 
@@ -53,7 +53,7 @@ export function createRadarrTools(
             type: "text",
             text: JSON.stringify(results, null, 2),
           }],
-          structuredContent: results as unknown as Record<string, unknown>,
+          structuredContent: results,
         };
       }),
     );
@@ -107,7 +107,7 @@ export function createRadarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -293,7 +293,7 @@ export function createRadarrTools(
             type: "text",
             text: JSON.stringify(results, null, 2),
           }],
-          structuredContent: results as unknown as Record<string, unknown>,
+          structuredContent: results,
         };
       }),
     );
@@ -358,7 +358,7 @@ export function createRadarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -385,13 +385,7 @@ export function createRadarrTools(
           radarrClient.getQualityProfiles(config),
           radarrClient.getRootFolders(config),
         ]);
-        const result = {
-          qualityProfiles: qualityProfiles as unknown as Record<
-            string,
-            unknown
-          >[],
-          rootFolders: rootFolders as unknown as Record<string, unknown>[],
-        };
+        const result = { qualityProfiles, rootFolders };
         return {
           content: [{
             type: "text",
@@ -435,6 +429,16 @@ export function createRadarrTools(
         // First get the current movie data
         const currentMovie = await radarrClient.getMovie(config, args.id);
 
+        if (!currentMovie) {
+          return {
+            content: [{
+              type: "text",
+              text: `Movie ${args.id} not found`,
+            }],
+            isError: true,
+          };
+        }
+
         // Update only the specified fields
         const updatedMovie = {
           ...currentMovie,
@@ -445,7 +449,7 @@ export function createRadarrTools(
           ...(args.minimumAvailability !== undefined &&
             { minimumAvailability: args.minimumAvailability }),
           ...(args.tags !== undefined && { tags: args.tags }),
-        } as RadarrMovie;
+        };
 
         const result = await radarrClient.updateMovie(config, updatedMovie);
         return {
@@ -453,7 +457,7 @@ export function createRadarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -548,7 +552,7 @@ export function createRadarrTools(
           page: results.page,
           pageSize: results.pageSize,
           totalRecords: results.totalRecords,
-          records: results.records as unknown as Record<string, unknown>[],
+          records: results.records,
         };
         return {
           content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
@@ -598,7 +602,7 @@ export function createRadarrTools(
           page: results.page,
           pageSize: results.pageSize,
           totalRecords: results.totalRecords,
-          records: results.records as unknown as Record<string, unknown>[],
+          records: results.records,
         };
         return {
           content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
@@ -662,7 +666,7 @@ export function createRadarrTools(
           page: results.page,
           pageSize: results.pageSize,
           totalRecords: results.totalRecords,
-          records: results.records as unknown as Record<string, unknown>[],
+          records: results.records,
         };
         return {
           content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
@@ -700,7 +704,7 @@ export function createRadarrTools(
           args.includeMovie,
         );
         const structured = {
-          data: results as unknown as Record<string, unknown>[],
+          data: results,
         };
         return {
           content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
@@ -740,7 +744,7 @@ export function createRadarrTools(
           args.unmonitored,
         );
         const structured = {
-          data: results as unknown as Record<string, unknown>[],
+          data: results,
         };
         return {
           content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
@@ -764,7 +768,7 @@ export function createRadarrTools(
       wrapToolHandler("radarr_get_releases", async (args) => {
         const results = await radarrClient.getReleases(config, args.movieId);
         const structured = {
-          data: results as unknown as Record<string, unknown>[],
+          data: results,
         };
         return {
           content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
