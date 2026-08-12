@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { createRadarrResources } from "../../src/resources/radarr-resources.ts";
 import { createRadarrConfig } from "@wyattjoh/radarr";
 

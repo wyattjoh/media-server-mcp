@@ -1,8 +1,15 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { SonarrConfig, SonarrSeries } from "@wyattjoh/sonarr";
 import * as sonarrClient from "@wyattjoh/sonarr";
 import { wrapToolHandler } from "./tool-wrapper.ts";
+
+const SONARR_PAGINATED_HISTORY_EVENT_TYPE_IDS = {
+  grabbed: 1,
+  downloadFolderImported: 3,
+  downloadFailed: 4,
+  episodeFileDeleted: 5,
+} as const;
 
 export function createSonarrTools(
   server: McpServer,
@@ -46,7 +53,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(results, null, 2),
           }],
-          structuredContent: results as unknown as Record<string, unknown>,
+          structuredContent: results,
         };
       }),
     );
@@ -114,7 +121,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -366,7 +373,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(results, null, 2),
           }],
-          structuredContent: results as unknown as Record<string, unknown>,
+          structuredContent: results,
         };
       }),
     );
@@ -430,7 +437,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -477,7 +484,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(results, null, 2),
           }],
-          structuredContent: results as unknown as Record<string, unknown>,
+          structuredContent: results,
         };
       }),
     );
@@ -534,7 +541,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(results, null, 2),
           }],
-          structuredContent: results as unknown as Record<string, unknown>,
+          structuredContent: results,
         };
       }),
     );
@@ -548,10 +555,10 @@ export function createSonarrTools(
         title: "Get the download queue",
         description: "Get the download queue",
         inputSchema: {
-          limit: z.number().optional().describe(
+          limit: z.number().int().positive().optional().describe(
             "Maximum number of results to return",
           ),
-          skip: z.number().optional().describe(
+          skip: z.number().int().nonnegative().optional().describe(
             "Number of results to skip (for pagination)",
           ),
         },
@@ -565,17 +572,24 @@ export function createSonarrTools(
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_queue", async (args) => {
-        const results = await sonarrClient.getQueue(
+        const queue = await sonarrClient.getQueuePage(
           config,
           args.limit,
           args.skip,
         );
+        const structured = {
+          data: queue.records,
+          total: queue.totalRecords,
+          returned: queue.records.length,
+          skip: args.skip ?? 0,
+          limit: args.limit,
+        };
         return {
           content: [{
             type: "text",
-            text: JSON.stringify(results, null, 2),
+            text: JSON.stringify(structured, null, 2),
           }],
-          structuredContent: results as unknown as Record<string, unknown>,
+          structuredContent: structured,
         };
       }),
     );
@@ -602,13 +616,7 @@ export function createSonarrTools(
           sonarrClient.getQualityProfiles(config),
           sonarrClient.getRootFolders(config),
         ]);
-        const result = {
-          qualityProfiles: qualityProfiles as unknown as Record<
-            string,
-            unknown
-          >[],
-          rootFolders: rootFolders as unknown as Record<string, unknown>[],
-        };
+        const result = { qualityProfiles, rootFolders };
         return {
           content: [{
             type: "text",
@@ -638,7 +646,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -660,7 +668,7 @@ export function createSonarrTools(
       wrapToolHandler("sonarr_get_health", async () => {
         const results = await sonarrClient.getHealth(config);
         const result = {
-          data: results as unknown as Record<string, unknown>[],
+          data: results,
         };
         return {
           content: [{
@@ -697,7 +705,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -723,7 +731,7 @@ export function createSonarrTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -856,7 +864,7 @@ export function createSonarrTools(
           page: results.page,
           pageSize: results.pageSize,
           totalRecords: results.totalRecords,
-          records: results.records as unknown as Record<string, unknown>[],
+          records: results.records,
         };
         return {
           content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
@@ -909,7 +917,7 @@ export function createSonarrTools(
           page: results.page,
           pageSize: results.pageSize,
           totalRecords: results.totalRecords,
-          records: results.records as unknown as Record<string, unknown>[],
+          records: results.records,
         };
         return {
           content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
@@ -936,7 +944,12 @@ export function createSonarrTools(
           ),
           sortDirection: z.enum(["ascending", "descending"]).optional()
             .default("descending").describe("Sort direction"),
-          eventType: z.string().optional().describe(
+          eventType: z.enum([
+            "grabbed",
+            "downloadFolderImported",
+            "downloadFailed",
+            "episodeFileDeleted",
+          ]).optional().describe(
             "Filter by event type (grabbed, downloadFolderImported, downloadFailed, episodeFileDeleted)",
           ),
           includeSeries: z.boolean().optional().default(false).describe(
@@ -961,7 +974,9 @@ export function createSonarrTools(
           args.pageSize,
           args.sortKey,
           args.sortDirection,
-          args.eventType,
+          args.eventType === undefined
+            ? undefined
+            : SONARR_PAGINATED_HISTORY_EVENT_TYPE_IDS[args.eventType],
           args.includeSeries,
           args.includeEpisode,
         );
@@ -969,7 +984,7 @@ export function createSonarrTools(
           page: results.page,
           pageSize: results.pageSize,
           totalRecords: results.totalRecords,
-          records: results.records as unknown as Record<string, unknown>[],
+          records: results.records,
         };
         return {
           content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
@@ -1014,7 +1029,7 @@ export function createSonarrTools(
           args.includeEpisode,
         );
         const structured = {
-          data: results as unknown as Record<string, unknown>[],
+          data: results,
         };
         return {
           content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
@@ -1040,7 +1055,7 @@ export function createSonarrTools(
       wrapToolHandler("sonarr_get_releases", async (args) => {
         const results = await sonarrClient.getReleases(config, args.episodeId);
         const structured = {
-          data: results as unknown as Record<string, unknown>[],
+          data: results,
         };
         return {
           content: [{ type: "text", text: JSON.stringify(results, null, 2) }],

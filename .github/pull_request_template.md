@@ -15,5 +15,5 @@
 - [ ] `deno check` passes
 - [ ] `deno fmt` passes
 - [ ] `deno lint` passes
-- [ ] `deno test --allow-net` passes
+- [ ] `deno task test` passes
 - [ ] README/CLAUDE.md updated (if tools or resources changed)

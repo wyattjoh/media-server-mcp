@@ -1,8 +1,7 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import type { PlexConfig } from "@wyattjoh/plex";
+import { type PlexConfig, SearchType } from "@wyattjoh/plex";
 import * as plexClient from "@wyattjoh/plex";
-import type { SearchType } from "@wyattjoh/plex";
 import { wrapToolHandler } from "./tool-wrapper.ts";
 
 const SLIM_OMIT_KEYS = new Set([
@@ -40,7 +39,7 @@ export function createPlexTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -64,7 +63,7 @@ export function createPlexTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -83,9 +82,7 @@ export function createPlexTools(
           limit: z.number().optional().default(100).describe(
             "Maximum number of results to return (default: 100)",
           ),
-          searchTypes: z.array(
-            z.enum(["movies", "tv", "otherVideos", "people"]),
-          ).optional().describe(
+          searchTypes: z.array(z.enum(SearchType)).optional().describe(
             "Filter by content types. If not provided, searches all types",
           ),
         },
@@ -97,14 +94,14 @@ export function createPlexTools(
           config,
           args.query,
           args.limit,
-          args.searchTypes as SearchType[] | undefined,
+          args.searchTypes,
         );
         return {
           content: [{
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -133,7 +130,7 @@ export function createPlexTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -221,7 +218,7 @@ export function createPlexTools(
             type: "text",
             text: JSON.stringify(result, slimReplacer, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -256,7 +253,7 @@ export function createPlexTools(
             type: "text",
             text: JSON.stringify(result, slimReplacer, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -287,7 +284,7 @@ export function createPlexTools(
             type: "text",
             text: JSON.stringify(result, slimReplacer, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );
@@ -323,7 +320,7 @@ export function createPlexTools(
             type: "text",
             text: JSON.stringify(result, null, 2),
           }],
-          structuredContent: result as unknown as Record<string, unknown>,
+          structuredContent: result,
         };
       }),
     );

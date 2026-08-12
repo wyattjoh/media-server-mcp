@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { createTMDBTools } from "../../src/tools/tmdb-tools.ts";
 import { createTMDBConfig } from "@wyattjoh/tmdb";
 

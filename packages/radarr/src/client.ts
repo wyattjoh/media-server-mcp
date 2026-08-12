@@ -508,7 +508,7 @@ export function getHistory(
   pageSize = 20,
   sortKey = "date",
   sortDirection: "ascending" | "descending" = "descending",
-  eventType?: string,
+  eventType?: number,
   includeMovie = false,
 ): Promise<RadarrPaginatedApiResponse<RadarrHistoryRecord>> {
   const params = new URLSearchParams({
@@ -517,7 +517,9 @@ export function getHistory(
     sortKey,
     sortDirection,
   });
-  if (eventType) params.append("eventType", eventType);
+  if (eventType !== undefined) {
+    params.append("eventType", eventType.toString());
+  }
   if (includeMovie) params.append("includeMovie", "true");
 
   return makeRequest<RadarrPaginatedApiResponse<RadarrHistoryRecord>>(

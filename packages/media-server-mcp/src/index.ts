@@ -3,7 +3,7 @@
 import "@std/dotenv/load";
 import process from "node:process";
 import { Command } from "@cliffy/command";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import deno from "../deno.json" with { type: "json" };
 import { createSSEServer } from "./transports/sse.ts";
 import { createStdioServer } from "./transports/stdio.ts";
@@ -57,17 +57,17 @@ interface ServiceConfig {
 }
 
 interface ServerState extends ServiceConfig {
-  server: McpServer;
-  transport?: { close: () => Promise<void> };
+  isToolEnabled: (toolName: string) => boolean;
+  transport: { close: () => Promise<void> } | undefined;
 }
 
 /**
  * Create a new McpServer instance with tools registered based on
  * the given service configuration.
  */
-async function createMcpServerWithTools(
-  config: ServiceConfig,
-): Promise<McpServer> {
+function createMcpServerWithTools(
+  config: ServiceConfig & { isToolEnabled: (toolName: string) => boolean },
+): McpServer {
   const logger = getLogger(["media-server-mcp"]);
 
   logger.debug("Creating MCP server", {
@@ -89,7 +89,7 @@ async function createMcpServerWithTools(
     },
   );
 
-  await setupTools(server, config);
+  setupTools(server, config, config.isToolEnabled);
 
   logger.debug("Server created successfully");
   return server;
@@ -98,11 +98,13 @@ async function createMcpServerWithTools(
 async function createServer(): Promise<ServerState> {
   const config: ServiceConfig = {};
   loadConfig(config);
+  const configFileContent = await loadToolConfigFile();
+  const toolConfig = parseToolConfig(configFileContent);
+  const isToolEnabled = createToolFilter(toolConfig);
+  logToolConfiguration(toolConfig);
   await testConnections(config);
 
-  const server = await createMcpServerWithTools(config);
-
-  return { ...config, server };
+  return { ...config, isToolEnabled, transport: undefined };
 }
 
 function loadConfig(state: ServiceConfig): void {
@@ -165,22 +167,13 @@ function loadConfig(state: ServiceConfig): void {
   }
 }
 
-async function setupTools(
+function setupTools(
   server: McpServer,
   config: Readonly<ServiceConfig>,
-): Promise<void> {
+  isToolEnabled: (toolName: string) => boolean,
+): void {
   const logger = getLogger(["media-server-mcp", "tools"]);
-  logger.debug("Setting up tools and filters");
-
-  // Load tool configuration from file if specified
-  const configFileContent = await loadToolConfigFile();
-
-  // Parse tool configuration
-  const toolConfig = parseToolConfig(configFileContent);
-  const isToolEnabled = createToolFilter(toolConfig);
-
-  // Log tool configuration for debugging
-  logToolConfiguration(toolConfig);
+  logger.debug("Setting up tools");
 
   // Register Radarr tools if configured
   if (config.radarrConfig) {
@@ -222,7 +215,7 @@ async function setupTools(
     );
   }
 
-  logger.info("Tools registration completed");
+  logger.debug("Tools registration completed");
 
   // Register resources
   if (config.radarrConfig) createRadarrResources(server, config.radarrConfig);
@@ -309,7 +302,9 @@ async function testConnections(
 }
 
 async function runStdioServer(state: ServerState): Promise<void> {
-  state.transport = await createStdioServer({ server: state.server });
+  state.transport = await createStdioServer({
+    createMcpServer: () => Promise.resolve(createMcpServerWithTools(state)),
+  });
 }
 
 function runSSEServer(
@@ -326,7 +321,7 @@ function runSSEServer(
   // Start SSE server with authentication token
   state.transport = createSSEServer({
     port,
-    server: state.server,
+    createMcpServer: () => Promise.resolve(createMcpServerWithTools(state)),
     authToken: state.authToken,
   });
 }
@@ -346,11 +341,16 @@ function runStreamableHTTPServer(
     );
   }
 
+  const allowedOriginHostnames = (Deno.env.get("MCP_ALLOWED_ORIGINS") ??
+    "localhost,127.0.0.1,[::1]").split(",").map((origin) => origin.trim())
+    .filter(Boolean);
+
   state.transport = createStreamableHTTPServer({
     port,
     host,
-    createMcpServer: () => createMcpServerWithTools(state),
+    createMcpServer: () => Promise.resolve(createMcpServerWithTools(state)),
     authToken: state.authToken,
+    allowedOriginHostnames,
   });
 }
 
@@ -365,9 +365,6 @@ function setupGracefulShutdown(state: ServerState): void {
       if (state.transport) {
         await state.transport.close();
       }
-
-      // Then close the MCP server
-      await state.server.close();
 
       logger.info("Graceful shutdown completed");
     } catch (error) {

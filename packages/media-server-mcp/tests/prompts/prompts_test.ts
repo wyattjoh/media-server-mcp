@@ -1,5 +1,5 @@
 import { assertEquals, assertExists } from "@std/assert";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { createRadarrConfig } from "@wyattjoh/radarr";
 import { createSonarrConfig } from "@wyattjoh/sonarr";
 import { createAddMoviePrompt } from "../../src/prompts/add-movie-prompt.ts";
@@ -44,14 +44,19 @@ Deno.test("createRecommendationsPrompt - registers without errors", () => {
   createRecommendationsPrompt(server);
 });
 
-Deno.test("createLibraryReportPrompt - returns valid messages", () => {
+Deno.test("createLibraryReportPrompt - returns valid messages", async () => {
   const server = makeServer();
   createLibraryReportPrompt(server);
 
   // Access the registered prompt via the server's internal prompt registry
-  // by simulating what the SDK does: call the registered callback
+  // and invoke the handler the SDK uses for prompts/get.
   const registered = (server as unknown as {
-    _registeredPrompts: Record<string, { callback: () => unknown }>;
+    _registeredPrompts: Record<string, {
+      handler: (
+        args: Record<string, never>,
+        context: never,
+      ) => Promise<unknown>;
+    }>;
   })._registeredPrompts;
 
   assertExists(registered, "Expected _registeredPrompts to exist on server");
@@ -59,7 +64,7 @@ Deno.test("createLibraryReportPrompt - returns valid messages", () => {
   const prompt = registered["library-report"];
   assertExists(prompt, "Expected library-report prompt to be registered");
 
-  const result = (prompt.callback as () => unknown)();
+  const result = await prompt.handler({}, {} as never);
   const { messages } = result as {
     messages: Array<{ role: string; content: { type: string; text: string } }>;
   };
@@ -71,12 +76,17 @@ Deno.test("createLibraryReportPrompt - returns valid messages", () => {
   assertEquals(typeof messages[0].content.text, "string");
 });
 
-Deno.test("createRecommendationsPrompt - returns valid messages", () => {
+Deno.test("createRecommendationsPrompt - returns valid messages", async () => {
   const server = makeServer();
   createRecommendationsPrompt(server);
 
   const registered = (server as unknown as {
-    _registeredPrompts: Record<string, { callback: () => unknown }>;
+    _registeredPrompts: Record<string, {
+      handler: (
+        args: Record<string, never>,
+        context: never,
+      ) => Promise<unknown>;
+    }>;
   })._registeredPrompts;
 
   assertExists(registered);
@@ -84,7 +94,7 @@ Deno.test("createRecommendationsPrompt - returns valid messages", () => {
   const prompt = registered["recommendations"];
   assertExists(prompt, "Expected recommendations prompt to be registered");
 
-  const result = (prompt.callback as () => unknown)();
+  const result = await prompt.handler({}, {} as never);
   const { messages } = result as {
     messages: Array<{ role: string; content: { type: string; text: string } }>;
   };

@@ -1,8 +1,7 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { stub } from "@std/testing/mock";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
+import { Client } from "@modelcontextprotocol/client";
 import { createSonarrConfig } from "@wyattjoh/sonarr";
 import { createSonarrTools } from "../../src/tools/sonarr-tools.ts";
 
@@ -178,6 +177,62 @@ Deno.test(
 );
 
 Deno.test(
+  "sonarr_get_queue - returns queue records with pagination metadata",
+  async () => {
+    const fetchStub = stub(
+      globalThis,
+      "fetch",
+      () =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              page: 2,
+              pageSize: 20,
+              sortKey: "timeleft",
+              sortDirection: "ascending",
+              totalRecords: 21,
+              records: [{ id: 1, seriesId: 2, episodeId: 3 }],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        ),
+    );
+
+    try {
+      const server = new McpServer({ name: "test", version: "1.0.0" });
+      const config = createSonarrConfig(
+        "http://localhost:8989",
+        "test-api-key",
+      );
+      createSonarrTools(server, config, () => true);
+
+      const { client, cleanup } = await createConnectedClient(server);
+
+      try {
+        const result = await client.callTool({
+          name: "sonarr_get_queue",
+          arguments: { limit: 20, skip: 20 },
+        });
+
+        assertExists(result.structuredContent);
+        assertEquals(result.isError, undefined);
+
+        const structured = result.structuredContent as Record<string, unknown>;
+        assertEquals(structured.total, 21);
+        assertEquals(structured.returned, 1);
+        assertEquals(structured.skip, 20);
+        assertEquals(structured.limit, 20);
+        assertEquals(structured.data, [{ id: 1, seriesId: 2, episodeId: 3 }]);
+      } finally {
+        await cleanup();
+      }
+    } finally {
+      fetchStub.restore();
+    }
+  },
+);
+
+Deno.test(
   "sonarr_get_series - happy path returns structuredContent with series list",
   async () => {
     const mockSeries = [
@@ -226,6 +281,63 @@ Deno.test(
         const structured = result.structuredContent as Record<string, unknown>;
         assertEquals(structured.total, 1);
         assertEquals(Array.isArray(structured.data), true);
+      } finally {
+        await cleanup();
+      }
+    } finally {
+      fetchStub.restore();
+    }
+  },
+);
+
+Deno.test(
+  "sonarr_get_queue - returns paginated structuredContent",
+  async () => {
+    const fetchStub = stub(
+      globalThis,
+      "fetch",
+      () =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              page: 1,
+              pageSize: 20,
+              totalRecords: 1,
+              records: [{ id: 1, title: "Downloading episode" }],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        ),
+    );
+
+    try {
+      const server = new McpServer({ name: "test", version: "1.0.0" });
+      const config = createSonarrConfig(
+        "http://localhost:8989",
+        "test-api-key",
+      );
+      createSonarrTools(server, config, () => true);
+
+      const { client, cleanup } = await createConnectedClient(server);
+
+      try {
+        const result = await client.callTool({
+          name: "sonarr_get_queue",
+          arguments: { limit: 20, skip: 0 },
+        });
+
+        assertExists(result.structuredContent);
+        assertEquals(result.isError, undefined);
+
+        const structured = result.structuredContent as Record<string, unknown>;
+        assertEquals(structured.total, 1);
+        assertEquals(structured.returned, 1);
+        assertEquals(structured.skip, 0);
+        assertEquals(structured.limit, 20);
+        assertEquals(structured.data, [{
+          id: 1,
+          title: "Downloading episode",
+        }]);
       } finally {
         await cleanup();
       }

@@ -15,7 +15,7 @@ deno lint
 deno fmt
 
 # Run tests
-deno test --allow-net
+deno test --allow-net --allow-env
 
 # Development with hot reload
 deno task dev
@@ -56,7 +56,7 @@ Each package is independently publishable and has its own `deno.json` configurat
 ## Development Best Practices
 
 - Always use `deno task fmt`, `deno task lint`, and `deno task check` after modifying or creating code to ensure that it's correct.
-- Run `deno test --allow-net` to verify all tests pass before committing changes.
+- Run `deno test --allow-net --allow-env` to verify all tests pass before committing changes.
 - Tests are organized by layer: `packages/media-server-mcp/tests/` contains `tools/` (tool tests), `server_test.ts`, `auth_test.ts`, and transport tests (`sse-transport_test.ts`, `streamable-http-transport_test.ts`). Each client package also has its own `tests/` directory.
 - After changing any of the available MCP tools or resources, evaluate if you need to update the README.md and CLAUDE.md to be reflective of those changes.
 - When creating pull requests, always use the PR template at `.github/pull_request_template.md`.
@@ -164,6 +164,7 @@ PLEX_API_KEY=your-plex-api-key
 
 # Authentication Configuration (required for SSE mode, recommended for HTTP mode)
 MCP_AUTH_TOKEN=your-secure-auth-token
+MCP_ALLOWED_ORIGINS=localhost,127.0.0.1,[::1] # Browser Origin hostnames allowed in HTTP mode
 
 # Tool Configuration (all optional)
 TOOL_PROFILE=default          # Predefined profile: default, minimal, curator, maintainer, power-user, full
@@ -190,7 +191,8 @@ TOOL_CONFIG_PATH=./tools.json # Path to JSON configuration file for tool setting
 - Plex uses direct API access with `X-Plex-Token` header authentication
 - **SSE Mode Security**: SSE mode requires `MCP_AUTH_TOKEN` environment variable and validates Bearer tokens on all endpoints except `/health`
 - **SSE Deprecation**: SSE transport is deprecated. A warning is logged on startup when `--sse` is used. Prefer Streamable HTTP (`--http`) for remote deployments.
-- **Streamable HTTP Mode Security**: HTTP mode requires `MCP_AUTH_TOKEN` when binding to non-loopback addresses. When set, all endpoints except `/health` require a valid Bearer token. Localhost development (`--host 127.0.0.1`) can run without auth.
+- **Streamable HTTP Mode Security**: HTTP mode requires `MCP_AUTH_TOKEN` when binding to non-loopback addresses. When set, all endpoints except `/health` require a valid Bearer token. Localhost development (`--host 127.0.0.1`) can run without auth. Browser requests must also have a local Origin hostname or one listed in `MCP_ALLOWED_ORIGINS`; requests without `Origin` remain allowed for non-browser MCP clients.
+- **MCP 2026-07-28**: Streamable HTTP is served by `createMcpHandler()` from `@modelcontextprotocol/server`, which provides stateless modern requests and 2025-era stateless compatibility. Do not reintroduce session maps or `Mcp-Session-Id` handling. Stdio uses `serveStdio()` so it can negotiate either era. Keep `--sse` on `@modelcontextprotocol/server-legacy/sse` only as the deprecated legacy bridge.
 
 ## Available Tools by Service
 
@@ -439,7 +441,7 @@ All tool files follow the same pattern:
 Example structure:
 
 ```typescript
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { wrapToolHandler } from "../tool-wrapper.ts";
 

@@ -61,8 +61,9 @@ deno run --allow-all jsr:@wyattjoh/media-server-mcp --sse --port 4000
 
 The server supports the following command line options:
 
-- `--sse` - Run server in SSE (Server-Sent Events) mode over HTTP instead of stdio
-- `-p, --port <port>` - Port to run SSE server on (default: 3000)
+- `--sse` - Run the deprecated legacy SSE transport instead of stdio
+- `--http` - Run dual-era Streamable HTTP, supporting MCP 2026-07-28 and the 2025-era stateless compatibility path
+- `-p, --port <port>` - Port to run an HTTP server on (default: 3000)
 - `--help` - Show help information
 - `--version` - Show version information
 
@@ -72,10 +73,10 @@ The server supports the following command line options:
 # Run in stdio mode (default)
 deno run --allow-all jsr:@wyattjoh/media-server-mcp
 
-# Run in SSE mode on default port (3000)
-deno run --allow-all jsr:@wyattjoh/media-server-mcp --sse
+# Run in Streamable HTTP mode on the default port
+deno run --allow-all jsr:@wyattjoh/media-server-mcp --http
 
-# Run in SSE mode on custom port
+# Run the legacy SSE transport on a custom port
 deno run --allow-all jsr:@wyattjoh/media-server-mcp --sse --port 8080
 ```
 
@@ -132,7 +133,8 @@ The following environment variables can be configured:
 
 ### Security Configuration
 
-- `MCP_AUTH_TOKEN` - **Required for SSE mode only** - Bearer token for HTTP authentication. Generate a secure random string for this value.
+- `MCP_AUTH_TOKEN` - Required for SSE mode and for Streamable HTTP bound to a non-loopback host. Bearer token for HTTP authentication.
+- `MCP_ALLOWED_ORIGINS` - Optional comma-separated list of browser Origin hostnames allowed in Streamable HTTP mode. Defaults to `localhost,127.0.0.1,[::1]`; requests without an `Origin` header remain allowed for non-browser MCP clients.
 
 ### Example Environment Setup
 
@@ -144,8 +146,11 @@ export SONARR_URL="http://localhost:8989"
 export SONARR_API_KEY="your-sonarr-api-key"
 export TMDB_API_KEY="your-tmdb-api-key"
 
-# Authentication token (SSE mode only)
+# Authentication token (required for SSE and remote HTTP bindings)
 export MCP_AUTH_TOKEN="$(openssl rand -base64 32)"
+
+# Optional browser clients served from non-local origins
+export MCP_ALLOWED_ORIGINS="mcp.example.com"
 
 # Run in SSE mode
 deno run --allow-all jsr:@wyattjoh/media-server-mcp --sse
@@ -165,17 +170,23 @@ This package uses the following client libraries:
 # Run development server (stdio mode)
 deno task dev
 
-# Run development server (SSE mode)
+# Run development server (Streamable HTTP mode)
+deno task dev:http
+
+# Run development server (legacy SSE mode)
 deno task dev:sse
 
 # Run production server (stdio mode)
 deno task start
 
-# Run production server (SSE mode)
+# Run production server (Streamable HTTP mode)
+deno task start:http
+
+# Run production server (legacy SSE mode)
 deno task start:sse
 
 # Run tests
-deno test --allow-net
+deno test --allow-net --allow-env
 
 # Type check
 deno check

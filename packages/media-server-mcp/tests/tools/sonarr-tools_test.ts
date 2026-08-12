@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { createSonarrTools } from "../../src/tools/sonarr-tools.ts";
 import { createSonarrConfig } from "@wyattjoh/sonarr";
 

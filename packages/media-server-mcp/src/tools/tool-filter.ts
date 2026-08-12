@@ -166,7 +166,7 @@ export function logToolConfiguration(config: ToolFilterConfig): void {
   const logger = getLogger(["media-server-mcp", "tools"]);
   const enabledTools = getEnabledTools(config);
 
-  logger.info("Tool Configuration {*}", {
+  logger.debug("Tool Configuration {*}", {
     profile: config.profile,
     additionalBranches: config.additionalBranches,
     excludeTools: config.excludeTools,
