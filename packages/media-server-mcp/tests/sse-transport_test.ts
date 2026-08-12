@@ -1,4 +1,6 @@
 import { assertEquals, assertExists } from "@std/assert";
+import { McpServer } from "@modelcontextprotocol/server";
+import { stub } from "@std/testing/mock";
 
 // Tests for SSE transport functionality
 Deno.test("SSE transport module - can be imported without errors", async () => {
@@ -234,3 +236,89 @@ Deno.test("Environment variable validation - auth token requirement", () => {
     assertEquals(validationFails, shouldFail);
   });
 });
+
+Deno.test("closing an SSE connection closes its MCP server", async () => {
+  const { createSSEServer } = await import("../src/transports/sse.ts");
+  const mcpServer = new McpServer({ name: "test", version: "1.0.0" });
+  const closed = Promise.withResolvers<void>();
+  const closeStub = stub(mcpServer, "close", () => {
+    closed.resolve();
+    return Promise.resolve();
+  });
+  const server = createSSEServer({
+    port: 0,
+    authToken: "test-token",
+    createMcpServer: () => Promise.resolve(mcpServer),
+  });
+
+  try {
+    await server.ready;
+    const response = await openSSESession(server.port());
+    await response.body?.cancel();
+    await withTimeout(closed.promise);
+
+    const health = await fetch(`http://127.0.0.1:${server.port()}/health`);
+    const body = await health.json() as { activeSessions: number };
+    assertEquals(body.activeSessions, 0);
+    assertEquals(closeStub.calls.length, 1);
+  } finally {
+    await server.close();
+    closeStub.restore();
+  }
+});
+
+Deno.test("SSE shutdown closes every session server after a close failure", async () => {
+  const { createSSEServer } = await import("../src/transports/sse.ts");
+  const servers = [
+    new McpServer({ name: "first", version: "1.0.0" }),
+    new McpServer({ name: "second", version: "1.0.0" }),
+  ];
+  const firstClose = stub(
+    servers[0],
+    "close",
+    () => Promise.reject(new Error("expected close failure")),
+  );
+  const secondClose = stub(servers[1], "close", () => Promise.resolve());
+  let nextServer = 0;
+  const server = createSSEServer({
+    port: 0,
+    authToken: "test-token",
+    createMcpServer: () => Promise.resolve(servers[nextServer++]),
+  });
+
+  try {
+    await server.ready;
+    const responses = await Promise.all([
+      openSSESession(server.port()),
+      openSSESession(server.port()),
+    ]);
+
+    await server.close();
+    assertEquals(firstClose.calls.length, 1);
+    assertEquals(secondClose.calls.length, 1);
+    for (const response of responses) {
+      await response.body?.cancel();
+    }
+  } finally {
+    firstClose.restore();
+    secondClose.restore();
+  }
+});
+
+function openSSESession(port: number): Promise<Response> {
+  return fetch(`http://127.0.0.1:${port}/sse`, {
+    headers: { Authorization: "Bearer test-token" },
+  });
+}
+
+function withTimeout<T>(promise: Promise<T>): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_resolve, reject) => {
+      setTimeout(
+        () => reject(new Error("Timed out waiting for SSE close")),
+        1000,
+      );
+    }),
+  ]);
+}

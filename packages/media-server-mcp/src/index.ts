@@ -57,6 +57,7 @@ interface ServiceConfig {
 }
 
 interface ServerState extends ServiceConfig {
+  isToolEnabled: (toolName: string) => boolean;
   transport: { close: () => Promise<void> } | undefined;
 }
 
@@ -64,9 +65,9 @@ interface ServerState extends ServiceConfig {
  * Create a new McpServer instance with tools registered based on
  * the given service configuration.
  */
-async function createMcpServerWithTools(
-  config: ServiceConfig,
-): Promise<McpServer> {
+function createMcpServerWithTools(
+  config: ServiceConfig & { isToolEnabled: (toolName: string) => boolean },
+): McpServer {
   const logger = getLogger(["media-server-mcp"]);
 
   logger.debug("Creating MCP server", {
@@ -88,7 +89,7 @@ async function createMcpServerWithTools(
     },
   );
 
-  await setupTools(server, config);
+  setupTools(server, config, config.isToolEnabled);
 
   logger.debug("Server created successfully");
   return server;
@@ -97,9 +98,13 @@ async function createMcpServerWithTools(
 async function createServer(): Promise<ServerState> {
   const config: ServiceConfig = {};
   loadConfig(config);
+  const configFileContent = await loadToolConfigFile();
+  const toolConfig = parseToolConfig(configFileContent);
+  const isToolEnabled = createToolFilter(toolConfig);
+  logToolConfiguration(toolConfig);
   await testConnections(config);
 
-  return { ...config, transport: undefined };
+  return { ...config, isToolEnabled, transport: undefined };
 }
 
 function loadConfig(state: ServiceConfig): void {
@@ -162,22 +167,13 @@ function loadConfig(state: ServiceConfig): void {
   }
 }
 
-async function setupTools(
+function setupTools(
   server: McpServer,
   config: Readonly<ServiceConfig>,
-): Promise<void> {
+  isToolEnabled: (toolName: string) => boolean,
+): void {
   const logger = getLogger(["media-server-mcp", "tools"]);
-  logger.debug("Setting up tools and filters");
-
-  // Load tool configuration from file if specified
-  const configFileContent = await loadToolConfigFile();
-
-  // Parse tool configuration
-  const toolConfig = parseToolConfig(configFileContent);
-  const isToolEnabled = createToolFilter(toolConfig);
-
-  // Log tool configuration for debugging
-  logToolConfiguration(toolConfig);
+  logger.debug("Setting up tools");
 
   // Register Radarr tools if configured
   if (config.radarrConfig) {
@@ -307,7 +303,7 @@ async function testConnections(
 
 async function runStdioServer(state: ServerState): Promise<void> {
   state.transport = await createStdioServer({
-    createMcpServer: () => createMcpServerWithTools(state),
+    createMcpServer: () => Promise.resolve(createMcpServerWithTools(state)),
   });
 }
 
@@ -325,7 +321,7 @@ function runSSEServer(
   // Start SSE server with authentication token
   state.transport = createSSEServer({
     port,
-    createMcpServer: () => createMcpServerWithTools(state),
+    createMcpServer: () => Promise.resolve(createMcpServerWithTools(state)),
     authToken: state.authToken,
   });
 }
@@ -345,11 +341,16 @@ function runStreamableHTTPServer(
     );
   }
 
+  const allowedOriginHostnames = (Deno.env.get("MCP_ALLOWED_ORIGINS") ??
+    "localhost,127.0.0.1,[::1]").split(",").map((origin) => origin.trim())
+    .filter(Boolean);
+
   state.transport = createStreamableHTTPServer({
     port,
     host,
-    createMcpServer: () => createMcpServerWithTools(state),
+    createMcpServer: () => Promise.resolve(createMcpServerWithTools(state)),
     authToken: state.authToken,
+    allowedOriginHostnames,
   });
 }
 

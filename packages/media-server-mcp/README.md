@@ -133,7 +133,8 @@ The following environment variables can be configured:
 
 ### Security Configuration
 
-- `MCP_AUTH_TOKEN` - **Required for SSE mode only** - Bearer token for HTTP authentication. Generate a secure random string for this value.
+- `MCP_AUTH_TOKEN` - Required for SSE mode and for Streamable HTTP bound to a non-loopback host. Bearer token for HTTP authentication.
+- `MCP_ALLOWED_ORIGINS` - Optional comma-separated list of browser Origin hostnames allowed in Streamable HTTP mode. Defaults to `localhost,127.0.0.1,[::1]`; requests without an `Origin` header remain allowed for non-browser MCP clients.
 
 ### Example Environment Setup
 
@@ -145,8 +146,11 @@ export SONARR_URL="http://localhost:8989"
 export SONARR_API_KEY="your-sonarr-api-key"
 export TMDB_API_KEY="your-tmdb-api-key"
 
-# Authentication token (SSE mode only)
+# Authentication token (required for SSE and remote HTTP bindings)
 export MCP_AUTH_TOKEN="$(openssl rand -base64 32)"
+
+# Optional browser clients served from non-local origins
+export MCP_ALLOWED_ORIGINS="mcp.example.com"
 
 # Run in SSE mode
 deno run --allow-all jsr:@wyattjoh/media-server-mcp --sse
@@ -182,7 +186,7 @@ deno task start:http
 deno task start:sse
 
 # Run tests
-deno test --allow-net
+deno test --allow-net --allow-env
 
 # Type check
 deno check

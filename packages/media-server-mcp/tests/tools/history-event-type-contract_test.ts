@@ -52,10 +52,15 @@ Deno.test(
       {
         name: "radarr_get_history",
         eventTypes: [
+          // Upstream enum source:
+          // https://github.com/Radarr/Radarr/blob/develop/src/NzbDrone.Core/History/History.cs
+          // Unknown=0, Grabbed=1, deprecated SeriesFolderImported=2,
+          // DownloadFolderImported=3, DownloadFailed=4, deprecated inherited
+          // EpisodeFileDeleted=5, MovieFileDeleted=6.
           ["grabbed", 1],
           ["downloadFolderImported", 3],
           ["downloadFailed", 4],
-          ["movieFileDeleted", 5],
+          ["movieFileDeleted", 6],
         ],
         register: (server: McpServer) =>
           createRadarrTools(

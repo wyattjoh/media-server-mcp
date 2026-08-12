@@ -25,7 +25,7 @@ export function wrapToolHandler<Args>(
   ) => CallToolResult | Promise<CallToolResult>,
 ): (args: Args, extra: Extra) => Promise<CallToolResult> {
   return async (args: Args, extra: Extra): Promise<CallToolResult> => {
-    logger.info("Tool called: {toolName}", { toolName });
+    logger.debug("Tool called: {toolName}", { toolName });
     const start = Date.now();
     try {
       const result = await handler(args, extra);

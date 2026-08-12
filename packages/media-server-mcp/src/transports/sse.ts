@@ -14,9 +14,21 @@ interface SSEServerOptions {
   authToken: string;
 }
 
+interface SSEServerHandle {
+  ready: Promise<void>;
+  port: () => number;
+  close: () => Promise<void>;
+}
+
+/**
+ * Starts the deprecated authenticated SSE transport.
+ *
+ * @param options - Port, MCP server factory, and bearer token for the server.
+ * @returns A handle that reports readiness and closes all active sessions.
+ */
 export function createSSEServer(
   { port, createMcpServer, authToken }: SSEServerOptions,
-): { close: () => Promise<void> } {
+): SSEServerHandle {
   const logger = getLogger(["media-server-mcp", "transport", "sse"]);
 
   logger.warn(
@@ -24,8 +36,11 @@ export function createSSEServer(
       "SSE will be removed in a future release.",
   );
 
-  // Store transports by session ID
-  const transports = new Map<string, SSEServerTransport>();
+  // Store each session's transport and server so both are released together.
+  const sessions = new Map<
+    string,
+    { transport: SSEServerTransport; close: () => Promise<void> }
+  >();
 
   const httpServer = createServer(async (req, res) => {
     try {
@@ -62,7 +77,7 @@ export function createSSEServer(
 
       if (pathname === "/sse") {
         // SSE endpoint - establishes event stream connection
-        if (transports.size >= MAX_SESSIONS) {
+        if (sessions.size >= MAX_SESSIONS) {
           res.writeHead(503, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: "Too many active sessions" }));
           logger.warn("Session limit reached ({max}), rejecting new session", {
@@ -83,17 +98,57 @@ export function createSSEServer(
         res.setHeader("Connection", "keep-alive");
         res.setHeader("mcp-session-id", sessionId);
 
-        transports.set(sessionId, transport);
-
         // Each legacy SSE session gets its own server instance.
         const server = await createMcpServer();
-        await server.connect(transport);
+        let closeServerPromise: Promise<void> | undefined;
+        const closeServer = () => {
+          closeServerPromise ??= server.close();
+          return closeServerPromise;
+        };
+        const closeSession = async () => {
+          const failures: unknown[] = [];
+          try {
+            await transport.close();
+          } catch (error) {
+            failures.push(error);
+          }
+          try {
+            await closeServer();
+          } catch (error) {
+            failures.push(error);
+          }
+          if (failures.length > 0) {
+            throw new AggregateError(failures, "Failed to close SSE session");
+          }
+        };
 
-        // Handle cleanup when connection closes
+        // Handle cleanup when connection closes.
         transport.onclose = () => {
-          transports.delete(sessionId);
+          sessions.delete(sessionId);
+          closeServer().catch((error) => {
+            logger.error("Error closing MCP server for session {sessionId}", {
+              sessionId,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          });
           logger.info("SSE session closed: {sessionId}", { sessionId });
         };
+        sessions.set(sessionId, { transport, close: closeSession });
+
+        try {
+          await server.connect(transport);
+        } catch (error) {
+          sessions.delete(sessionId);
+          await closeServer().catch((closeError) => {
+            logger.error("Error closing MCP server for session {sessionId}", {
+              sessionId,
+              error: closeError instanceof Error
+                ? closeError.message
+                : String(closeError),
+            });
+          });
+          throw error;
+        }
 
         logger.info("SSE session established: {sessionId}", { sessionId });
       } else if (pathname === "/messages") {
@@ -111,8 +166,8 @@ export function createSSEServer(
           return;
         }
 
-        const transport = transports.get(sessionId);
-        if (!transport) {
+        const session = sessions.get(sessionId);
+        if (!session) {
           res.writeHead(400, { "Content-Type": "application/json" });
           res.end(
             JSON.stringify({ error: "Invalid or expired sessionId" }),
@@ -129,13 +184,13 @@ export function createSSEServer(
           return;
         }
 
-        await transport.handlePostMessage(req, res, body);
+        await session.transport.handlePostMessage(req, res, body);
       } else if (pathname === "/health") {
         // Health check endpoint
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({
           status: "healthy",
-          activeSessions: transports.size,
+          activeSessions: sessions.size,
           timestamp: new Date().toISOString(),
         }));
       } else {
@@ -169,11 +224,22 @@ export function createSSEServer(
     url: `http://localhost:${port}/health`,
   });
 
-  httpServer.listen(port, () => {
-    logger.info("SSE server listening on port {port}", { port });
+  const ready = new Promise<void>((resolve) => {
+    httpServer.listen(port, () => {
+      logger.info("SSE server listening on port {port}", { port });
+      resolve();
+    });
   });
 
   return {
-    close: () => closeTransportServer(transports, httpServer, logger, "SSE"),
+    ready,
+    port: () => {
+      const address = httpServer.address();
+      if (!address || typeof address === "string") {
+        throw new Error("SSE server is not listening");
+      }
+      return address.port;
+    },
+    close: () => closeTransportServer(sessions, httpServer, logger, "SSE"),
   };
 }

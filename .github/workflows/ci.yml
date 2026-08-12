@@ -33,4 +33,4 @@ jobs:
         run: deno check
 
       - name: Run tests
-        run: deno task test
+        run: deno test --allow-net --allow-env

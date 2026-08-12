@@ -22,7 +22,9 @@ export function setCorsHeaders(
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", methods);
   res.setHeader("Access-Control-Allow-Headers", allowHeaders);
-  res.setHeader("Access-Control-Expose-Headers", exposeHeaders);
+  if (exposeHeaders) {
+    res.setHeader("Access-Control-Expose-Headers", exposeHeaders);
+  }
 }
 
 /**
@@ -78,9 +80,15 @@ export async function readBody(
  *
  * Accepts any iterable of [sessionId, closeable] entries so callers
  * don't need to build an intermediate Map.
+ *
+ * @param entries - Session IDs paired with synchronous or asynchronous closeables.
+ * @param httpServer - Node HTTP server to close after session teardown.
+ * @param logger - Transport logger used for structured cleanup failures.
+ * @param serverName - Human-readable server name used in lifecycle logs.
+ * @returns A promise that settles after closeables and the HTTP server settle.
  */
-export function closeTransportServer(
-  entries: Iterable<[string, { close: () => void }]>,
+export async function closeTransportServer(
+  entries: Iterable<[string, { close: () => void | Promise<void> }]>,
   httpServer: Server,
   logger: ReturnType<typeof getLogger>,
   serverName: string,
@@ -89,7 +97,7 @@ export function closeTransportServer(
 
   for (const [sessionId, transport] of entries) {
     try {
-      transport.close();
+      await transport.close();
     } catch (error) {
       logger.error(
         "Error closing transport for session {sessionId}",

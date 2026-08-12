@@ -2,17 +2,19 @@ import { createServer } from "node:http";
 import { createMcpHandler, type McpServer } from "@modelcontextprotocol/server";
 import {
   type NodeIncomingMessageLike,
+  originValidation,
   toNodeHandler,
 } from "@modelcontextprotocol/node";
 import { validateBearerToken } from "../auth.ts";
 import { getLogger } from "../logging.ts";
-import { closeTransportServer, setCorsHeaders } from "./shared.ts";
+import { closeTransportServer, readBody, setCorsHeaders } from "./shared.ts";
 
 interface StreamableHTTPServerOptions {
   port: number;
   host: string;
   createMcpServer: () => McpServer | Promise<McpServer>;
   authToken: string | undefined;
+  allowedOriginHostnames: string[];
 }
 
 interface StreamableHTTPServerHandle {
@@ -27,9 +29,18 @@ interface StreamableHTTPServerHandle {
  * The MCP SDK creates an isolated server instance for every HTTP request. This
  * keeps 2026-07-28 requests stateless while preserving the SDK's 2025-era
  * stateless compatibility path for older clients.
+ *
+ * @param options - Network, authentication, Origin, and MCP factory options.
+ * @returns A handle that reports readiness and awaits handler teardown.
  */
 export function createStreamableHTTPServer(
-  { port, host, createMcpServer, authToken }: StreamableHTTPServerOptions,
+  {
+    port,
+    host,
+    createMcpServer,
+    authToken,
+    allowedOriginHostnames,
+  }: StreamableHTTPServerOptions,
 ): StreamableHTTPServerHandle {
   const logger = getLogger([
     "media-server-mcp",
@@ -37,6 +48,7 @@ export function createStreamableHTTPServer(
     "streamable-http",
   ]);
   const mcpHandler = createMcpHandler(createMcpServer);
+  const validateOrigin = originValidation(allowedOriginHostnames);
   const nodeMcpHandler = toNodeHandler(mcpHandler, {
     onerror: (error) => {
       logger.error("MCP handler failed", { error: error.message });
@@ -51,6 +63,10 @@ export function createStreamableHTTPServer(
         "Content-Type, Accept, Authorization, MCP-Protocol-Version, Mcp-Method, Mcp-Name",
         "",
       );
+
+      if (!validateOrigin(req, res)) {
+        return;
+      }
 
       if (req.method === "OPTIONS") {
         res.writeHead(204);
@@ -89,15 +105,33 @@ export function createStreamableHTTPServer(
         return;
       }
 
+      if (req.method !== "POST") {
+        res.writeHead(405, {
+          "Content-Type": "application/json",
+          "Allow": "POST, OPTIONS",
+        });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+        return;
+      }
+
+      const body = await readBody(req, res);
+      if (body === undefined) {
+        if (!res.headersSent) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Invalid JSON" }));
+        }
+        return;
+      }
+
       // Normalize node:http's optional request fields to the adapter's
-      // structural request type without changing the request body stream.
+      // structural request type.
       const nodeRequest: NodeIncomingMessageLike = {
-        method: req.method ?? "GET",
+        method: req.method,
         url: req.url ?? "/",
         headers: req.headers,
         [Symbol.asyncIterator]: () => req[Symbol.asyncIterator](),
       };
-      await nodeMcpHandler(nodeRequest, res);
+      await nodeMcpHandler(nodeRequest, res, body);
     } catch (error) {
       logger.error("Unhandled error in HTTP handler", {
         method: req.method,

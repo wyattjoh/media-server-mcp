@@ -73,6 +73,10 @@ Add to your MCP servers configuration using the JSR package:
 }
 ```
 
+## HTTP Security
+
+Streamable HTTP accepts MCP clients without an `Origin` header. Browser requests are limited to local origins (`localhost`, `127.0.0.1`, and `[::1]`) by default. Set `MCP_ALLOWED_ORIGINS` to a comma-separated list of permitted origin hostnames when serving a browser-based client behind a proxy.
+
 ## Quick Start
 
 1. **Configure at least one service** in your MCP client's configuration:
@@ -141,16 +145,17 @@ Add to your MCP servers configuration using the JSR package:
 
 ### Environment Variables
 
-| Variable         | Description                                   | Required  |
-| ---------------- | --------------------------------------------- | --------- |
-| `RADARR_URL`     | Base URL of your Radarr instance              | Optional* |
-| `RADARR_API_KEY` | API key for Radarr authentication             | Optional* |
-| `SONARR_URL`     | Base URL of your Sonarr instance              | Optional* |
-| `SONARR_API_KEY` | API key for Sonarr authentication             | Optional* |
-| `TMDB_API_KEY`   | TMDB API key for movie/TV metadata            | Optional* |
-| `PLEX_URL`       | Base URL of your Plex instance                | Optional* |
-| `PLEX_API_KEY`   | X-Plex-Token for Plex authentication          | Optional* |
-| `MCP_AUTH_TOKEN` | Authentication token for HTTP transport modes | Optional  |
+| Variable              | Description                                                   | Required  |
+| --------------------- | ------------------------------------------------------------- | --------- |
+| `RADARR_URL`          | Base URL of your Radarr instance                              | Optional* |
+| `RADARR_API_KEY`      | API key for Radarr authentication                             | Optional* |
+| `SONARR_URL`          | Base URL of your Sonarr instance                              | Optional* |
+| `SONARR_API_KEY`      | API key for Sonarr authentication                             | Optional* |
+| `TMDB_API_KEY`        | TMDB API key for movie/TV metadata                            | Optional* |
+| `PLEX_URL`            | Base URL of your Plex instance                                | Optional* |
+| `PLEX_API_KEY`        | X-Plex-Token for Plex authentication                          | Optional* |
+| `MCP_AUTH_TOKEN`      | Authentication token for HTTP transport modes                 | Optional  |
+| `MCP_ALLOWED_ORIGINS` | Comma-separated browser Origin hostnames allowed in HTTP mode | Optional  |
 
 *_At least one service (Radarr, Sonarr, TMDB, or Plex) must be configured._
 
@@ -278,7 +283,7 @@ claude mcp add --transport http media-server http://your-server:3000/mcp \
 - **Bind to specific interfaces** using `--host` to limit which network interfaces accept connections (e.g., `--host 127.0.0.1` for localhost only)
 - **Use a reverse proxy** for rate limiting, request size limits, and TLS termination
 - **Restrict network access** using firewall rules or VPN to limit who can reach the server
-- **CORS**: Both SSE and Streamable HTTP transports set `Access-Control-Allow-Origin: *` to support MCP clients across environments. Bearer tokens in `Authorization` headers are not automatically sent by browsers, but if tighter origin control is needed, configure CORS restrictions in your reverse proxy.
+- **Browser origins**: Streamable HTTP rejects browser requests unless the `Origin` hostname is local (`localhost`, `127.0.0.1`, or `[::1]`) or listed in `MCP_ALLOWED_ORIGINS`. Requests without `Origin` remain available to non-browser MCP clients. SSE retains its legacy permissive CORS behavior and requires bearer authentication.
 - **Modern HTTP headers**: Ensure reverse proxies preserve `MCP-Protocol-Version`, `Mcp-Method`, and `Mcp-Name`, because the 2026-07-28 handler validates them against each JSON-RPC request.
 
 ## Tool Configuration System
@@ -779,6 +784,9 @@ deno fmt
 
 # Linting
 deno lint
+
+# Run tests
+deno test --allow-net --allow-env
 ```
 
 ### Project Structure

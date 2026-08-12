@@ -8,7 +8,7 @@ const RADARR_PAGINATED_HISTORY_EVENT_TYPE_IDS = {
   grabbed: 1,
   downloadFolderImported: 3,
   downloadFailed: 4,
-  movieFileDeleted: 5,
+  movieFileDeleted: 6,
 } as const;
 
 export function createRadarrTools(
