@@ -134,6 +134,7 @@ Deno.test("HTTP server rejects oversized and malformed MCP request bodies", asyn
       body: "x".repeat(1024 * 1024 + 1),
     });
     assertEquals(oversized.status, 413);
+    await oversized.text();
 
     const malformed = await fetch(baseUrl, {
       method: "POST",
@@ -141,6 +142,7 @@ Deno.test("HTTP server rejects oversized and malformed MCP request bodies", asyn
       body: "{",
     });
     assertEquals(malformed.status, 400);
+    await malformed.text();
   } finally {
     await server.close();
   }
@@ -159,15 +161,18 @@ Deno.test("HTTP server rejects unexpected origins and permits allowed or absent 
     }, url));
     assertEquals(rejected.status, 403);
     assertEquals(factoryCalls, 0);
+    await rejected.text();
 
     const allowed = await fetch(modernRequest("server/discover", {
       Origin: "http://localhost:5173",
     }, url));
     assertEquals(allowed.status, 200);
+    await allowed.text();
 
     const absent = await fetch(modernRequest("server/discover", {}, url));
     assertEquals(absent.status, 200);
     assertEquals(factoryCalls, 2);
+    await absent.text();
   } finally {
     await server.close();
   }
@@ -184,6 +189,7 @@ Deno.test("HTTP server rejects unsupported MCP methods without reading a body", 
         ...(method === "GET" ? {} : { body: "x".repeat(1024 * 1024 + 1) }),
       });
       assertEquals(response.status, 405);
+      await response.text();
     }
   } finally {
     await server.close();

@@ -312,13 +312,17 @@ function openSSESession(port: number): Promise<Response> {
 }
 
 function withTimeout<T>(promise: Promise<T>): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_resolve, reject) => {
-      setTimeout(
-        () => reject(new Error("Timed out waiting for SSE close")),
-        1000,
-      );
-    }),
-  ]);
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((_resolve, reject) => {
+    timeoutId = setTimeout(
+      () => reject(new Error("Timed out waiting for SSE close")),
+      1000,
+    );
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
+  });
 }
