@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.3.0](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/media-server-mcp-v2.2.0...@wyattjoh/media-server-mcp-v2.3.0) (2026-08-12)
+
+
+### Features
+
+* **mcp:** adopt stateless protocol ([49578e0](https://github.com/wyattjoh/media-server-mcp/commit/49578e04ec4b7d66aabdb3b5ce953cea9d4753e5))
+
+
+### Bug Fixes
+
+* **history:** map event names to API identifiers ([33e88ed](https://github.com/wyattjoh/media-server-mcp/commit/33e88edd90497f99d1972e7a6f3154c92a53959c))
+* **mcp:** address migration review findings ([9cc1b44](https://github.com/wyattjoh/media-server-mcp/commit/9cc1b445e935744f337f8de95ff2dfac8161d30e))
+* **mcp:** align tool response types ([00b06ff](https://github.com/wyattjoh/media-server-mcp/commit/00b06ff7fe18b010734e0a06b1a421452533e0d4))
+* **sonarr:** preserve queue pagination metadata ([49c65d9](https://github.com/wyattjoh/media-server-mcp/commit/49c65d95c7dd365d4c39bbe055ee94a0528b1bd6))
+* **sonarr:** return queue output matching schema ([bc90d31](https://github.com/wyattjoh/media-server-mcp/commit/bc90d31f4e9351d4a995108e4b20f82a5ea7354e))
+* **test:** close transport test resources ([dfa22d8](https://github.com/wyattjoh/media-server-mcp/commit/dfa22d8b3ce32b38fd124067280535eabb44cb55))
+
 ## [2.2.0](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/media-server-mcp-v2.1.1...@wyattjoh/media-server-mcp-v2.2.0) (2026-05-18)
 
 
