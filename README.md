@@ -786,7 +786,7 @@ deno fmt
 deno lint
 
 # Run tests
-deno test --allow-net --allow-env
+deno task test
 ```
 
 ### Project Structure
