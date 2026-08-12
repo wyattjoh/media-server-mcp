@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/radarr-v1.2.0...@wyattjoh/radarr-v1.2.1) (2026-08-12)
+
+
+### Bug Fixes
+
+* **history:** map event names to API identifiers ([33e88ed](https://github.com/wyattjoh/media-server-mcp/commit/33e88edd90497f99d1972e7a6f3154c92a53959c))
+
 ## [1.2.0](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/radarr-v1.1.0...@wyattjoh/radarr-v1.2.0) (2026-05-18)
 
 

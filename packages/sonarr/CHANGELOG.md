@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/sonarr-v1.2.0...@wyattjoh/sonarr-v1.2.1) (2026-08-12)
+
+
+### Bug Fixes
+
+* **history:** map event names to API identifiers ([33e88ed](https://github.com/wyattjoh/media-server-mcp/commit/33e88edd90497f99d1972e7a6f3154c92a53959c))
+* **sonarr:** preserve queue pagination metadata ([49c65d9](https://github.com/wyattjoh/media-server-mcp/commit/49c65d95c7dd365d4c39bbe055ee94a0528b1bd6))
+
 ## [1.2.0](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/sonarr-v1.1.0...@wyattjoh/sonarr-v1.2.0) (2026-05-18)
 
 
