@@ -2,13 +2,16 @@ import { getLogger } from "@logtape/logtape";
 import {
   CollectionMetadataItem,
   CreateCollectionResponse,
+  GetAccountsResponse,
   GetCapabilitiesResponse,
   GetCollectionItemsResponse,
   GetCollectionsResponse,
   GetLibrariesResponse,
   GetLibraryItemsResponse,
   GetMetadataResponse,
+  GetPlaybackHistoryResponse,
   LibraryItemsOptions,
+  PlaybackHistoryOptions,
   SearchResponse,
   SearchType,
 } from "./types.ts";
@@ -123,6 +126,18 @@ export function getLibraries(
   return makeRequest(config, "/library/sections");
 }
 
+/**
+ * Get Plex system accounts for resolving playback-history account IDs.
+ *
+ * @param config Plex server configuration.
+ * @returns The accounts known to the Plex Media Server.
+ */
+export function getAccounts(
+  config: PlexConfig,
+): Promise<GetAccountsResponse> {
+  return makeRequest(config, "/accounts");
+}
+
 export function search(
   config: PlexConfig,
   query: string,
@@ -147,6 +162,42 @@ export function getMetadata(
   ratingKey: string,
 ): Promise<GetMetadataResponse> {
   return makeRequest(config, `/library/metadata/${ratingKey}`);
+}
+
+/**
+ * Get playback history for a specific Plex media item.
+ *
+ * @param config Plex server configuration.
+ * @param ratingKey Plex rating key for a playable item, such as a movie or episode.
+ * @param options Optional account, pagination, and timestamp filters.
+ * @returns The matching playback-history events.
+ */
+export function getPlaybackHistory(
+  config: PlexConfig,
+  ratingKey: string,
+  options: Partial<PlaybackHistoryOptions> = {},
+): Promise<GetPlaybackHistoryResponse> {
+  const searchParams = new URLSearchParams();
+  searchParams.set("metadataItemID", ratingKey);
+  searchParams.set("sort", "viewedAt:desc");
+
+  if (options.accountId !== undefined) {
+    searchParams.set("accountID", options.accountId.toString());
+  }
+  if (options.start !== undefined) {
+    searchParams.set("X-Plex-Container-Start", options.start.toString());
+  }
+  if (options.size !== undefined) {
+    searchParams.set("X-Plex-Container-Size", options.size.toString());
+  }
+  if (options.viewedAtSince !== undefined) {
+    searchParams.set("viewedAt>", options.viewedAtSince.toString());
+  }
+
+  return makeRequest<GetPlaybackHistoryResponse>(
+    config,
+    `/status/sessions/history/all?${searchParams.toString()}`,
+  );
 }
 
 export function refreshLibrary(

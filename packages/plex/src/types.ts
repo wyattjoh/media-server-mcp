@@ -62,6 +62,32 @@ interface PlexCapabilitiesDirectoryItem {
   title: string;
 }
 
+/**
+ * A Plex system account returned by the server accounts endpoint.
+ */
+export interface PlexAccount {
+  id: number;
+  key: string;
+  name: string;
+  defaultAudioLanguage: string | undefined;
+  autoSelectAudio: boolean | undefined;
+  defaultSubtitleLanguage: string | undefined;
+  subtitleMode: string | undefined;
+  thumb: string | undefined;
+}
+
+/**
+ * Response returned by the Plex system accounts endpoint.
+ */
+export interface GetAccountsResponse {
+  MediaContainer: PlexAccountsMediaContainer;
+}
+
+interface PlexAccountsMediaContainer {
+  size: number;
+  Account: PlexAccount[] | undefined;
+}
+
 export interface GetLibrariesResponse {
   MediaContainer: GetLibrariesResponseMediaContainer;
 }
@@ -339,6 +365,47 @@ interface CollectionItem {
 interface DetailedPersonItem extends DetailedTagItem {
   tagKey: string;
   thumb: string;
+}
+
+/**
+ * Optional filters for Plex playback-history queries.
+ */
+export interface PlaybackHistoryOptions {
+  accountId: number | undefined;
+  start: number | undefined;
+  size: number | undefined;
+  viewedAtSince: number | undefined;
+}
+
+/**
+ * A single playback-history event returned by Plex.
+ */
+export interface PlaybackHistoryItem {
+  historyKey: string;
+  ratingKey: string;
+  key: string;
+  parentRatingKey: string | undefined;
+  grandparentRatingKey: string | undefined;
+  title: string;
+  type: string;
+  thumb: string | undefined;
+  viewedAt: number;
+  accountID: number | undefined;
+  deviceID: number | undefined;
+}
+
+/**
+ * Response returned by a Plex playback-history query.
+ */
+export interface GetPlaybackHistoryResponse {
+  MediaContainer: PlaybackHistoryMediaContainer;
+}
+
+interface PlaybackHistoryMediaContainer {
+  size: number;
+  totalSize: number | undefined;
+  offset: number | undefined;
+  Metadata: PlaybackHistoryItem[] | undefined;
 }
 
 // Library items (browsing a library section)

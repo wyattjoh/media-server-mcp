@@ -292,6 +292,185 @@ Deno.test(
 );
 
 Deno.test(
+  "plex_get_accounts - returns system account IDs and names",
+  async () => {
+    let capturedUrl = "";
+    const fetchStub = stub(
+      globalThis,
+      "fetch",
+      (url) => {
+        capturedUrl = url.toString();
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              MediaContainer: {
+                size: 1,
+                Account: [{
+                  id: 42,
+                  key: "42",
+                  name: "Alice",
+                  thumb: "/accounts/42/thumb",
+                }],
+              },
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            },
+          ),
+        );
+      },
+    );
+
+    try {
+      const server = new McpServer({ name: "test", version: "1.0.0" });
+      const config = createPlexConfig(
+        "http://localhost:32400",
+        "test-plex-token",
+      );
+      createPlexTools(server, config, () => true);
+
+      const { client, cleanup } = await createConnectedClient(server);
+
+      try {
+        const result = await client.callTool({
+          name: "plex_get_accounts",
+          arguments: {},
+        });
+
+        assertExists(result.structuredContent);
+        assertEquals(result.isError, undefined);
+
+        const structured = result.structuredContent as Record<string, unknown>;
+        const container = structured.MediaContainer as Record<string, unknown>;
+        const accounts = container.Account as Array<Record<string, unknown>>;
+
+        assertEquals(new URL(capturedUrl).pathname, "/accounts");
+        assertEquals(accounts[0].id, 42);
+        assertEquals(accounts[0].name, "Alice");
+      } finally {
+        await cleanup();
+      }
+    } finally {
+      fetchStub.restore();
+    }
+  },
+);
+
+Deno.test(
+  "plex_get_playback_history - returns filtered history",
+  async () => {
+    let capturedUrl = "";
+    const fetchStub = stub(
+      globalThis,
+      "fetch",
+      (url) => {
+        capturedUrl = url.toString();
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              MediaContainer: {
+                size: 1,
+                totalSize: 1,
+                offset: 0,
+                Metadata: [{
+                  historyKey: "/status/sessions/history/1",
+                  ratingKey: "123",
+                  key: "/library/metadata/123",
+                  title: "Inception",
+                  type: "movie",
+                  viewedAt: 1700000000,
+                  accountID: 42,
+                  deviceID: 7,
+                }],
+              },
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            },
+          ),
+        );
+      },
+    );
+
+    try {
+      const server = new McpServer({ name: "test", version: "1.0.0" });
+      const config = createPlexConfig(
+        "http://localhost:32400",
+        "test-plex-token",
+      );
+      createPlexTools(server, config, () => true);
+
+      const { client, cleanup } = await createConnectedClient(server);
+
+      try {
+        const result = await client.callTool({
+          name: "plex_get_playback_history",
+          arguments: {
+            ratingKey: "123",
+            accountId: 42,
+            start: 0,
+            size: 25,
+          },
+        });
+
+        assertExists(result.structuredContent);
+        assertEquals(result.isError, undefined);
+
+        const structured = result.structuredContent as Record<string, unknown>;
+        const container = structured.MediaContainer as Record<string, unknown>;
+        const metadata = container.Metadata as Array<Record<string, unknown>>;
+        const requestUrl = new URL(capturedUrl);
+
+        assertEquals(metadata[0].title, "Inception");
+        assertEquals(metadata[0].viewedAt, 1700000000);
+        assertEquals(requestUrl.pathname, "/status/sessions/history/all");
+        assertEquals(requestUrl.searchParams.get("metadataItemID"), "123");
+        assertEquals(requestUrl.searchParams.get("accountID"), "42");
+        assertEquals(
+          requestUrl.searchParams.get("X-Plex-Container-Size"),
+          "25",
+        );
+      } finally {
+        await cleanup();
+      }
+    } finally {
+      fetchStub.restore();
+    }
+  },
+);
+
+Deno.test(
+  "plex_get_playback_history - rejects page sizes above the maximum",
+  async () => {
+    const server = new McpServer({ name: "test", version: "1.0.0" });
+    const config = createPlexConfig(
+      "http://localhost:32400",
+      "test-plex-token",
+    );
+    createPlexTools(server, config, () => true);
+
+    const { client, cleanup } = await createConnectedClient(server);
+
+    try {
+      const result = await client.callTool({
+        name: "plex_get_playback_history",
+        arguments: { ratingKey: "123", size: 1_001 },
+      });
+
+      assertEquals(result.isError, true);
+      assertEquals(
+        JSON.stringify(result.content).includes("1000"),
+        true,
+      );
+    } finally {
+      await cleanup();
+    }
+  },
+);
+
+Deno.test(
   "plex_refresh_library - error path returns isError when Plex returns 500",
   async () => {
     const fetchStub = stub(

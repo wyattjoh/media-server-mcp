@@ -57,8 +57,10 @@ export const TOOL_BRANCHES: ToolCategory[] = [
       "sonarr_update_episode_monitoring",
       // Plex Library Management
       "plex_get_libraries",
+      "plex_get_accounts",
       "plex_get_metadata",
       "plex_get_library_items",
+      "plex_get_playback_history",
       "plex_get_collections",
       "plex_get_collection_items",
       "plex_create_collection",
