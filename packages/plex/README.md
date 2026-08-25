@@ -8,6 +8,8 @@ A TypeScript client library for the Plex Media Server API, providing a clean and
 - 📝 Full TypeScript support with comprehensive types
 - 🔍 Search across all media libraries with type filtering
 - 📚 Library management and metadata access
+- 👤 System account lookup for playback history users
+- 🕒 Playback history queries for specific media items
 - 🔄 Server capabilities and library refresh operations
 - ⚡ Functional programming approach (no classes)
 - 🛡️ Built-in connection testing and error handling
@@ -23,8 +25,10 @@ deno add @wyattjoh/plex
 ```typescript
 import {
   createPlexConfig,
+  getAccounts,
   getLibraries,
   getMetadata,
+  getPlaybackHistory,
   search,
   testConnection,
 } from "@wyattjoh/plex";
@@ -41,6 +45,9 @@ if (!result.success) {
   throw new Error(`Connection failed: ${result.error}`);
 }
 
+// Get all system accounts
+const accounts = await getAccounts(config);
+
 // Get all libraries
 const libraries = await getLibraries(config);
 
@@ -49,6 +56,11 @@ const searchResults = await search(config, "The Matrix", 10, ["movies"]);
 
 // Get detailed metadata
 const metadata = await getMetadata(config, "12345");
+
+// Get playback history for the item
+const history = await getPlaybackHistory(config, "12345", {
+  accountId: 1,
+});
 
 // Refresh a library
 await refreshLibrary(config, "1");

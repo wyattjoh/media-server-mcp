@@ -379,6 +379,7 @@ TOOL_CONFIG_PATH=./tools.json # Path to JSON configuration file for tool setting
 #### Library Management
 
 - `plex_get_libraries` - List all media libraries available on the Plex server
+- `plex_get_accounts` - List Plex system accounts and their IDs and names for resolving playback history users
 - `plex_refresh_library` - Trigger a refresh of a specific library to scan for new content
 - `plex_get_library_items` - Browse and filter items in a library section (supports filtering by studio, genre, year, and sorting)
 
@@ -386,6 +387,7 @@ TOOL_CONFIG_PATH=./tools.json # Path to JSON configuration file for tool setting
 
 - `plex_search` - Search across all Plex libraries for movies, TV shows, and other content with optional type filters
 - `plex_get_metadata` - Get detailed metadata for a specific movie, TV show, or other media item
+- `plex_get_playback_history` - Get playback history for a specific movie, TV show, season, or episode by rating key
 
 #### Collection Management
 

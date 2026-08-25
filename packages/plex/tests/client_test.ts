@@ -4,12 +4,14 @@ import {
   createCollection,
   createPlexConfig,
   deleteCollection,
+  getAccounts,
   getCapabilities,
   getCollectionItems,
   getCollections,
   getLibraries,
   getLibraryItems,
   getMetadata,
+  getPlaybackHistory,
   type PlexConfig,
   removeFromCollection,
   search,
@@ -205,6 +207,100 @@ Deno.test("createPlexConfig - stores baseUrl and apiKey", () => {
   assertEquals(cfg.baseUrl, "http://plex.local:32400"); // trailing slash stripped
   assertEquals(cfg.apiKey, "my-token");
 });
+
+Deno.test("getAccounts - returns system accounts", async () => {
+  const cfg = createPlexConfig("http://localhost:32400", "fake-token");
+  let capturedUrl = "";
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (url: string | URL | Request) => {
+    capturedUrl = url.toString();
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({
+          MediaContainer: {
+            size: 1,
+            Account: [{
+              id: 42,
+              key: "42",
+              name: "Alice",
+              thumb: "/accounts/42/thumb",
+            }],
+          },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+  };
+
+  try {
+    const result = await getAccounts(cfg);
+    const requestUrl = new URL(capturedUrl);
+
+    assertEquals(requestUrl.pathname, "/accounts");
+    assertEquals(result.MediaContainer.Account?.[0]?.id, 42);
+    assertEquals(result.MediaContainer.Account?.[0]?.name, "Alice");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test(
+  "getPlaybackHistory - filters by rating key and supports query options",
+  async () => {
+    const cfg = createPlexConfig("http://localhost:32400", "fake-token");
+    let capturedUrl = "";
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (url: string | URL | Request) => {
+      capturedUrl = url.toString();
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            MediaContainer: {
+              size: 1,
+              totalSize: 1,
+              offset: 10,
+              Metadata: [{
+                historyKey: "/status/sessions/history/1",
+                ratingKey: "123",
+                key: "/library/metadata/123",
+                title: "A Movie",
+                type: "movie",
+                viewedAt: 1700000000,
+                accountID: 42,
+                deviceID: 7,
+              }],
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    };
+
+    try {
+      const result = await getPlaybackHistory(cfg, "123", {
+        accountId: 42,
+        start: 10,
+        size: 5,
+        viewedAtSince: 1690000000,
+      });
+      const requestUrl = new URL(capturedUrl);
+
+      assertEquals(requestUrl.pathname, "/status/sessions/history/all");
+      assertEquals(requestUrl.searchParams.get("metadataItemID"), "123");
+      assertEquals(requestUrl.searchParams.get("sort"), "viewedAt:desc");
+      assertEquals(requestUrl.searchParams.get("accountID"), "42");
+      assertEquals(
+        requestUrl.searchParams.get("X-Plex-Container-Start"),
+        "10",
+      );
+      assertEquals(requestUrl.searchParams.get("X-Plex-Container-Size"), "5");
+      assertEquals(requestUrl.searchParams.get("viewedAt>"), "1690000000");
+      assertEquals(result.MediaContainer.Metadata?.[0]?.viewedAt, 1700000000);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  },
+);
 
 Deno.test("createCollection - rejects on empty ratingKeys", async () => {
   const cfg = createPlexConfig("http://localhost:32400", "fake-token");

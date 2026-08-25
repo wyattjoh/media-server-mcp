@@ -69,6 +69,31 @@ export function createPlexTools(
     );
   }
 
+  // plex_get_accounts
+  if (isToolEnabled("plex_get_accounts")) {
+    server.registerTool(
+      "plex_get_accounts",
+      {
+        title: "Get Plex system accounts",
+        description:
+          "List Plex system accounts and their IDs and names for resolving playback-history account IDs",
+        inputSchema: {},
+        outputSchema: z.object({}).catchall(z.unknown()),
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("plex_get_accounts", async () => {
+        const result = await plexClient.getAccounts(config);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
+
   // plex_search
   if (isToolEnabled("plex_search")) {
     server.registerTool(
@@ -125,6 +150,56 @@ export function createPlexTools(
       },
       wrapToolHandler("plex_get_metadata", async (args) => {
         const result = await plexClient.getMetadata(config, args.ratingKey);
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
+
+  // plex_get_playback_history
+  if (isToolEnabled("plex_get_playback_history")) {
+    server.registerTool(
+      "plex_get_playback_history",
+      {
+        title: "Get Plex playback history",
+        description:
+          "Get playback history for a specific Plex movie, TV show, season, or episode by rating key",
+        inputSchema: {
+          ratingKey: z.string().describe(
+            "The Plex rating key for the movie, TV show, season, or episode",
+          ),
+          accountId: z.number().int().optional().describe(
+            "Filter history to a specific Plex account ID",
+          ),
+          start: z.number().int().min(0).optional().describe(
+            "Pagination offset (0-based)",
+          ),
+          size: z.number().int().min(1).optional().default(100).describe(
+            "Number of history entries to return (default: 100)",
+          ),
+          viewedAtSince: z.number().int().min(0).optional().describe(
+            "Only return plays after this Unix timestamp",
+          ),
+        },
+        outputSchema: z.object({}).catchall(z.unknown()),
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("plex_get_playback_history", async (args) => {
+        const result = await plexClient.getPlaybackHistory(
+          config,
+          args.ratingKey,
+          {
+            accountId: args.accountId,
+            start: args.start,
+            size: args.size,
+            viewedAtSince: args.viewedAtSince,
+          },
+        );
         return {
           content: [{
             type: "text",
