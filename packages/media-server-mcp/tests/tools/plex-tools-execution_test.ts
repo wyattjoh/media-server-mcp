@@ -442,6 +442,35 @@ Deno.test(
 );
 
 Deno.test(
+  "plex_get_playback_history - rejects page sizes above the maximum",
+  async () => {
+    const server = new McpServer({ name: "test", version: "1.0.0" });
+    const config = createPlexConfig(
+      "http://localhost:32400",
+      "test-plex-token",
+    );
+    createPlexTools(server, config, () => true);
+
+    const { client, cleanup } = await createConnectedClient(server);
+
+    try {
+      const result = await client.callTool({
+        name: "plex_get_playback_history",
+        arguments: { ratingKey: "123", size: 1_001 },
+      });
+
+      assertEquals(result.isError, true);
+      assertEquals(
+        JSON.stringify(result.content).includes("1000"),
+        true,
+      );
+    } finally {
+      await cleanup();
+    }
+  },
+);
+
+Deno.test(
   "plex_refresh_library - error path returns isError when Plex returns 500",
   async () => {
     const fetchStub = stub(

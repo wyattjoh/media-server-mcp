@@ -168,7 +168,7 @@ export function getMetadata(
  * Get playback history for a specific Plex media item.
  *
  * @param config Plex server configuration.
- * @param ratingKey Plex rating key for a movie, show, season, or episode.
+ * @param ratingKey Plex rating key for a playable item, such as a movie or episode.
  * @param options Optional account, pagination, and timestamp filters.
  * @returns The matching playback-history events.
  */

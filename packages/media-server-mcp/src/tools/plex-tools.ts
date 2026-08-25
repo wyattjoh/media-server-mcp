@@ -168,10 +168,10 @@ export function createPlexTools(
       {
         title: "Get Plex playback history",
         description:
-          "Get playback history for a specific Plex movie, TV show, season, or episode by rating key",
+          "Get playback history for a specific playable Plex media item by rating key",
         inputSchema: {
           ratingKey: z.string().describe(
-            "The Plex rating key for the movie, TV show, season, or episode",
+            "The Plex rating key for a playable media item, such as a movie or episode",
           ),
           accountId: z.number().int().optional().describe(
             "Filter history to a specific Plex account ID",
@@ -179,9 +179,10 @@ export function createPlexTools(
           start: z.number().int().min(0).optional().describe(
             "Pagination offset (0-based)",
           ),
-          size: z.number().int().min(1).optional().default(100).describe(
-            "Number of history entries to return (default: 100)",
-          ),
+          size: z.number().int().min(1).max(1_000).optional().default(100)
+            .describe(
+              "Number of history entries to return (default: 100, maximum: 1,000)",
+            ),
           viewedAtSince: z.number().int().min(0).optional().describe(
             "Only return plays after this Unix timestamp",
           ),

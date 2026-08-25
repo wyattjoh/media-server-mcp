@@ -387,7 +387,7 @@ TOOL_CONFIG_PATH=./tools.json # Path to JSON configuration file for tool setting
 
 - `plex_search` - Search across all Plex libraries for movies, TV shows, and other content with optional type filters
 - `plex_get_metadata` - Get detailed metadata for a specific movie, TV show, or other media item
-- `plex_get_playback_history` - Get playback history for a specific movie, TV show, season, or episode by rating key
+- `plex_get_playback_history` - Get playback history for a specific playable media item, such as a movie or episode, by rating key (up to 1,000 entries per request)
 
 #### Collection Management
 

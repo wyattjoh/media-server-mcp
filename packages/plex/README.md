@@ -9,7 +9,7 @@ A TypeScript client library for the Plex Media Server API, providing a clean and
 - 🔍 Search across all media libraries with type filtering
 - 📚 Library management and metadata access
 - 👤 System account lookup for playback history users
-- 🕒 Playback history queries for specific media items
+- 🕒 Playback history queries for specific playable media items
 - 🔄 Server capabilities and library refresh operations
 - ⚡ Functional programming approach (no classes)
 - 🛡️ Built-in connection testing and error handling
