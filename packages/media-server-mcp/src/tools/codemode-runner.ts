@@ -3,25 +3,18 @@ const MAX_RESULT_BYTES = 128 * 1024;
 const MAX_RESULT_DEPTH = 32;
 const MAX_DIAGNOSTIC_BYTES = 8 * 1024;
 
-type JsonRpcRequest = {
+type SelectedTool = { name: string; facadePath: string };
+type JsonRpcMessage = {
   jsonrpc: "2.0";
   id: number;
-  method: "execute";
-  params: {
-    source: string;
-    input: unknown;
-  };
-};
-
-type JsonRpcResponse = {
-  jsonrpc: "2.0";
-  id: number;
-  result?: { value: unknown; diagnostics: string[] };
+  method?: string;
+  params?: Record<string, unknown>;
+  result?: unknown;
   error?: { code: number; message: string };
 };
 
 const encoder = new TextEncoder();
-const decoder = new TextDecoder();
+const decoder = new TextDecoder("utf-8", { fatal: true });
 
 async function readExact(length: number): Promise<Uint8Array> {
   const bytes = new Uint8Array(length);
@@ -34,16 +27,16 @@ async function readExact(length: number): Promise<Uint8Array> {
   return bytes;
 }
 
-async function readFrame(): Promise<JsonRpcRequest> {
+async function readFrame(): Promise<JsonRpcMessage> {
   const header = await readExact(4);
   const length = new DataView(header.buffer).getUint32(0, false);
   if (length === 0 || length > MAX_FRAME_BYTES) {
     throw new Error("Invalid request frame");
   }
-  return JSON.parse(decoder.decode(await readExact(length))) as JsonRpcRequest;
+  return JSON.parse(decoder.decode(await readExact(length))) as JsonRpcMessage;
 }
 
-async function writeFrame(response: JsonRpcResponse): Promise<void> {
+async function writeFrame(response: JsonRpcMessage): Promise<void> {
   const body = encoder.encode(JSON.stringify(response));
   const frame = new Uint8Array(4 + body.length);
   new DataView(frame.buffer).setUint32(0, body.length, false);
@@ -58,8 +51,7 @@ function validateJsonValue(
 ): void {
   if (depth > MAX_RESULT_DEPTH) throw new Error("Result exceeds depth limit");
   if (
-    value === null || typeof value === "string" ||
-    typeof value === "boolean"
+    value === null || typeof value === "string" || typeof value === "boolean"
   ) return;
   if (typeof value === "number") {
     if (!Number.isFinite(value)) throw new Error("Result is not valid JSON");
@@ -76,9 +68,7 @@ function validateJsonValue(
       throw new Error("Result is not valid JSON");
     }
     for (const key of Reflect.ownKeys(value)) {
-      if (typeof key === "symbol") {
-        throw new Error("Result is not valid JSON");
-      }
+      if (typeof key === "symbol") throw new Error("Result is not valid JSON");
       validateJsonValue(
         (value as Record<string, unknown>)[key],
         depth + 1,
@@ -114,8 +104,62 @@ function formatDiagnostic(args: unknown[]): string {
   }).join(" ");
 }
 
+function createFacade(
+  manifest: readonly SelectedTool[],
+): Readonly<Record<string, unknown>> {
+  let nextId = 2;
+  const root: Record<string, unknown> = {};
+  for (const selected of manifest) {
+    const segments = selected.facadePath.split(".");
+    if (segments.shift() !== "tools" || segments.length < 2) {
+      throw new Error("Invalid tool manifest");
+    }
+    let target = root;
+    for (const segment of segments.slice(0, -1)) {
+      target[segment] ??= {};
+      target = target[segment] as Record<string, unknown>;
+    }
+    const method = segments.at(-1)!;
+    target[method] = async (args: unknown = {}) => {
+      const id = nextId++;
+      await writeFrame({
+        jsonrpc: "2.0",
+        id,
+        method: "tool.call",
+        params: { facadePath: selected.facadePath, args },
+      });
+      const response = await readFrame();
+      if (response.jsonrpc !== "2.0" || response.id !== id) {
+        throw new Error("Tool protocol error");
+      }
+      if (response.error) {
+        const ToolExecutionError = class extends Error {
+          readonly tool = selected.facadePath;
+          constructor(message: string) {
+            super(message);
+            this.name = "ToolExecutionError";
+          }
+        };
+        throw new ToolExecutionError(response.error.message);
+      }
+      return response.result;
+    };
+  }
+  const freeze = (
+    value: Record<string, unknown>,
+  ): Readonly<Record<string, unknown>> => {
+    for (const nested of Object.values(value)) {
+      if (nested && typeof nested === "object") {
+        freeze(nested as Record<string, unknown>);
+      }
+    }
+    return Object.freeze(value);
+  };
+  return freeze(root);
+}
+
 async function main(): Promise<void> {
-  let request: JsonRpcRequest;
+  let request: JsonRpcMessage;
   try {
     request = await readFrame();
   } catch {
@@ -126,10 +170,10 @@ async function main(): Promise<void> {
     });
     return;
   }
-
+  const params = request.params;
   if (
     request.jsonrpc !== "2.0" || request.method !== "execute" ||
-    typeof request.params?.source !== "string"
+    typeof params?.source !== "string" || !Array.isArray(params.manifest)
   ) {
     await writeFrame({
       jsonrpc: "2.0",
@@ -167,12 +211,15 @@ async function main(): Promise<void> {
     const execute = new AsyncFunction(
       "tools",
       "input",
-      '"use strict";\n' + request.params.source,
+      '"use strict";\n' + params.source,
     ) as (
-      tools: Readonly<Record<string, never>>,
+      tools: Readonly<Record<string, unknown>>,
       input: unknown,
     ) => Promise<unknown>;
-    const value = await execute(Object.freeze({}), request.params.input);
+    const value = await execute(
+      createFacade(params.manifest as SelectedTool[]),
+      params.input,
+    );
     validateJsonValue(value);
     const serialized = JSON.stringify(value);
     if (serialized === undefined) throw new Error("Result is not valid JSON");

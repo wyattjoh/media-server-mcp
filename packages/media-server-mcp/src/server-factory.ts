@@ -65,7 +65,7 @@ function setupTools(
   logger.debug("Setting up tools");
 
   if (isCodeMode) {
-    createCodeModeTools(server, createCodeModeCatalog(config));
+    createCodeModeTools(server, createCodeModeCatalog(config), config);
   }
   if (config.radarrConfig && !isCodeMode) {
     createRadarrTools(server, config.radarrConfig, isToolEnabled);

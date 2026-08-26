@@ -283,6 +283,141 @@ Deno.test("codemode execute returns JSON while isolating console output", async 
   );
 });
 
+Deno.test("codemode execute orchestrates one selected read-only tool", async () => {
+  const originalFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = (_input, _init) => {
+    requests++;
+    return Promise.resolve(Response.json({
+      page: 1,
+      total_pages: 1,
+      total_results: 0,
+      results: [],
+    }));
+  };
+  try {
+    await withClient(
+      {
+        tmdbConfig: createTMDBConfig("test-key"),
+        isToolEnabled: codemodeFilter(),
+        isCodeMode: true,
+      },
+      async (client) => {
+        const response = await client.callTool({
+          name: "codemode_execute",
+          arguments: {
+            source:
+              'const response = await tools.tmdb.searchMovies({ query: "Arrival", language: "en-US" }); return { count: response.total_results };',
+            selectedTools: ["tmdb_search_movies"],
+          },
+        });
+        assertEquals(response.isError, undefined);
+        assertEquals(response.structuredContent, { result: { count: 0 } });
+        assertEquals(response.content, [{
+          type: "text",
+          text: '{"count":0}',
+        }]);
+        assertEquals(requests, 1);
+        assert(!JSON.stringify(response).includes("total_pages"));
+      },
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("codemode execute rejects unauthorized and invalid native calls", async () => {
+  const originalFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = () => {
+    requests++;
+    return Promise.resolve(Response.json({}));
+  };
+  try {
+    await withClient(
+      {
+        tmdbConfig: createTMDBConfig("test-key"),
+        radarrConfig: createRadarrConfig("http://localhost:7878", "test-key"),
+        isToolEnabled: codemodeFilter(),
+        isCodeMode: true,
+      },
+      async (client) => {
+        for (const selectedTools of [["unknown_tool"], ["radarr_add_movie"]]) {
+          const response = await client.callTool({
+            name: "codemode_execute",
+            arguments: { source: "return null;", selectedTools },
+          });
+          assertEquals(response.isError, true);
+        }
+
+        const invalid = await client.callTool({
+          name: "codemode_execute",
+          arguments: {
+            source:
+              "await tools.tmdb.searchMovies({ language: 'en-US' }); return null;",
+            selectedTools: ["tmdb_search_movies"],
+          },
+        });
+        assertEquals(invalid.isError, true);
+        assertEquals(requests, 0);
+
+        const forged = await client.callTool({
+          name: "codemode_execute",
+          arguments: {
+            source:
+              "let mutationRejected = false; try { Object.defineProperty(tools.tmdb, 'searchTv', { value: () => 'forged' }); } catch { mutationRejected = true; } return { mutationRejected, unselected: typeof tools.tmdb.searchTv, nativeId: typeof tools.tmdb_search_movies };",
+            selectedTools: ["tmdb_search_movies"],
+          },
+        });
+        assertEquals(forged.structuredContent, {
+          result: {
+            mutationRejected: true,
+            unselected: "undefined",
+            nativeId: "undefined",
+          },
+        });
+        assertEquals(requests, 0);
+      },
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("codemode native failures are catchable ToolExecutionError values", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = () =>
+    Promise.resolve(new Response("failure", { status: 500 }));
+  try {
+    await withClient(
+      {
+        tmdbConfig: createTMDBConfig("test-key"),
+        isToolEnabled: codemodeFilter(),
+        isCodeMode: true,
+      },
+      async (client) => {
+        const response = await client.callTool({
+          name: "codemode_execute",
+          arguments: {
+            source:
+              "try { await tools.tmdb.searchMovies({ query: 'Arrival', language: 'en-US' }); } catch (error) { return { name: error.name, tool: error.tool, message: error.message }; }",
+            selectedTools: ["tmdb_search_movies"],
+          },
+        });
+        assertEquals(response.structuredContent, {
+          result: {
+            name: "ToolExecutionError",
+            tool: "tools.tmdb.searchMovies",
+            message: "Native tool execution failed",
+          },
+        });
+      },
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 Deno.test("codemode execute uses fresh subprocess state for every call", async () => {
   await withClient(
     {
@@ -376,7 +511,7 @@ Deno.test("codemode execute kills an infinite-loop subprocess at its deadline", 
         name: "codemode_execute",
         arguments: {
           source: "return null;",
-          selectedTools: ["tmdb_search_movies"],
+          selectedTools: ["unknown_tool"],
         },
       });
       assertEquals(selectedToolResponse.isError, true);

@@ -1,9 +1,11 @@
-import type { McpServer } from "@modelcontextprotocol/server";
+import { Client } from "@modelcontextprotocol/client";
+import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { PlexConfig } from "@wyattjoh/plex";
 import type { RadarrConfig } from "@wyattjoh/radarr";
 import type { SonarrConfig } from "@wyattjoh/sonarr";
 import type { TMDBConfig } from "@wyattjoh/tmdb";
+import { getLogger } from "../logging.ts";
 import { createPlexTools } from "./plex-tools.ts";
 import { createRadarrTools } from "./radarr-tools.ts";
 import { createSonarrTools } from "./sonarr-tools.ts";
@@ -15,6 +17,8 @@ const SERVICE_NAMES = ["radarr", "sonarr", "tmdb", "plex"] as const;
 const POLICY_NAMES = ["read-only", "mutation"] as const;
 const MAX_SEARCH_RESULTS = 50;
 const MAX_DESCRIBE_TOOLS = 10;
+const MAX_SELECTED_TOOLS = 10;
+const logger = getLogger(["media-server-mcp", "tools", "codemode"]);
 
 type JsonSchema = Record<string, unknown>;
 type ServiceName = (typeof SERVICE_NAMES)[number];
@@ -317,12 +321,66 @@ export function createCodeModeCatalog(
   return sorted;
 }
 
+type NativeDispatcher = {
+  call: (name: string, args: unknown) => Promise<unknown>;
+  close: () => Promise<void>;
+};
+
+async function createNativeDispatcher(
+  config: Readonly<CodeModeServiceConfig>,
+): Promise<NativeDispatcher> {
+  const nativeServer = new McpServer(
+    { name: "codemode-native-dispatch", version: "1.0.0" },
+    { capabilities: { tools: {} } },
+  );
+  if (config.radarrConfig) {
+    createRadarrTools(nativeServer, config.radarrConfig, () => true);
+  }
+  if (config.sonarrConfig) {
+    createSonarrTools(nativeServer, config.sonarrConfig, () => true);
+  }
+  if (config.tmdbConfig) {
+    createTMDBTools(nativeServer, config.tmdbConfig, () => true);
+  }
+  if (config.plexConfig) {
+    createPlexTools(nativeServer, config.plexConfig, () => true);
+  }
+
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
+  await nativeServer.connect(serverTransport);
+  const client = new Client({ name: "codemode-dispatch", version: "1.0.0" });
+  await client.connect(clientTransport);
+
+  return {
+    call: async (name, args) => {
+      const response = await client.callTool({
+        name,
+        arguments: args as Record<string, unknown>,
+      });
+      if (response.isError) {
+        logger.debug("Code Mode native tool failed", {
+          toolName: name,
+          error: response.content,
+        });
+        throw new Error("Native tool execution failed");
+      }
+      if (response.structuredContent === undefined) {
+        throw new Error("Native tool returned no structured content");
+      }
+      return response.structuredContent;
+    },
+    close: () => client.close(),
+  };
+}
+
 /**
  * Registers the stable Code Mode discovery facade.
  */
 export function createCodeModeTools(
   server: McpServer,
   catalog: readonly CodeModeCatalogEntry[],
+  config: Readonly<CodeModeServiceConfig>,
 ): void {
   server.registerTool(
     "codemode_search",
@@ -456,18 +514,45 @@ export function createCodeModeTools(
         input: z.json().optional().describe(
           "Optional JSON value exposed to the function body as input",
         ),
-        selectedTools: z.array(z.string()).max(0).default([]).describe(
-          "Native tools selected for execution; must be empty in this stage",
-        ),
+        selectedTools: z.array(z.string().min(1).max(100))
+          .max(MAX_SELECTED_TOOLS).refine(
+            (names) => new Set(names).size === names.length,
+            "Selected tool names must be unique",
+          ).default([]).describe(
+            "Exact native read-only tools authorized for this execution",
+          ),
       },
       outputSchema: ExecuteOutputSchema,
     },
     wrapToolHandler("codemode_execute", async (args) => {
-      const result = await executeCodeMode(args.source, args.input ?? null);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result) }],
-        structuredContent: { result },
-      };
+      const entriesByName = new Map(
+        catalog.map((entry) => [entry.name, entry]),
+      );
+      const selected = args.selectedTools.map((name) => {
+        const entry = entriesByName.get(name);
+        if (!entry || !entry.available || entry.policy !== "read-only") {
+          throw new Error(`Tool is not executable: ${name}`);
+        }
+        return entry;
+      });
+      const dispatcher = await createNativeDispatcher(config);
+      try {
+        const result = await executeCodeMode(
+          args.source,
+          args.input ?? null,
+          selected.map((entry) => ({
+            name: entry.name,
+            facadePath: entry.facadePath,
+          })),
+          dispatcher.call,
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          structuredContent: { result },
+        };
+      } finally {
+        await dispatcher.close();
+      }
     }),
   );
 }
