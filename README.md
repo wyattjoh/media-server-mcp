@@ -18,7 +18,7 @@ This is a monorepo containing the following packages:
 - **Sonarr Integration**: Search, add, manage, and monitor TV series
 - **Plex Integration**: Browse libraries, search content, and manage Plex media server
 - **TMDB Integration**: Advanced movie/TV discovery, external ID lookup, and comprehensive metadata
-- **Tool Configuration System**: Reduce tool clutter with 6 profiles (18-70 tools) and branch-based filtering
+- **Tool Configuration System**: Reduce tool clutter with native profiles (18-70 tools), branch-based filtering, or the 3-tool Code Mode discovery facade
 - **MCP Resources**: Expose service configs and dynamic data (movies, series, collections, genres) as readable resources
 - **MCP Prompts**: Built-in prompts for common workflows (add-movie, add-series, library-report, recommendations)
 - **Flexible Service Configuration**: Each service is optional - configure any combination
@@ -305,16 +305,17 @@ Tools are organized into **6 logical branches**:
 
 ### Predefined Profiles
 
-Choose from **6 predefined profiles** that combine different tool branches:
+Choose from **7 predefined profiles** that combine tool branches or expose progressive discovery:
 
-| Profile                 | Branches Included                      | Total Tools | Best For                                    |
-| ----------------------- | -------------------------------------- | ----------- | ------------------------------------------- |
-| **`default`** (default) | `discovery-add`                        | 18 tools    | Most users - essential discovery and adding |
-| **`minimal`**           | `discovery-add`                        | 18 tools    | Same as default                             |
-| **`curator`**           | `discovery-add` + `library-management` | 29 tools    | Managing existing content                   |
-| **`maintainer`**        | `curator` + `system-maintenance`       | 39 tools    | System administrators                       |
-| **`power-user`**        | All except `advanced-search`           | 63 tools    | Advanced users                              |
-| **`full`**              | All branches                           | 70 tools    | Complete functionality                      |
+| Profile                 | Branches Included                      | Total Tools | Best For                                        |
+| ----------------------- | -------------------------------------- | ----------- | ----------------------------------------------- |
+| **`codemode`**          | Progressive discovery facade           | 3 tools     | Models that discover configured tools on demand |
+| **`default`** (default) | `discovery-add`                        | 18 tools    | Most users - essential discovery and adding     |
+| **`minimal`**           | `discovery-add`                        | 18 tools    | Same as default                                 |
+| **`curator`**           | `discovery-add` + `library-management` | 29 tools    | Managing existing content                       |
+| **`maintainer`**        | `curator` + `system-maintenance`       | 39 tools    | System administrators                           |
+| **`power-user`**        | All except `advanced-search`           | 63 tools    | Advanced users                                  |
+| **`full`**              | All branches                           | 70 tools    | Complete functionality                          |
 
 ### Configuration Methods
 
@@ -341,13 +342,13 @@ Add these variables to your MCP server configuration:
 
 **Available Environment Variables:**
 
-| Variable           | Description                                       | Example Values                             |
-| ------------------ | ------------------------------------------------- | ------------------------------------------ |
-| `TOOL_PROFILE`     | Select a predefined profile                       | `default`, `curator`, `power-user`, `full` |
-| `TOOL_BRANCHES`    | Add specific branches (comma-separated)           | `library-management,system-maintenance`    |
-| `TOOL_EXCLUDE`     | Exclude specific tools (comma-separated)          | `radarr_delete_movie,sonarr_delete_series` |
-| `TOOL_INCLUDE`     | Include specific tools (overrides other settings) | `radarr_get_health,sonarr_get_health`      |
-| `TOOL_CONFIG_PATH` | Path to JSON configuration file                   | `./tools.config.json`                      |
+| Variable           | Description                                       | Example Values                                         |
+| ------------------ | ------------------------------------------------- | ------------------------------------------------------ |
+| `TOOL_PROFILE`     | Select a predefined profile                       | `codemode`, `default`, `curator`, `power-user`, `full` |
+| `TOOL_BRANCHES`    | Add specific branches (comma-separated)           | `library-management,system-maintenance`                |
+| `TOOL_EXCLUDE`     | Exclude specific tools (comma-separated)          | `radarr_delete_movie,sonarr_delete_series`             |
+| `TOOL_INCLUDE`     | Include specific tools (overrides other settings) | `radarr_get_health,sonarr_get_health`                  |
+| `TOOL_CONFIG_PATH` | Path to JSON configuration file                   | `./tools.config.json`                                  |
 
 #### 2. JSON Configuration File
 
@@ -377,7 +378,9 @@ Settings are applied in this order (later settings override earlier ones):
 1. **Default Profile**: `discovery-add` tools only (18 tools)
 2. **JSON Configuration File**: Applied if `TOOL_CONFIG_PATH` is set
 3. **Environment Variables**: Override JSON settings
-4. **Custom Overrides**: `TOOL_EXCLUDE` and `TOOL_INCLUDE` applied last
+4. **Custom Overrides**: `TOOL_EXCLUDE` and `TOOL_INCLUDE` applied last for native profiles
+
+The `codemode` profile always advertises only `codemode_search`, `codemode_describe`, and `codemode_execute`. Its catalog covers every native tool for configured services and ignores `TOOL_BRANCHES`, `TOOL_INCLUDE`, and `TOOL_EXCLUDE`. Mutating tools are discoverable but marked unavailable for Code Mode execution.
 
 ### Common Configuration Examples
 
@@ -734,7 +737,7 @@ With this MCP server configured, you can ask your AI assistant:
 
 - **Too many/few tools**: Check your `TOOL_PROFILE` setting or use `TOOL_BRANCHES` to add specific functionality
 - **Missing expected tools**: Verify the tool is included in your profile/branches using the startup logs
-- **Invalid profile error**: Use one of the valid profiles: `default`, `minimal`, `curator`, `maintainer`, `power-user`, `full`
+- **Invalid profile error**: Use one of the valid profiles: `codemode`, `default`, `minimal`, `curator`, `maintainer`, `power-user`, `full`
 - **JSON config not loading**: Check that `TOOL_CONFIG_PATH` points to a valid file and has correct JSON syntax
 
 ### Debug Mode

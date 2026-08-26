@@ -167,7 +167,7 @@ MCP_AUTH_TOKEN=your-secure-auth-token
 MCP_ALLOWED_ORIGINS=localhost,127.0.0.1,[::1] # Browser Origin hostnames allowed in HTTP mode
 
 # Tool Configuration (all optional)
-TOOL_PROFILE=default          # Predefined profile: default, minimal, curator, maintainer, power-user, full
+TOOL_PROFILE=default          # Predefined profile: codemode, default, minimal, curator, maintainer, power-user, full
 TOOL_BRANCHES=discovery-add   # Comma-separated branches to enable
 TOOL_EXCLUDE=radarr_disk_scan # Comma-separated tools to exclude
 TOOL_INCLUDE=tmdb_search_movies # Comma-separated tools to force-include (overrides other settings)
@@ -195,6 +195,14 @@ TOOL_CONFIG_PATH=./tools.json # Path to JSON configuration file for tool setting
 - **MCP 2026-07-28**: Streamable HTTP is served by `createMcpHandler()` from `@modelcontextprotocol/server`, which provides stateless modern requests and 2025-era stateless compatibility. Do not reintroduce session maps or `Mcp-Session-Id` handling. Stdio uses `serveStdio()` so it can negotiate either era. Keep `--sse` on `@modelcontextprotocol/server-legacy/sse` only as the deprecated legacy bridge.
 
 ## Available Tools by Service
+
+### Code Mode Tools (`TOOL_PROFILE=codemode`)
+
+- `codemode_search` - Search compact metadata for all native tools belonging to configured services
+- `codemode_describe` - Reserved facade for exact native tool contracts
+- `codemode_execute` - Reserved facade for isolated JavaScript execution
+
+Code Mode suppresses native tool advertisement without changing resources or prompts. Its catalog ignores `TOOL_BRANCHES`, `TOOL_INCLUDE`, and `TOOL_EXCLUDE`; mutation-capable tools remain discoverable but are marked unavailable for Code Mode execution.
 
 ### Radarr Tools (when `RADARR_URL` and `RADARR_API_KEY` are configured)
 

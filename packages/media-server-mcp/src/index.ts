@@ -3,43 +3,30 @@
 import "@std/dotenv/load";
 import process from "node:process";
 import { Command } from "@cliffy/command";
-import { McpServer } from "@modelcontextprotocol/server";
 import deno from "../deno.json" with { type: "json" };
 import { createSSEServer } from "./transports/sse.ts";
 import { createStdioServer } from "./transports/stdio.ts";
 import { createStreamableHTTPServer } from "./transports/streamable-http.ts";
 import {
   createRadarrConfig,
-  type RadarrConfig,
   testConnection as testRadarrConnection,
 } from "@wyattjoh/radarr";
 import {
   createSonarrConfig,
-  type SonarrConfig,
   testConnection as testSonarrConnection,
 } from "@wyattjoh/sonarr";
 import {
   createTMDBConfig,
   testConnection as testTMDBConnection,
-  type TMDBConfig,
 } from "@wyattjoh/tmdb";
 import {
   createPlexConfig,
-  type PlexConfig,
   testConnection as testPlexConnection,
 } from "@wyattjoh/plex";
-import { createRadarrTools } from "./tools/radarr-tools.ts";
-import { createSonarrTools } from "./tools/sonarr-tools.ts";
-import { createTMDBTools } from "./tools/tmdb-tools.ts";
-import { createPlexTools } from "./tools/plex-tools.ts";
-import { createRadarrResources } from "./resources/radarr-resources.ts";
-import { createSonarrResources } from "./resources/sonarr-resources.ts";
-import { createTMDBResources } from "./resources/tmdb-resources.ts";
-import { createPlexResources } from "./resources/plex-resources.ts";
-import { createAddMoviePrompt } from "./prompts/add-movie-prompt.ts";
-import { createAddSeriesPrompt } from "./prompts/add-series-prompt.ts";
-import { createLibraryReportPrompt } from "./prompts/library-report-prompt.ts";
-import { createRecommendationsPrompt } from "./prompts/recommendations-prompt.ts";
+import {
+  createMcpServerWithTools,
+  type ServiceConfig,
+} from "./server-factory.ts";
 import {
   createToolFilter,
   loadToolConfigFile,
@@ -48,51 +35,10 @@ import {
 } from "./tools/tool-filter.ts";
 import { configureLogging, getLogger } from "./logging.ts";
 
-interface ServiceConfig {
-  radarrConfig?: RadarrConfig;
-  sonarrConfig?: SonarrConfig;
-  tmdbConfig?: TMDBConfig;
-  plexConfig?: PlexConfig;
-  authToken?: string;
-}
-
 interface ServerState extends ServiceConfig {
   isToolEnabled: (toolName: string) => boolean;
+  isCodeMode: boolean;
   transport: { close: () => Promise<void> } | undefined;
-}
-
-/**
- * Create a new McpServer instance with tools registered based on
- * the given service configuration.
- */
-function createMcpServerWithTools(
-  config: ServiceConfig & { isToolEnabled: (toolName: string) => boolean },
-): McpServer {
-  const logger = getLogger(["media-server-mcp"]);
-
-  logger.debug("Creating MCP server", {
-    name: "media-server-mcp",
-    version: deno.version,
-  });
-
-  const server = new McpServer(
-    {
-      name: "media-server-mcp",
-      version: deno.version,
-    },
-    {
-      capabilities: {
-        tools: {},
-        resources: {},
-        prompts: {},
-      },
-    },
-  );
-
-  setupTools(server, config, config.isToolEnabled);
-
-  logger.debug("Server created successfully");
-  return server;
 }
 
 async function createServer(): Promise<ServerState> {
@@ -104,7 +50,12 @@ async function createServer(): Promise<ServerState> {
   logToolConfiguration(toolConfig);
   await testConnections(config);
 
-  return { ...config, isToolEnabled, transport: undefined };
+  return {
+    ...config,
+    isToolEnabled,
+    isCodeMode: toolConfig.profile === "codemode",
+    transport: undefined,
+  };
 }
 
 function loadConfig(state: ServiceConfig): void {
@@ -164,73 +115,6 @@ function loadConfig(state: ServiceConfig): void {
     throw new Error(
       "At least one service must be configured. Please set RADARR_URL/RADARR_API_KEY, SONARR_URL/SONARR_API_KEY, TMDB_API_KEY, or PLEX_URL/PLEX_API_KEY environment variables.",
     );
-  }
-}
-
-function setupTools(
-  server: McpServer,
-  config: Readonly<ServiceConfig>,
-  isToolEnabled: (toolName: string) => boolean,
-): void {
-  const logger = getLogger(["media-server-mcp", "tools"]);
-  logger.debug("Setting up tools");
-
-  // Register Radarr tools if configured
-  if (config.radarrConfig) {
-    logger.debug("Registering Radarr tools");
-    createRadarrTools(
-      server,
-      config.radarrConfig,
-      isToolEnabled,
-    );
-  }
-
-  // Register Sonarr tools if configured
-  if (config.sonarrConfig) {
-    logger.debug("Registering Sonarr tools");
-    createSonarrTools(
-      server,
-      config.sonarrConfig,
-      isToolEnabled,
-    );
-  }
-
-  // Register TMDB tools if configured
-  if (config.tmdbConfig) {
-    logger.debug("Registering TMDB tools");
-    createTMDBTools(
-      server,
-      config.tmdbConfig,
-      isToolEnabled,
-    );
-  }
-
-  // Register Plex tools if configured
-  if (config.plexConfig) {
-    logger.debug("Registering Plex tools");
-    createPlexTools(
-      server,
-      config.plexConfig,
-      isToolEnabled,
-    );
-  }
-
-  logger.debug("Tools registration completed");
-
-  // Register resources
-  if (config.radarrConfig) createRadarrResources(server, config.radarrConfig);
-  if (config.sonarrConfig) createSonarrResources(server, config.sonarrConfig);
-  if (config.tmdbConfig) createTMDBResources(server, config.tmdbConfig);
-  if (config.plexConfig) createPlexResources(server, config.plexConfig);
-
-  // Register prompts
-  if (config.radarrConfig) createAddMoviePrompt(server, config.radarrConfig);
-  if (config.sonarrConfig) createAddSeriesPrompt(server, config.sonarrConfig);
-  if (config.radarrConfig || config.sonarrConfig) {
-    createLibraryReportPrompt(server);
-  }
-  if (config.tmdbConfig) {
-    createRecommendationsPrompt(server);
   }
 }
 
