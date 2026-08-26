@@ -1,0 +1,196 @@
+const MAX_FRAME_BYTES = 256 * 1024;
+const MAX_RESULT_BYTES = 128 * 1024;
+const MAX_RESULT_DEPTH = 32;
+const MAX_DIAGNOSTIC_BYTES = 8 * 1024;
+
+type JsonRpcRequest = {
+  jsonrpc: "2.0";
+  id: number;
+  method: "execute";
+  params: {
+    source: string;
+    input: unknown;
+  };
+};
+
+type JsonRpcResponse = {
+  jsonrpc: "2.0";
+  id: number;
+  result?: { value: unknown; diagnostics: string[] };
+  error?: { code: number; message: string };
+};
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+async function readExact(length: number): Promise<Uint8Array> {
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  while (offset < length) {
+    const count = await Deno.stdin.read(bytes.subarray(offset));
+    if (count === null) throw new Error("Unexpected end of request");
+    offset += count;
+  }
+  return bytes;
+}
+
+async function readFrame(): Promise<JsonRpcRequest> {
+  const header = await readExact(4);
+  const length = new DataView(header.buffer).getUint32(0, false);
+  if (length === 0 || length > MAX_FRAME_BYTES) {
+    throw new Error("Invalid request frame");
+  }
+  return JSON.parse(decoder.decode(await readExact(length))) as JsonRpcRequest;
+}
+
+async function writeFrame(response: JsonRpcResponse): Promise<void> {
+  const body = encoder.encode(JSON.stringify(response));
+  const frame = new Uint8Array(4 + body.length);
+  new DataView(frame.buffer).setUint32(0, body.length, false);
+  frame.set(body, 4);
+  await Deno.stdout.write(frame);
+}
+
+function validateJsonValue(
+  value: unknown,
+  depth = 0,
+  seen = new Set<object>(),
+): void {
+  if (depth > MAX_RESULT_DEPTH) throw new Error("Result exceeds depth limit");
+  if (
+    value === null || typeof value === "string" ||
+    typeof value === "boolean"
+  ) return;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new Error("Result is not valid JSON");
+    return;
+  }
+  if (typeof value !== "object") throw new Error("Result is not valid JSON");
+  if (seen.has(value)) throw new Error("Result contains a cycle");
+  seen.add(value);
+  if (Array.isArray(value)) {
+    for (const item of value) validateJsonValue(item, depth + 1, seen);
+  } else {
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new Error("Result is not valid JSON");
+    }
+    for (const key of Reflect.ownKeys(value)) {
+      if (typeof key === "symbol") {
+        throw new Error("Result is not valid JSON");
+      }
+      validateJsonValue(
+        (value as Record<string, unknown>)[key],
+        depth + 1,
+        seen,
+      );
+    }
+  }
+  seen.delete(value);
+}
+
+function publicMessage(error: unknown): string {
+  if (error instanceof SyntaxError) return "JavaScript syntax error";
+  if (error instanceof Error) {
+    const stable = [
+      "Result exceeds depth limit",
+      "Result is not valid JSON",
+      "Result contains a cycle",
+      "Result exceeds byte limit",
+    ];
+    if (stable.includes(error.message)) return error.message;
+  }
+  return "JavaScript execution failed";
+}
+
+function formatDiagnostic(args: unknown[]): string {
+  return args.map((value) => {
+    if (typeof value === "string") return value;
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }).join(" ");
+}
+
+async function main(): Promise<void> {
+  let request: JsonRpcRequest;
+  try {
+    request = await readFrame();
+  } catch {
+    await writeFrame({
+      jsonrpc: "2.0",
+      id: 0,
+      error: { code: -32600, message: "Invalid runner request" },
+    });
+    return;
+  }
+
+  if (
+    request.jsonrpc !== "2.0" || request.method !== "execute" ||
+    typeof request.params?.source !== "string"
+  ) {
+    await writeFrame({
+      jsonrpc: "2.0",
+      id: request.id,
+      error: { code: -32600, message: "Invalid runner request" },
+    });
+    return;
+  }
+
+  const diagnostics: string[] = [];
+  let diagnosticBytes = 0;
+  const capture = (...args: unknown[]): void => {
+    const message = formatDiagnostic(args);
+    const bytes = encoder.encode(message).length;
+    if (diagnosticBytes + bytes <= MAX_DIAGNOSTIC_BYTES) {
+      diagnostics.push(message);
+      diagnosticBytes += bytes;
+    }
+  };
+  Object.defineProperty(globalThis, "console", {
+    value: Object.freeze({
+      log: capture,
+      debug: capture,
+      info: capture,
+      warn: capture,
+      error: capture,
+    }),
+    configurable: false,
+    writable: false,
+  });
+
+  try {
+    const AsyncFunction =
+      Object.getPrototypeOf(async function () {}).constructor;
+    const execute = new AsyncFunction(
+      "tools",
+      "input",
+      '"use strict";\n' + request.params.source,
+    ) as (
+      tools: Readonly<Record<string, never>>,
+      input: unknown,
+    ) => Promise<unknown>;
+    const value = await execute(Object.freeze({}), request.params.input);
+    validateJsonValue(value);
+    const serialized = JSON.stringify(value);
+    if (serialized === undefined) throw new Error("Result is not valid JSON");
+    if (encoder.encode(serialized).length > MAX_RESULT_BYTES) {
+      throw new Error("Result exceeds byte limit");
+    }
+    await writeFrame({
+      jsonrpc: "2.0",
+      id: request.id,
+      result: { value, diagnostics },
+    });
+  } catch (error) {
+    await writeFrame({
+      jsonrpc: "2.0",
+      id: request.id,
+      error: { code: -32000, message: publicMessage(error) },
+    });
+  }
+}
+
+await main();

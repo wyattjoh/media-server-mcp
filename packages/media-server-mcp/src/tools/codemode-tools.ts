@@ -8,6 +8,7 @@ import { createPlexTools } from "./plex-tools.ts";
 import { createRadarrTools } from "./radarr-tools.ts";
 import { createSonarrTools } from "./sonarr-tools.ts";
 import { createTMDBTools } from "./tmdb-tools.ts";
+import { executeCodeMode } from "./codemode-executor.ts";
 import { wrapToolHandler } from "./tool-wrapper.ts";
 
 const SERVICE_NAMES = ["radarr", "sonarr", "tmdb", "plex"] as const;
@@ -168,6 +169,10 @@ const SearchOutputSchema = {
     available: z.boolean(),
     facadePath: z.string(),
   })),
+};
+
+const ExecuteOutputSchema = {
+  result: z.json(),
 };
 
 const DescribeOutputSchema = {
@@ -437,19 +442,32 @@ export function createCodeModeTools(
     {
       title: "Execute Code Mode JavaScript",
       description:
-        "codemode_execute is reserved for the next Code Mode implementation stage.",
+        "Execute a bounded JavaScript async-function body in a fresh no-I/O subprocess.",
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
         idempotentHint: true,
         openWorldHint: false,
       },
-      inputSchema: {},
+      inputSchema: {
+        source: z.string().min(1).max(65_536).describe(
+          "JavaScript async-function-body source (TypeScript is not transpiled)",
+        ),
+        input: z.json().optional().describe(
+          "Optional JSON value exposed to the function body as input",
+        ),
+        selectedTools: z.array(z.string()).max(0).default([]).describe(
+          "Native tools selected for execution; must be empty in this stage",
+        ),
+      },
+      outputSchema: ExecuteOutputSchema,
     },
-    wrapToolHandler("codemode_execute", () => {
-      throw new Error(
-        "codemode_execute is not available in this implementation stage",
-      );
+    wrapToolHandler("codemode_execute", async (args) => {
+      const result = await executeCodeMode(args.source, args.input ?? null);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result) }],
+        structuredContent: { result },
+      };
     }),
   );
 }

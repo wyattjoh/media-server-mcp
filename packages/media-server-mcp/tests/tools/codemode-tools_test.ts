@@ -3,6 +3,7 @@ import {
   assertEquals,
   assertGreater,
   assertLessOrEqual,
+  assertStringIncludes,
 } from "@std/assert";
 import { Client } from "@modelcontextprotocol/client";
 import { InMemoryTransport } from "@modelcontextprotocol/server";
@@ -248,6 +249,151 @@ Deno.test("codemode describe rejects duplicate and unavailable names determinist
         assertEquals(first.content, second.content);
         assertLessOrEqual(JSON.stringify(first.content).length, 500);
       }
+    },
+  );
+});
+
+Deno.test("codemode execute returns JSON while isolating console output", async () => {
+  await withClient(
+    {
+      tmdbConfig: createTMDBConfig("test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      const response = await client.callTool({
+        name: "codemode_execute",
+        arguments: {
+          source:
+            'console.log("private diagnostic"); return { total: input.values.reduce((sum, value) => sum + value, 0), toolsFrozen: Object.isFrozen(tools) };',
+          input: { values: [2, 3, 5] },
+          selectedTools: [],
+        },
+      });
+      assertEquals(response.isError, undefined);
+      assertEquals(response.structuredContent, {
+        result: { total: 10, toolsFrozen: true },
+      });
+      assertEquals(response.content, [{
+        type: "text",
+        text: '{"total":10,"toolsFrozen":true}',
+      }]);
+      assert(!JSON.stringify(response).includes("private diagnostic"));
+    },
+  );
+});
+
+Deno.test("codemode execute uses fresh subprocess state for every call", async () => {
+  await withClient(
+    {
+      tmdbConfig: createTMDBConfig("test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      for (let index = 0; index < 2; index++) {
+        const response = await client.callTool({
+          name: "codemode_execute",
+          arguments: {
+            source:
+              "globalThis.invocations = (globalThis.invocations ?? 0) + 1; return globalThis.invocations;",
+            selectedTools: [],
+          },
+        });
+        assertEquals(response.structuredContent, { result: 1 });
+      }
+    },
+  );
+});
+
+Deno.test("codemode execute returns bounded syntax and serialization errors", async () => {
+  await withClient(
+    {
+      tmdbConfig: createTMDBConfig("test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      const cases = [
+        ["const value: number = 1; return value;", "JavaScript syntax error"],
+        ["return 1n;", "Result is not valid JSON"],
+        ["return () => 1;", "Result is not valid JSON"],
+        [
+          "const value = {}; value.self = value; return value;",
+          "Result contains a cycle",
+        ],
+        [
+          "let value = {}; let current = value; for (let i = 0; i < 40; i++) { current.next = {}; current = current.next; } return value;",
+          "Result exceeds depth limit",
+        ],
+        ['return "x".repeat(131073);', "Result exceeds byte limit"],
+        [
+          'const value = {}; value[Symbol("hidden")] = 1; return value;',
+          "Result is not valid JSON",
+        ],
+        [
+          "throw new Error('host path must not leak');",
+          "JavaScript execution failed",
+        ],
+      ] as const;
+      for (const [source, expected] of cases) {
+        const response = await client.callTool({
+          name: "codemode_execute",
+          arguments: { source, selectedTools: [] },
+        });
+        assertEquals(response.isError, true);
+        const serialized = JSON.stringify(response.content);
+        assertStringIncludes(serialized, expected);
+        assertLessOrEqual(serialized.length, 300);
+        assert(!serialized.includes("codemode-runner.ts"));
+        assert(!serialized.includes("host path"));
+      }
+    },
+  );
+});
+
+Deno.test("codemode execute kills an infinite-loop subprocess at its deadline", async () => {
+  await withClient(
+    {
+      tmdbConfig: createTMDBConfig("test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      const startedAt = performance.now();
+      const response = await client.callTool({
+        name: "codemode_execute",
+        arguments: { source: "while (true) {}", selectedTools: [] },
+      });
+      assertEquals(response.isError, true);
+      assertStringIncludes(
+        JSON.stringify(response.content),
+        "Code Mode execution timed out",
+      );
+      assertLessOrEqual(performance.now() - startedAt, 5_000);
+
+      const selectedToolResponse = await client.callTool({
+        name: "codemode_execute",
+        arguments: {
+          source: "return null;",
+          selectedTools: ["tmdb_search_movies"],
+        },
+      });
+      assertEquals(selectedToolResponse.isError, true);
+
+      const oversizedInputResponse = await client.callTool({
+        name: "codemode_execute",
+        arguments: {
+          source: "return input;",
+          input: "x".repeat(256 * 1024),
+          selectedTools: [],
+        },
+      });
+      assertEquals(oversizedInputResponse.isError, true);
+      assertStringIncludes(
+        JSON.stringify(oversizedInputResponse.content),
+        "Code Mode request exceeds byte limit",
+      );
     },
   );
 });

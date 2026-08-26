@@ -15,7 +15,7 @@ deno lint
 deno fmt
 
 # Run tests
-deno test --allow-net --allow-env
+deno test --allow-run=deno --allow-net --allow-env
 
 # Development with hot reload
 deno task dev
@@ -56,7 +56,7 @@ Each package is independently publishable and has its own `deno.json` configurat
 ## Development Best Practices
 
 - Always use `deno task fmt`, `deno task lint`, and `deno task check` after modifying or creating code to ensure that it's correct.
-- Run `deno test --allow-net --allow-env` to verify all tests pass before committing changes.
+- Run `deno test --allow-run=deno --allow-net --allow-env` to verify all tests pass before committing changes.
 - Tests are organized by layer: `packages/media-server-mcp/tests/` contains `tools/` (tool tests), `server_test.ts`, `auth_test.ts`, and transport tests (`sse-transport_test.ts`, `streamable-http-transport_test.ts`). Each client package also has its own `tests/` directory.
 - After changing any of the available MCP tools or resources, evaluate if you need to update the README.md and CLAUDE.md to be reflective of those changes.
 - When creating pull requests, always use the PR template at `.github/pull_request_template.md`.
