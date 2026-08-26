@@ -152,6 +152,106 @@ Deno.test("codemode search is deterministic, bounded, and scoped to configured s
   );
 });
 
+Deno.test("codemode describe returns exact requested contracts without prior search", async () => {
+  await withClient(
+    {
+      tmdbConfig: createTMDBConfig("test-key"),
+      radarrConfig: createRadarrConfig("http://localhost:7878", "test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      const response = await client.callTool({
+        name: "codemode_describe",
+        arguments: {
+          names: ["radarr_add_movie", "tmdb_search_movies"],
+        },
+      });
+      const result = response.structuredContent as {
+        descriptions: Array<
+          Record<string, unknown> & {
+            inputSchema: Record<string, unknown>;
+            outputSchema: Record<string, unknown>;
+            annotations: Record<string, unknown>;
+          }
+        >;
+      };
+
+      assertEquals(
+        result.descriptions.map((description) => description.name),
+        ["radarr_add_movie", "tmdb_search_movies"],
+      );
+      const mutation = result.descriptions[0];
+      assertEquals(mutation.service, "radarr");
+      assertEquals(mutation.policy, "mutation");
+      assertEquals(mutation.available, false);
+      assertEquals(mutation.facadePath, "tools.radarr.addMovie");
+      assertEquals(mutation.inputSchema.type, "object");
+      assert(
+        Object.keys(mutation.inputSchema).includes("properties"),
+      );
+      assertEquals(mutation.outputSchema.type, "object");
+      assertEquals(mutation.annotations, { openWorldHint: false });
+
+      const readOnly = result.descriptions[1];
+      assertEquals(readOnly.inputSchema.required, ["query", "language"]);
+      assertEquals(
+        (readOnly.inputSchema.properties as Record<string, { type: string }>)
+          .query.type,
+        "string",
+      );
+      assertEquals(readOnly.outputSchema.required, [
+        "page",
+        "total_pages",
+        "total_results",
+        "results",
+      ]);
+      assertEquals(readOnly.annotations, {
+        readOnlyHint: true,
+        openWorldHint: false,
+      });
+      assertEquals(typeof mutation.signature, "string");
+      assert(String(mutation.signature).includes("tools.radarr.addMovie"));
+      assert(String(mutation.signature).includes("JavaScript"));
+
+      const serialized = JSON.stringify(result);
+      assert(!serialized.includes("tmdb_search_tv"));
+      assert(!serialized.includes("radarr_get_movies"));
+    },
+  );
+});
+
+Deno.test("codemode describe rejects duplicate and unavailable names deterministically", async () => {
+  await withClient(
+    {
+      tmdbConfig: createTMDBConfig("test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      for (
+        const names of [
+          ["tmdb_search_movies", "tmdb_search_movies"],
+          ["radarr_get_movies"],
+          ["unknown_tool"],
+        ]
+      ) {
+        const first = await client.callTool({
+          name: "codemode_describe",
+          arguments: { names },
+        });
+        const second = await client.callTool({
+          name: "codemode_describe",
+          arguments: { names },
+        });
+        assertEquals(first.isError, true);
+        assertEquals(first.content, second.content);
+        assertLessOrEqual(JSON.stringify(first.content).length, 500);
+      }
+    },
+  );
+});
+
 Deno.test("codemode catalog includes mutations as non-executable and ignores native overrides", async () => {
   await withClient(
     {
