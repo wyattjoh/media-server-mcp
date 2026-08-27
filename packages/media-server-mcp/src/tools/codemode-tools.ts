@@ -129,6 +129,128 @@ const FACADE_PATHS: Readonly<Record<string, string>> = {
   plex_delete_collection: "tools.plex.deleteCollection",
 };
 
+const EXECUTABLE_READ_ONLY_TOOLS = [
+  "radarr_search_movie",
+  "radarr_get_movies",
+  "radarr_get_movie",
+  "radarr_get_configuration",
+  "radarr_get_wanted_missing",
+  "radarr_get_wanted_cutoff",
+  "radarr_get_history",
+  "radarr_get_movie_history",
+  "radarr_get_calendar",
+  "radarr_get_releases",
+  "sonarr_search_series",
+  "sonarr_get_series",
+  "sonarr_get_series_by_id",
+  "sonarr_get_episodes",
+  "sonarr_get_calendar",
+  "sonarr_get_queue",
+  "sonarr_get_configuration",
+  "sonarr_get_system_status",
+  "sonarr_get_health",
+  "sonarr_get_episode",
+  "sonarr_get_wanted_missing",
+  "sonarr_get_wanted_cutoff",
+  "sonarr_get_history",
+  "sonarr_get_series_history",
+  "sonarr_get_releases",
+  "tmdb_find_by_external_id",
+  "tmdb_search_movies",
+  "tmdb_search_tv",
+  "tmdb_search_multi",
+  "tmdb_get_popular_movies",
+  "tmdb_discover_movies",
+  "tmdb_discover_tv",
+  "tmdb_get_genres",
+  "tmdb_get_trending",
+  "tmdb_get_now_playing_movies",
+  "tmdb_get_top_rated_movies",
+  "tmdb_get_upcoming_movies",
+  "tmdb_get_popular_tv",
+  "tmdb_get_top_rated_tv",
+  "tmdb_get_on_the_air_tv",
+  "tmdb_get_airing_today_tv",
+  "tmdb_get_movie_details",
+  "tmdb_get_tv_details",
+  "tmdb_get_movie_recommendations",
+  "tmdb_get_tv_recommendations",
+  "tmdb_get_similar_movies",
+  "tmdb_get_similar_tv",
+  "tmdb_search_people",
+  "tmdb_get_popular_people",
+  "tmdb_get_person_details",
+  "tmdb_get_person_movie_credits",
+  "tmdb_get_person_tv_credits",
+  "tmdb_search_collections",
+  "tmdb_get_collection_details",
+  "tmdb_search_keywords",
+  "tmdb_get_movies_by_keyword",
+  "tmdb_get_certifications",
+  "tmdb_get_watch_providers",
+  "tmdb_get_configuration",
+  "tmdb_get_countries",
+  "tmdb_get_languages",
+  "tmdb_get_movie_credits",
+  "tmdb_get_tv_credits",
+  "plex_get_capabilities",
+  "plex_get_libraries",
+  "plex_search",
+  "plex_get_metadata",
+  "plex_get_library_items",
+  "plex_get_collections",
+  "plex_get_collection_items",
+] as const;
+
+const DISCOVERABLE_NON_EXECUTABLE_TOOLS = [
+  "radarr_add_movie",
+  "radarr_delete_movie",
+  "radarr_refresh_movie",
+  "radarr_search_movie_releases",
+  "radarr_update_movie",
+  "radarr_refresh_all_movies",
+  "radarr_disk_scan",
+  "radarr_grab_release",
+  "radarr_delete_queue_item",
+  "radarr_grab_queue_item",
+  "radarr_search_all_missing",
+  "radarr_mark_failed",
+  "sonarr_add_series",
+  "sonarr_delete_series",
+  "sonarr_update_episode_monitoring",
+  "sonarr_refresh_series",
+  "sonarr_search_series_episodes",
+  "sonarr_search_season",
+  "sonarr_update_series",
+  "sonarr_refresh_all_series",
+  "sonarr_search_episodes",
+  "sonarr_disk_scan",
+  "sonarr_grab_release",
+  "sonarr_delete_queue_item",
+  "sonarr_grab_queue_item",
+  "sonarr_search_all_missing",
+  "sonarr_mark_failed",
+  "plex_refresh_library",
+  "plex_create_collection",
+  "plex_add_to_collection",
+  "plex_remove_from_collection",
+  "plex_delete_collection",
+] as const;
+
+const CODE_MODE_TOOL_POLICIES: Readonly<Record<string, PolicyName>> = Object
+  .freeze(Object.fromEntries([
+    ...EXECUTABLE_READ_ONLY_TOOLS.map((name) => [name, "read-only"] as const),
+    ...DISCOVERABLE_NON_EXECUTABLE_TOOLS.map((name) =>
+      [name, "mutation"] as const
+    ),
+  ]));
+
+const facadeNames = Object.keys(FACADE_PATHS).sort();
+const policyNames = Object.keys(CODE_MODE_TOOL_POLICIES).sort();
+if (JSON.stringify(facadeNames) !== JSON.stringify(policyNames)) {
+  throw new Error("Code Mode facade and reviewed policy catalogs differ");
+}
+
 type ToolRegistration = {
   title?: string;
   description?: string;
@@ -248,9 +370,13 @@ function captureServiceTools(
       registration: ToolRegistration,
       _handler: unknown,
     ): void {
-      const policy: PolicyName = registration.annotations?.readOnlyHint === true
-        ? "read-only"
-        : "mutation";
+      const policy = CODE_MODE_TOOL_POLICIES[name];
+      if (!policy) {
+        throw new Error(`Missing reviewed Code Mode policy for: ${name}`);
+      }
+      if (!registration.outputSchema) {
+        throw new Error(`Missing structured output schema for: ${name}`);
+      }
       entries.push({
         name,
         title: registration.title ?? name,

@@ -533,6 +533,82 @@ Deno.test("codemode execute kills an infinite-loop subprocess at its deadline", 
   );
 });
 
+Deno.test("codemode catalog has an explicit reviewed contract for every native tool", () => {
+  const services = {
+    radarrConfig: createRadarrConfig("http://localhost:7878", "test-key"),
+    sonarrConfig: createSonarrConfig("http://localhost:8989", "test-key"),
+    tmdbConfig: createTMDBConfig("test-key"),
+    plexConfig: createPlexConfig("http://localhost:32400", "test-key"),
+  };
+  const catalog = createCodeModeCatalog(services);
+
+  assertEquals(catalog.length, 102);
+  assertEquals(
+    new Set(catalog.map((entry) => entry.name)).size,
+    catalog.length,
+  );
+  for (const entry of catalog) {
+    assertEquals(entry.available, entry.policy === "read-only");
+    assert(entry.facadePath.startsWith(`tools.${entry.service}.`));
+    assertEquals(entry.inputSchema.type, "object");
+    assertEquals(entry.outputSchema.type, "object");
+    assertEquals(
+      entry.annotations.readOnlyHint === true,
+      entry.policy === "read-only",
+      `${entry.name} annotations must agree with, but not grant, reviewed policy`,
+    );
+  }
+  assertEquals(
+    catalog.find((entry) => entry.name === "radarr_search_movie_releases")
+      ?.policy,
+    "mutation",
+  );
+});
+
+Deno.test("codemode execute orchestrates selected tools across services", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (input) => {
+    const url = String(input);
+    if (url.includes("api.themoviedb.org")) {
+      return Promise.resolve(Response.json({
+        page: 1,
+        total_pages: 1,
+        total_results: 2,
+        results: [],
+      }));
+    }
+    return Promise.resolve(Response.json({
+      MediaContainer: { machineIdentifier: "plex-1", version: "1.43.0" },
+    }));
+  };
+  try {
+    await withClient(
+      {
+        tmdbConfig: createTMDBConfig("test-key"),
+        plexConfig: createPlexConfig("http://localhost:32400", "test-key"),
+        isToolEnabled: codemodeFilter(),
+        isCodeMode: true,
+      },
+      async (client) => {
+        const response = await client.callTool({
+          name: "codemode_execute",
+          arguments: {
+            source:
+              "const movies = await tools.tmdb.searchMovies({ query: 'Arrival', language: 'en-US' }); const plex = await tools.plex.getCapabilities({}); return { movieCount: movies.total_results, plexVersion: plex.MediaContainer.version };",
+            selectedTools: ["tmdb_search_movies", "plex_get_capabilities"],
+          },
+        });
+        assertEquals(response.structuredContent, {
+          result: { movieCount: 2, plexVersion: "1.43.0" },
+        });
+        assert(!JSON.stringify(response).includes("machineIdentifier"));
+      },
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 Deno.test("codemode catalog includes mutations as non-executable and ignores native overrides", async () => {
   await withClient(
     {
