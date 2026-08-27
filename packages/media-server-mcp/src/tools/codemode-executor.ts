@@ -39,6 +39,57 @@ type RunnerMessage = {
   error?: { code: number; message: string };
 };
 
+const PROTOCOL_ERROR = "Code Mode runner protocol error";
+
+function protocolError(): Error {
+  return new Error(PROTOCOL_ERROR);
+}
+
+function runnerError(message: string): Error {
+  const stable = new Set([
+    "JavaScript syntax error",
+    "JavaScript execution failed",
+    "Result exceeds depth limit",
+    "Result is not valid JSON",
+    "Result contains a cycle",
+    "Result exceeds byte limit",
+  ]);
+  return new Error(stable.has(message) ? message : PROTOCOL_ERROR);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isToolCall(value: unknown): value is RunnerMessage {
+  if (!isRecord(value) || value.jsonrpc !== "2.0") return false;
+  if (!Number.isSafeInteger(value.id) || (value.id as number) < 2) return false;
+  if (value.method !== "tool.call" || !isRecord(value.params)) return false;
+  if (typeof value.params.facadePath !== "string") return false;
+  return Object.keys(value).every((key) =>
+    ["jsonrpc", "id", "method", "params"].includes(key)
+  );
+}
+
+function isTerminal(value: unknown): value is RunnerMessage {
+  if (!isRecord(value) || value.jsonrpc !== "2.0" || value.id !== 1) {
+    return false;
+  }
+  if ("method" in value || "params" in value) return false;
+  const hasResult = "result" in value;
+  const hasError = "error" in value;
+  if (hasResult === hasError) return false;
+  if (hasError) {
+    return isRecord(value.error) && Number.isInteger(value.error.code) &&
+      typeof value.error.message === "string";
+  }
+  if (!isRecord(value.result) || !Array.isArray(value.result.diagnostics)) {
+    return false;
+  }
+  return value.result.diagnostics.every((item) => typeof item === "string") &&
+    "value" in value.result;
+}
+
 type Execution = { child: Deno.ChildProcess; terminate: () => Promise<void> };
 
 let runningExecutions = 0;
@@ -97,7 +148,13 @@ function createSemaphore(limit: number): () => Promise<() => void> {
   };
 }
 
-function encodeFrame(value: unknown): Uint8Array {
+/**
+ * Encodes one bounded Code Mode protocol value for transport.
+ *
+ * @param value JSON value to frame.
+ * @returns A four-byte big-endian length prefix followed by UTF-8 JSON.
+ */
+export function encodeCodeModeFrame(value: unknown): Uint8Array {
   const body = encoder.encode(JSON.stringify(value));
   if (body.length === 0 || body.length > CODEMODE_LIMITS.frameBytes) {
     throw limitError("frame bytes");
@@ -108,38 +165,61 @@ function encodeFrame(value: unknown): Uint8Array {
   return frame;
 }
 
-function createFrameReader(
+/**
+ * Creates a fail-closed reader for length-prefixed Code Mode protocol values.
+ *
+ * @param reader Byte stream reader owned by one child execution.
+ * @returns Operations for reading frames and asserting clean stream termination.
+ */
+export function createCodeModeFrameReader(
   reader: ReadableStreamDefaultReader<Uint8Array>,
-): () => Promise<RunnerMessage> {
+): {
+  read: () => Promise<unknown>;
+  assertEnd: () => Promise<void>;
+} {
   let buffered = new Uint8Array();
+  let corrupted = false;
+  const fail = (): never => {
+    corrupted = true;
+    throw protocolError();
+  };
   const take = async (length: number): Promise<Uint8Array> => {
+    if (corrupted) return fail();
     while (buffered.length < length) {
-      const { value, done } = await reader.read();
-      if (done || !value) throw new Error("Code Mode runner protocol error");
-      if (buffered.length + value.length > CODEMODE_LIMITS.frameBytes + 4) {
-        throw limitError("frame bytes");
-      }
-      const combined = new Uint8Array(buffered.length + value.length);
+      const chunk = await reader.read();
+      if (chunk.done || !chunk.value || chunk.value.length === 0) return fail();
+      const maximumBuffered = (CODEMODE_LIMITS.toolCalls + 2) *
+        (CODEMODE_LIMITS.frameBytes + 4);
+      if (buffered.length + chunk.value.length > maximumBuffered) return fail();
+      const combined = new Uint8Array(buffered.length + chunk.value.length);
       combined.set(buffered);
-      combined.set(value, buffered.length);
+      combined.set(chunk.value, buffered.length);
       buffered = combined;
     }
     const result = buffered.slice(0, length);
     buffered = buffered.slice(length);
     return result;
   };
-  return async () => {
+  const read = async (): Promise<unknown> => {
     const header = await take(4);
-    const length = new DataView(header.buffer).getUint32(0, false);
-    if (length === 0 || length > CODEMODE_LIMITS.frameBytes) {
-      throw new Error("Code Mode runner protocol error");
-    }
+    const length = new DataView(
+      header.buffer,
+      header.byteOffset,
+      header.byteLength,
+    ).getUint32(0, false);
+    if (length === 0 || length > CODEMODE_LIMITS.frameBytes) return fail();
     try {
-      return JSON.parse(decoder.decode(await take(length))) as RunnerMessage;
+      return JSON.parse(decoder.decode(await take(length)));
     } catch {
-      throw new Error("Code Mode runner protocol error");
+      return fail();
     }
   };
+  const assertEnd = async (): Promise<void> => {
+    if (corrupted || buffered.length > 0) return fail();
+    const chunk = await reader.read();
+    if (!chunk.done || chunk.value?.length) return fail();
+  };
+  return { read, assertEnd };
 }
 
 /**
@@ -237,10 +317,10 @@ export async function executeCodeMode(
     const execution: Execution = { child, terminate };
     activeExecutions.add(execution);
     writer = child.stdin.getWriter();
-    const readFrame = createFrameReader(child.stdout.getReader());
+    const frameReader = createCodeModeFrameReader(child.stdout.getReader());
     statusPromise = child.status;
     stderrPromise = new Response(child.stderr).arrayBuffer();
-    await writer.write(encodeFrame(requestValue));
+    await writer.write(encodeCodeModeFrame(requestValue));
 
     const acquireTool = createSemaphore(CODEMODE_LIMITS.concurrentToolCalls);
     let calls = 0;
@@ -257,7 +337,9 @@ export async function executeCodeMode(
     };
     let writeChain = Promise.resolve();
     const write = (message: unknown): Promise<void> => {
-      writeChain = writeChain.then(() => writer!.write(encodeFrame(message)));
+      writeChain = writeChain.then(() =>
+        writer!.write(encodeCodeModeFrame(message))
+      );
       return writeChain;
     };
     const dispatch = async (message: RunnerMessage): Promise<void> => {
@@ -313,32 +395,34 @@ export async function executeCodeMode(
 
     const processMessages = async (): Promise<unknown> => {
       const pending = new Set<Promise<void>>();
+      const callIds = new Set<number>();
       while (true) {
-        const message = await readFrame();
-        if (message.method === "tool.call") {
-          const task = dispatch(message).finally(() => pending.delete(task));
+        const value = await frameReader.read();
+        if (isToolCall(value)) {
+          if (callIds.has(value.id)) throw protocolError();
+          callIds.add(value.id);
+          const task = dispatch(value).finally(() => pending.delete(task));
           pending.add(task);
           continue;
         }
-        if (message.id !== 1) {
-          throw new Error("Code Mode runner protocol error");
-        }
-        if (message.error) throw new Error(message.error.message);
-        if (!message.result) throw new Error("Code Mode runner protocol error");
+        if (!isTerminal(value)) throw protocolError();
+        acceptingCalls = false;
         await Promise.all(pending);
-        if (bytes(message.result.value) > CODEMODE_LIMITS.finalResultBytes) {
+        if (value.error) throw runnerError(value.error.message);
+        if (!value.result) throw protocolError();
+        if (bytes(value.result.value) > CODEMODE_LIMITS.finalResultBytes) {
           throw limitError("final result bytes");
         }
-        const diagnostics = message.result.diagnostics.join("\n");
+        const diagnostics = value.result.diagnostics.join("\n");
         if (encoder.encode(diagnostics).length > CODEMODE_LIMITS.logBytes) {
           throw limitError("log bytes");
         }
-        if (message.result.diagnostics.length > 0) {
+        if (value.result.diagnostics.length > 0) {
           logger.debug("Code Mode execution console output", {
-            diagnostics: message.result.diagnostics,
+            diagnostics: value.result.diagnostics,
           });
         }
-        return message.result.value;
+        return value.result.value;
       }
     };
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -367,6 +451,7 @@ export async function executeCodeMode(
     }
     await writer.close();
     const status = await statusPromise;
+    await frameReader.assertEnd();
     const stderr = decoder.decode(await stderrPromise).trim();
     if (stderr) {
       logger.debug("Code Mode runner diagnostics", {

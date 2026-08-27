@@ -538,6 +538,44 @@ Deno.test("codemode execute kills an infinite-loop subprocess at its deadline", 
   );
 });
 
+Deno.test("corrupt child protocol is isolated from MCP and another execution", async () => {
+  await withClient(
+    {
+      tmdbConfig: createTMDBConfig("test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      const [corrupt, healthy] = await Promise.all([
+        client.callTool({
+          name: "codemode_execute",
+          arguments: {
+            source:
+              "await Deno.stdout.write(new Uint8Array([0, 0, 0, 0])); return null;",
+            selectedTools: [],
+          },
+        }),
+        client.callTool({
+          name: "codemode_execute",
+          arguments: { source: "return 42;", selectedTools: [] },
+        }),
+      ]);
+      assertEquals(corrupt.isError, true);
+      assertStringIncludes(
+        JSON.stringify(corrupt.content),
+        "Code Mode runner protocol error",
+      );
+      assertEquals(healthy.structuredContent, { result: 42 });
+
+      const after = await client.callTool({
+        name: "codemode_search",
+        arguments: { query: "movie" },
+      });
+      assertEquals(after.isError, undefined);
+    },
+  );
+});
+
 Deno.test("codemode catalog has an explicit reviewed contract for every native tool", () => {
   const services = {
     radarrConfig: createRadarrConfig("http://localhost:7878", "test-key"),

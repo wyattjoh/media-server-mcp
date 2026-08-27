@@ -16,6 +16,30 @@ type JsonRpcMessage = {
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
 let writeChain = Promise.resolve();
+let protocolFailed = false;
+const protocolTasks = new Set<Promise<unknown>>();
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isToolResponse(value: unknown): value is JsonRpcMessage {
+  if (!isRecord(value) || value.jsonrpc !== "2.0") return false;
+  if (!Number.isSafeInteger(value.id) || (value.id as number) < 2) return false;
+  if ("method" in value || "params" in value) return false;
+  const hasResult = "result" in value;
+  const hasError = "error" in value;
+  if (hasResult === hasError) return false;
+  if (!hasError) return true;
+  return isRecord(value.error) && Number.isInteger(value.error.code) &&
+    typeof value.error.message === "string";
+}
+
+function isSelectedTool(value: unknown): value is SelectedTool {
+  return isRecord(value) && typeof value.name === "string" &&
+    typeof value.facadePath === "string" &&
+    Object.keys(value).every((key) => ["name", "facadePath"].includes(key));
+}
 
 async function readExact(length: number): Promise<Uint8Array> {
   const bytes = new Uint8Array(length);
@@ -128,10 +152,9 @@ function createFacade(
     try {
       while (pending.size > 0) {
         const response = await readFrame();
+        if (!isToolResponse(response)) throw new Error("Tool protocol error");
         const deferred = pending.get(response.id);
-        if (!deferred || response.jsonrpc !== "2.0") {
-          throw new Error("Tool protocol error");
-        }
+        if (!deferred) throw new Error("Tool protocol error");
         pending.delete(response.id);
         if (response.error) {
           const tool = deferred.tool;
@@ -145,9 +168,13 @@ function createFacade(
           deferred.reject(new ToolExecutionError(response.error.message));
         } else deferred.resolve(response.result);
       }
+    } catch {
+      protocolFailed = true;
+      const error = new Error("Tool protocol error");
+      for (const deferred of pending.values()) deferred.reject(error);
+      pending.clear();
     } finally {
       responseLoopStarted = false;
-      if (pending.size > 0) void startResponseLoop();
     }
   };
   const startResponseLoop = (): Promise<void> => {
@@ -167,19 +194,23 @@ function createFacade(
       target = target[segment] as Record<string, unknown>;
     }
     const method = segments.at(-1)!;
-    target[method] = async (args: unknown = {}) => {
+    target[method] = (args: unknown = {}): Promise<unknown> => {
       const id = nextId++;
       const result = new Promise<unknown>((resolve, reject) =>
         pending.set(id, { tool: selected.facadePath, resolve, reject })
       );
-      await writeFrame({
+      const task = writeFrame({
         jsonrpc: "2.0",
         id,
         method: "tool.call",
         params: { facadePath: selected.facadePath, args },
+      }).then(() => {
+        void startResponseLoop();
+        return result;
       });
-      void startResponseLoop();
-      return await result;
+      protocolTasks.add(task);
+      void task.finally(() => protocolTasks.delete(task)).catch(() => {});
+      return task;
     };
   }
   const freeze = (
@@ -209,8 +240,13 @@ async function main(): Promise<void> {
   }
   const params = request.params;
   if (
-    request.jsonrpc !== "2.0" || request.method !== "execute" ||
-    typeof params?.source !== "string" || !Array.isArray(params.manifest)
+    !isRecord(request) || request.jsonrpc !== "2.0" || request.id !== 1 ||
+    request.method !== "execute" || !isRecord(params) ||
+    typeof params.source !== "string" || !Array.isArray(params.manifest) ||
+    !params.manifest.every(isSelectedTool) ||
+    Object.keys(request).some((key) =>
+      !["jsonrpc", "id", "method", "params"].includes(key)
+    )
   ) {
     await writeFrame({
       jsonrpc: "2.0",
@@ -255,6 +291,8 @@ async function main(): Promise<void> {
       createFacade(params.manifest as SelectedTool[]),
       params.input,
     );
+    await Promise.allSettled([...protocolTasks]);
+    if (protocolFailed) throw new Error("Tool protocol error");
     validateJsonValue(value);
     const serialized = JSON.stringify(value);
     if (serialized === undefined) throw new Error("Result is not valid JSON");
