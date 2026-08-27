@@ -92,6 +92,11 @@ function isTerminal(value: unknown): value is RunnerMessage {
 
 type Execution = { child: Deno.ChildProcess; terminate: () => Promise<void> };
 
+type BoundedStreamResult = {
+  text: string;
+  truncated: boolean;
+};
+
 let runningExecutions = 0;
 const executionWaiters: (() => void)[] = [];
 const activeExecutions = new Set<Execution>();
@@ -102,6 +107,38 @@ function bytes(value: unknown): number {
 
 function limitError(name: string): Error {
   return new Error(`Code Mode ${name} exceeds limit`);
+}
+
+/**
+ * Drains a byte stream while retaining only a bounded diagnostic prefix.
+ *
+ * @param stream Stream to drain until it closes.
+ * @param limit Maximum diagnostic bytes to retain.
+ * @returns The retained UTF-8 prefix and whether additional bytes were discarded.
+ */
+export async function drainBoundedStream(
+  stream: ReadableStream<Uint8Array>,
+  limit: number,
+): Promise<BoundedStreamResult> {
+  const reader = stream.getReader();
+  const retained = new Uint8Array(limit);
+  let retainedBytes = 0;
+  let truncated = false;
+  while (true) {
+    const chunk = await reader.read();
+    if (chunk.done) break;
+    const available = limit - retainedBytes;
+    const copied = Math.min(available, chunk.value.length);
+    if (copied > 0) {
+      retained.set(chunk.value.subarray(0, copied), retainedBytes);
+      retainedBytes += copied;
+    }
+    if (copied < chunk.value.length) truncated = true;
+  }
+  return {
+    text: new TextDecoder().decode(retained.subarray(0, retainedBytes)),
+    truncated,
+  };
 }
 
 async function acquireExecution(): Promise<() => void> {
@@ -275,7 +312,7 @@ export async function executeCodeMode(
   let child: Deno.ChildProcess | undefined;
   let writer: WritableStreamDefaultWriter<Uint8Array> | undefined;
   let statusPromise: Promise<Deno.CommandStatus> | undefined;
-  let stderrPromise: Promise<ArrayBuffer> | undefined;
+  let stderrPromise: Promise<BoundedStreamResult> | undefined;
   let terminated = false;
   const terminate = async (): Promise<void> => {
     if (terminated) return;
@@ -319,7 +356,7 @@ export async function executeCodeMode(
     writer = child.stdin.getWriter();
     const frameReader = createCodeModeFrameReader(child.stdout.getReader());
     statusPromise = child.status;
-    stderrPromise = new Response(child.stderr).arrayBuffer();
+    stderrPromise = drainBoundedStream(child.stderr, CODEMODE_LIMITS.logBytes);
     await writer.write(encodeCodeModeFrame(requestValue));
 
     const acquireTool = createSemaphore(CODEMODE_LIMITS.concurrentToolCalls);
@@ -452,10 +489,11 @@ export async function executeCodeMode(
     await writer.close();
     const status = await statusPromise;
     await frameReader.assertEnd();
-    const stderr = decoder.decode(await stderrPromise).trim();
-    if (stderr) {
+    const stderr = await stderrPromise;
+    if (stderr.text.trim()) {
       logger.debug("Code Mode runner diagnostics", {
-        stderr: stderr.slice(0, CODEMODE_LIMITS.logBytes),
+        stderr: stderr.text.trim(),
+        truncated: stderr.truncated,
       });
     }
     if (!status.success) throw new Error("Code Mode runner failed");

@@ -2,6 +2,7 @@ import { assertEquals, assertRejects } from "@std/assert";
 import {
   CODEMODE_LIMITS,
   createCodeModeFrameReader,
+  drainBoundedStream,
   encodeCodeModeFrame,
   executeCodeMode,
 } from "../../src/tools/codemode-executor.ts";
@@ -223,4 +224,156 @@ Deno.test("forged child tool frames cannot exceed granted authority", async () =
     null,
   );
   assertEquals(calls, 0);
+});
+
+Deno.test("codemode drains hostile diagnostics with bounded retention", async () => {
+  const result = await drainBoundedStream(
+    new Blob([new Uint8Array(CODEMODE_LIMITS.logBytes * 4).fill(65)]).stream(),
+    CODEMODE_LIMITS.logBytes,
+  );
+  assertEquals(result.text.length, CODEMODE_LIMITS.logBytes);
+  assertEquals(result.truncated, true);
+});
+
+Deno.test("generated code has no filesystem, environment, process, or FFI authority", async () => {
+  const source = `
+    const denied = async (operation) => {
+      try { await operation(); return false; } catch { return true; }
+    };
+    return await Promise.all([
+      denied(() => Deno.readTextFile(${JSON.stringify(import.meta.url)})),
+      denied(() => Deno.writeTextFile('/tmp/codemode-hostile', 'owned')),
+      denied(() => Promise.resolve(Deno.env.toObject())),
+      denied(() => new Deno.Command(Deno.execPath()).output()),
+      denied(() => Promise.resolve(Deno.dlopen('/tmp/not-a-library', {}))),
+    ]);
+  `;
+  assertEquals(
+    await executeCodeMode(source, null),
+    [true, true, true, true, true],
+  );
+});
+
+Deno.test("generated code has no public, local, configured-host, DNS, or metadata network authority", async () => {
+  const source = `
+    const denied = async (url) => {
+      try { await fetch(url); return false; } catch { return true; }
+    };
+    return await Promise.all([
+      denied('https://example.com'),
+      denied('http://localhost:32400'),
+      denied('http://radarr.invalid:7878'),
+      denied('http://169.254.169.254/latest/meta-data/'),
+    ]);
+  `;
+  assertEquals(
+    await executeCodeMode(source, null),
+    [true, true, true, true],
+  );
+});
+
+Deno.test("dynamic imports cannot acquire ambient authority", async () => {
+  const source = `
+    const denied = async (operation) => {
+      try { await operation(); return false; } catch { return true; }
+    };
+    const dataModule = await import('data:text/javascript,export default typeof Deno');
+    return {
+      local: await denied(() => import(${JSON.stringify(import.meta.url)})),
+      remote: await denied(() => import('https://example.com/hostile.js')),
+      npm: await denied(() => import('npm:node-fetch')),
+      dataModuleLoaded: dataModule.default === 'object',
+      dataRead: await denied(async () => {
+        const module = await import("data:text/javascript,export default () => Deno.readTextFile('/etc/passwd')");
+        await module.default();
+      }),
+    };
+  `;
+  assertEquals(await executeCodeMode(source, null), {
+    local: true,
+    remote: true,
+    npm: true,
+    dataModuleLoaded: true,
+    dataRead: true,
+  });
+
+  for (
+    const importSource of [
+      "await import('jsr:@std/path');",
+      "const fs = await import('node:fs/promises'); await fs.readFile('/etc/passwd');",
+      "const child = await import('node:child_process'); child.spawnSync('sh', ['-c', 'id']);",
+    ]
+  ) {
+    await assertRejects(
+      () => executeCodeMode(`${importSource} return null;`, null),
+      Error,
+    );
+  }
+});
+
+Deno.test("dynamic code, globals, WebAssembly, and workers cannot bypass authority", async () => {
+  const source = `
+    const denied = async (operation) => {
+      try { await operation(); return false; } catch { return true; }
+    };
+    return {
+      evalRead: await denied(() => eval("Deno.readTextFile('/etc/passwd')")),
+      functionEnv: await denied(() => Function("return Deno.env.toObject()")()),
+      constructorRun: await denied(() => (async () => {}).constructor("return new Deno.Command('id').output()")()),
+      globalWrite: await denied(() => globalThis.Deno.writeTextFile('/tmp/codemode-global', 'owned')),
+      wasmRead: typeof WebAssembly === 'object' && await denied(() => Deno.readFile('/etc/passwd')),
+      worker: await denied(() => Promise.resolve(new Worker('data:text/javascript,postMessage(1)', { type: 'module' }))),
+    };
+  `;
+  assertEquals(await executeCodeMode(source, null), {
+    evalRead: true,
+    functionEnv: true,
+    constructorRun: true,
+    globalWrite: true,
+    wasmRead: true,
+    worker: true,
+  });
+});
+
+Deno.test("hostile logs and public errors remain bounded and sanitized", async () => {
+  assertEquals(
+    await executeCodeMode(
+      `
+        console.log('x'.repeat(${CODEMODE_LIMITS.logBytes * 4}));
+        for (let i = 0; i < 1000; i++) console.error('ignored', i);
+        await Deno.stderr.write(new Uint8Array(${
+        CODEMODE_LIMITS.logBytes * 4
+      }).fill(65));
+        return 'complete';
+      `,
+      null,
+    ),
+    "complete",
+  );
+  await assertRejects(
+    () =>
+      executeCodeMode(
+        "throw new Error('secret=/repo/.env token=credential intermediate=private');",
+        null,
+      ),
+    Error,
+    "JavaScript execution failed",
+  );
+});
+
+Deno.test("fresh executions cannot observe prior generated state", async () => {
+  assertEquals(
+    await executeCodeMode(
+      "globalThis.hostileState = { secret: input }; return 'stored';",
+      "private",
+    ),
+    "stored",
+  );
+  assertEquals(
+    await executeCodeMode(
+      "return { state: globalThis.hostileState ?? null, input, tools: Object.keys(tools) };",
+      null,
+    ),
+    { state: null, input: null, tools: [] },
+  );
 });

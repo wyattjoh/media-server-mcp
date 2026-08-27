@@ -259,22 +259,30 @@ async function main(): Promise<void> {
   let diagnosticBytes = 0;
   const capture = (...args: unknown[]): void => {
     const message = formatDiagnostic(args);
-    const length = encoder.encode(message).length;
+    const separatorBytes = diagnostics.length > 0 ? 1 : 0;
+    const length = encoder.encode(message).length + separatorBytes;
     if (diagnosticBytes + length <= MAX_DIAGNOSTIC_BYTES) {
       diagnostics.push(message);
       diagnosticBytes += length;
     }
   };
-  Object.defineProperty(globalThis, "console", {
-    value: Object.freeze({
-      log: capture,
-      debug: capture,
-      info: capture,
-      warn: capture,
-      error: capture,
-    }),
-    configurable: false,
-    writable: false,
+  Object.defineProperties(globalThis, {
+    console: {
+      value: Object.freeze({
+        log: capture,
+        debug: capture,
+        info: capture,
+        warn: capture,
+        error: capture,
+      }),
+      configurable: false,
+      writable: false,
+    },
+    Worker: {
+      value: undefined,
+      configurable: false,
+      writable: false,
+    },
   });
   try {
     const AsyncFunction =
