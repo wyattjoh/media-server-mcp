@@ -513,7 +513,7 @@ export function createCodeModeTools(
     {
       title: "Search available media tools",
       description:
-        "Search compact metadata for native tools on configured media services.",
+        "Search compact metadata for all native tools on configured services. Use returned exact names with codemode_describe; discoverable mutation tools are unavailable to execute in Code Mode v1.",
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -566,7 +566,7 @@ export function createCodeModeTools(
     {
       title: "Describe media tool contracts",
       description:
-        "Describe exact contracts for currently configured native media tools.",
+        "Describe exact schemas, TypeScript-style signatures, facade paths, and execution availability for selected native tool names before writing JavaScript.",
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -626,7 +626,7 @@ export function createCodeModeTools(
     {
       title: "Execute Code Mode JavaScript",
       description:
-        "Execute a bounded JavaScript async-function body in a fresh no-I/O subprocess.",
+        "Execute a bounded JavaScript async-function body in a fresh no-I/O subprocess. Select exact read-only tool names first, call their namespaced tools.service.operation facades, catch ToolExecutionError for native failures, and explicitly return the JSON result to expose.",
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -635,7 +635,7 @@ export function createCodeModeTools(
       },
       inputSchema: {
         source: z.string().min(1).max(65_536).describe(
-          "JavaScript async-function-body source (TypeScript is not transpiled)",
+          "JavaScript async-function-body source: use await directly, call selected namespaced tool facades, and explicitly return a JSON value; TypeScript syntax is not transpiled",
         ),
         input: z.json().optional().describe(
           "Optional JSON value exposed to the function body as input",
@@ -645,7 +645,7 @@ export function createCodeModeTools(
             (names) => new Set(names).size === names.length,
             "Selected tool names must be unique",
           ).default([]).describe(
-            "Exact native read-only tools authorized for this execution",
+            "Exact native read-only tool names authorized for this execution; every called facade must be selected explicitly",
           ),
       },
       outputSchema: ExecuteOutputSchema,

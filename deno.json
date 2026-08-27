@@ -18,6 +18,7 @@
     "lint": "deno lint packages",
     "check": "deno check packages/plex/mod.ts packages/radarr/mod.ts packages/sonarr/mod.ts packages/tmdb/mod.ts packages/media-server-mcp/src/index.ts",
     "test": "deno test --allow-run=deno --allow-net --allow-env",
+    "bench:codemode": "deno run --allow-run=deno --allow-env packages/media-server-mcp/benchmarks/codemode-benchmark.ts",
     "hooks:install": "deno run --allow-read=deno.json,.git/hooks/ --allow-write=.git/hooks/ jsr:@hongminhee/deno-task-hooks",
     "hooks:pre-commit": "deno check packages/plex/mod.ts packages/radarr/mod.ts packages/sonarr/mod.ts packages/tmdb/mod.ts packages/media-server-mcp/src/index.ts && deno fmt --check deno.json packages && deno lint",
     "hooks:pre-push": "deno publish --dry-run --allow-dirty"

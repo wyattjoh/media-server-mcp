@@ -44,6 +44,10 @@ Networkless operation also prevents the server from reaching Radarr, Sonarr, TMD
 
 Containerization alone is not a safety guarantee. Do not mount the repository, configuration, credentials, media, Docker/Podman socket, or host devices into the runner boundary; do not add capabilities, disable seccomp, run privileged, or omit resource limits. Unsafe mounts, host sockets, capabilities, broad network access, and missing cgroup limits can defeat the intended hardening.
 
+## Out of scope in v1
+
+Code Mode v1 does not provide mutation approval or execution, arbitrary external API access, runtime TypeScript compilation, persistent generated state, standalone compiled-binary runner packaging, or hostile multi-tenant guarantees. These capabilities require separate designs rather than broader permissions on the current runner. See the [operator and model guide](codemode.md) for the supported workflow and fixed limits.
+
 ## Public errors and diagnostics
 
 Generated exceptions become stable public classifications without stack traces, executable arguments, host paths, credentials, environment details, or raw intermediate tool results. Bounded diagnostics are debug logs only and are never included in the MCP result.

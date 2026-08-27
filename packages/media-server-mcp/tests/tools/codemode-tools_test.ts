@@ -331,6 +331,99 @@ Deno.test("codemode execute orchestrates one selected read-only tool", async () 
   }
 });
 
+Deno.test("codemode progressive discovery executes a cross-service projection", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (input) => {
+    const url = String(input);
+    if (url.includes("/api/v3/movie")) {
+      return Promise.resolve(Response.json([
+        { id: 1, title: "Arrival" },
+        { id: 2, title: "Contact" },
+      ]));
+    }
+    if (url.includes("api.themoviedb.org/3/search/movie")) {
+      return Promise.resolve(Response.json({
+        page: 1,
+        total_pages: 1,
+        total_results: 1,
+        results: [{ id: 329865, title: "Arrival" }],
+      }));
+    }
+    return Promise.resolve(new Response("unexpected request", { status: 500 }));
+  };
+  try {
+    await withClient(
+      {
+        radarrConfig: createRadarrConfig(
+          "http://localhost:7878",
+          "test-key",
+        ),
+        tmdbConfig: createTMDBConfig("test-key"),
+        isToolEnabled: codemodeFilter(),
+        isCodeMode: true,
+      },
+      async (client) => {
+        const search = await client.callTool({
+          name: "codemode_search",
+          arguments: {
+            query: "movie",
+            policies: ["read-only"],
+            limit: 50,
+          },
+        });
+        const matches = (search.structuredContent as {
+          matches: Array<{ name: string }>;
+        }).matches.map(({ name }) => name);
+        assert(matches.includes("radarr_get_movies"));
+        assert(matches.includes("tmdb_search_movies"));
+
+        const describe = await client.callTool({
+          name: "codemode_describe",
+          arguments: {
+            names: ["radarr_get_movies", "tmdb_search_movies"],
+          },
+        });
+        const descriptions = (describe.structuredContent as {
+          descriptions: Array<{ facadePath: string; available: boolean }>;
+        }).descriptions;
+        assertEquals(
+          descriptions.map(({ facadePath }) => facadePath),
+          ["tools.radarr.getMovies", "tools.tmdb.searchMovies"],
+        );
+        assert(descriptions.every(({ available }) => available));
+
+        const execute = await client.callTool({
+          name: "codemode_execute",
+          arguments: {
+            source:
+              "const [library, search] = await Promise.all([tools.radarr.getMovies({}), tools.tmdb.searchMovies({ query: 'Arrival', language: 'en-US' })]); return { libraryTitles: library.data.map(({ title }) => title), tmdbMatches: search.total_results };",
+            selectedTools: ["radarr_get_movies", "tmdb_search_movies"],
+          },
+        });
+        assertEquals(
+          execute.isError,
+          undefined,
+          JSON.stringify(execute.content),
+        );
+        assertEquals(execute.structuredContent, {
+          result: {
+            libraryTitles: ["Arrival", "Contact"],
+            tmdbMatches: 1,
+          },
+        });
+        assertEquals(execute.content, [{
+          type: "text",
+          text: '{"libraryTitles":["Arrival","Contact"],"tmdbMatches":1}',
+        }]);
+        assert(!JSON.stringify(execute).includes("total_pages"));
+        assert(!JSON.stringify(execute).includes("329865"));
+      },
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 Deno.test("codemode execute rejects unauthorized and invalid native calls", async () => {
   const originalFetch = globalThis.fetch;
   let requests = 0;

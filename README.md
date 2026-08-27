@@ -380,9 +380,18 @@ Settings are applied in this order (later settings override earlier ones):
 3. **Environment Variables**: Override JSON settings
 4. **Custom Overrides**: `TOOL_EXCLUDE` and `TOOL_INCLUDE` applied last for native profiles
 
-The `codemode` profile always advertises only `codemode_search`, `codemode_describe`, and `codemode_execute`. Its catalog covers every native tool for configured services and ignores `TOOL_BRANCHES`, `TOOL_INCLUDE`, and `TOOL_EXCLUDE`. Mutating tools are discoverable but marked unavailable for Code Mode execution. Source development and Docker use Deno 2.9.5; install the version pinned in `.tool-versions`. Standalone compiled binaries do not support Code Mode until runner-sidecar packaging is designed. See [Code Mode security](docs/codemode-security.md) for the enforced boundary, Docker behavior, optional Linux containment, and process-only limitations.
+The `codemode` profile always advertises only `codemode_search`, `codemode_describe`, and `codemode_execute`. Its catalog covers every native tool for configured services and ignores `TOOL_BRANCHES`, `TOOL_INCLUDE`, and `TOOL_EXCLUDE`. Resources and prompts remain available. Mutating tools are discoverable but marked unavailable for Code Mode execution. See the [Code Mode operator and model guide](docs/codemode.md) for the search, describe, execute workflow, JavaScript contract, fixed limits, benchmark, and v1 scope. Source development and Docker use Deno 2.9.5; install the version pinned in `.tool-versions`. Standalone compiled binaries do not support Code Mode until runner-sidecar packaging is designed. See [Code Mode security](docs/codemode-security.md) for the enforced boundary, Docker behavior, optional Linux containment, and process-only limitations.
 
 ### Common Configuration Examples
+
+#### Code Mode
+
+```bash
+TOOL_PROFILE=codemode
+# Result: 3 progressive-discovery tools; configured resources and prompts remain
+```
+
+Use `codemode_search` to find exact native names, `codemode_describe` to inspect their contracts and facade paths, then `codemode_execute` with explicitly selected read-only names and a JavaScript async-function body that returns the desired JSON result.
 
 #### Minimal Setup (Default)
 
