@@ -16,13 +16,33 @@ The trusted runner starts with a cleared environment, prompts disabled, cached a
 
 Each execution starts a new process, so generated globals, closures, input, logs, and results do not persist. Worker construction is removed from the generated-code global environment to prevent worker amplification and orphaned-worker lifecycle problems.
 
+## Supported deployment baseline
+
+Source checkouts, CI, and the production image use Deno 2.9.5. Install the version declared in `.tool-versions` before running the source tasks. The Docker build caches the server and trusted runner graphs, and the production entrypoint uses frozen, cached-only resolution so a Code Mode child does not need network access to start.
+
+The trusted runner remains a fixed source sidecar beside the executor in source and Docker distributions. Standalone `deno compile` binaries are not supported in v1: a compiled server needs a separately addressable runner sidecar or a reviewed extraction design before it can preserve this boundary.
+
 ## Availability limits
 
-The parent terminates infinite loops, promise recursion, timer floods, excessive tool calls, and output floods at the wall-clock or quota boundary. stdout is a dedicated framed protocol and corruption fails closed. console output and stderr retention are bounded; stderr is drained while excess bytes are discarded.
+The parent terminates infinite loops, promise recursion, timer floods, excessive tool calls, and output floods at the wall-clock or quota boundary. stdout is a dedicated framed protocol and corruption fails closed. console output and stderr retention are bounded; stderr is drained while excess bytes are discarded. Server shutdown kills and awaits active runner processes.
 
-A process-only boundary cannot reliably contain every CPU or memory exhaustion pattern before it affects the host. In particular, allocation pressure is subject to the operating system and Deno/V8 behavior. The default boundary therefore assumes a local single user, not adversarial tenants.
+A process-only boundary cannot reliably contain every CPU or memory exhaustion pattern before it affects the host. In particular, allocation pressure is subject to the operating system and Deno/V8 behavior. The supported process boundary therefore assumes a local single user, not adversarial tenants.
 
-For stronger availability isolation on Linux, run the server or runner in a rootless, networkless container with explicit cgroup limits for memory, CPU, PIDs, and wall time. Use a read-only filesystem and an empty temporary filesystem. Do not mount the repository, configuration, credentials, media, Docker/Podman socket, or host devices; do not add capabilities or disable seccomp. Containerization without those controls is not a security guarantee.
+### Optional Linux containment
+
+For stronger availability isolation, Linux operators can run the production image with rootless Podman and cgroup limits. Adapt values to the media-library workload:
+
+```bash
+podman run --rm --read-only --network=none \
+  --cpus=1 --memory=512m --pids-limit=128 \
+  --cap-drop=all --security-opt=no-new-privileges \
+  --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+  media-server-mcp
+```
+
+Networkless operation also prevents the server from reaching Radarr, Sonarr, TMDB, or Plex, so a practical deployment must grant only the network path required for configured services while still blocking arbitrary egress. Apply equivalent cgroup v2 CPU, memory, and PID controls when running Deno directly.
+
+Containerization alone is not a safety guarantee. Do not mount the repository, configuration, credentials, media, Docker/Podman socket, or host devices into the runner boundary; do not add capabilities, disable seccomp, run privileged, or omit resource limits. Unsafe mounts, host sockets, capabilities, broad network access, and missing cgroup limits can defeat the intended hardening.
 
 ## Public errors and diagnostics
 

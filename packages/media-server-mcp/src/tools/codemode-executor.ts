@@ -40,6 +40,41 @@ type RunnerMessage = {
 };
 
 const PROTOCOL_ERROR = "Code Mode runner protocol error";
+const CODEMODE_RUNNER_URL = new URL("./codemode-runner.ts", import.meta.url);
+
+/**
+ * Returns the fixed trusted-runner launch contract used by Code Mode.
+ *
+ * @returns A direct Deno executable and argument array with an empty environment.
+ */
+export function getCodeModeRunnerLaunch(): {
+  executable: string;
+  args: string[];
+  clearEnv: true;
+  env: Record<string, string>;
+} {
+  return {
+    executable: Deno.execPath(),
+    args: [
+      "run",
+      "--quiet",
+      "--no-prompt",
+      "--cached-only",
+      "--frozen",
+      "--no-config",
+      "--no-lock",
+      "--deny-read",
+      "--deny-write",
+      "--deny-net",
+      "--deny-env",
+      "--deny-run",
+      "--deny-ffi",
+      CODEMODE_RUNNER_URL.href,
+    ],
+    clearEnv: true,
+    env: {},
+  };
+}
 
 function protocolError(): Error {
   return new Error(PROTOCOL_ERROR);
@@ -327,26 +362,11 @@ export async function executeCodeMode(
   };
 
   try {
-    const runnerUrl = new URL("./codemode-runner.ts", import.meta.url);
-    child = new Deno.Command(Deno.execPath(), {
-      args: [
-        "run",
-        "--quiet",
-        "--no-prompt",
-        "--cached-only",
-        "--frozen",
-        "--no-config",
-        "--no-lock",
-        "--deny-read",
-        "--deny-write",
-        "--deny-net",
-        "--deny-env",
-        "--deny-run",
-        "--deny-ffi",
-        runnerUrl.href,
-      ],
-      clearEnv: true,
-      env: {},
+    const launch = getCodeModeRunnerLaunch();
+    child = new Deno.Command(launch.executable, {
+      args: launch.args,
+      clearEnv: launch.clearEnv,
+      env: launch.env,
       stdin: "piped",
       stdout: "piped",
       stderr: "piped",

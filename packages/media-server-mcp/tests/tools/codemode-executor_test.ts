@@ -5,6 +5,7 @@ import {
   drainBoundedStream,
   encodeCodeModeFrame,
   executeCodeMode,
+  getCodeModeRunnerLaunch,
 } from "../../src/tools/codemode-executor.ts";
 
 function readerFromChunks(
@@ -17,6 +18,42 @@ function readerFromChunks(
     },
   }).getReader();
 }
+
+Deno.test("codemode runner launch is fixed, direct, and secret-free", () => {
+  const launch = getCodeModeRunnerLaunch();
+
+  assertEquals(launch.executable, Deno.execPath());
+  assertEquals(launch.args[0], "run");
+  for (
+    const flag of [
+      "--cached-only",
+      "--frozen",
+      "--deny-read",
+      "--deny-write",
+      "--deny-net",
+      "--deny-env",
+      "--deny-run",
+      "--deny-ffi",
+    ]
+  ) {
+    assertEquals(launch.args.includes(flag), true);
+  }
+  assertEquals(launch.args.at(-1)?.endsWith("/codemode-runner.ts"), true);
+  assertEquals(launch.clearEnv, true);
+  assertEquals(launch.env, {});
+
+  for (
+    const secret of [
+      "RADARR_API_KEY",
+      "SONARR_API_KEY",
+      "TMDB_API_KEY",
+      "PLEX_API_KEY",
+      "MCP_AUTH_TOKEN",
+    ]
+  ) {
+    assertEquals(Object.hasOwn(launch.env, secret), false);
+  }
+});
 
 Deno.test("codemode frame reader handles every byte split", async () => {
   const expected = { jsonrpc: "2.0", id: 1, result: { value: 42 } };

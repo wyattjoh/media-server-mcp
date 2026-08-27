@@ -380,7 +380,7 @@ Settings are applied in this order (later settings override earlier ones):
 3. **Environment Variables**: Override JSON settings
 4. **Custom Overrides**: `TOOL_EXCLUDE` and `TOOL_INCLUDE` applied last for native profiles
 
-The `codemode` profile always advertises only `codemode_search`, `codemode_describe`, and `codemode_execute`. Its catalog covers every native tool for configured services and ignores `TOOL_BRANCHES`, `TOOL_INCLUDE`, and `TOOL_EXCLUDE`. Mutating tools are discoverable but marked unavailable for Code Mode execution. See [Code Mode security](docs/codemode-security.md) for the enforced boundary, adversarial-test coverage, and process-only containment limitations.
+The `codemode` profile always advertises only `codemode_search`, `codemode_describe`, and `codemode_execute`. Its catalog covers every native tool for configured services and ignores `TOOL_BRANCHES`, `TOOL_INCLUDE`, and `TOOL_EXCLUDE`. Mutating tools are discoverable but marked unavailable for Code Mode execution. Source development and Docker use Deno 2.9.5; install the version pinned in `.tool-versions`. Standalone compiled binaries do not support Code Mode until runner-sidecar packaging is designed. See [Code Mode security](docs/codemode-security.md) for the enforced boundary, Docker behavior, optional Linux containment, and process-only limitations.
 
 ### Common Configuration Examples
 
