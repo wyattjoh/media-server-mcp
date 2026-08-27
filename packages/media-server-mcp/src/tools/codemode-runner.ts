@@ -15,6 +15,7 @@ type JsonRpcMessage = {
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
+let writeChain = Promise.resolve();
 
 async function readExact(length: number): Promise<Uint8Array> {
   const bytes = new Uint8Array(length);
@@ -36,12 +37,18 @@ async function readFrame(): Promise<JsonRpcMessage> {
   return JSON.parse(decoder.decode(await readExact(length))) as JsonRpcMessage;
 }
 
-async function writeFrame(response: JsonRpcMessage): Promise<void> {
+function writeFrame(response: JsonRpcMessage): Promise<void> {
   const body = encoder.encode(JSON.stringify(response));
+  if (body.length > MAX_FRAME_BYTES) {
+    return Promise.reject(new Error("Response frame exceeds limit"));
+  }
   const frame = new Uint8Array(4 + body.length);
   new DataView(frame.buffer).setUint32(0, body.length, false);
   frame.set(body, 4);
-  await Deno.stdout.write(frame);
+  writeChain = writeChain.then(() =>
+    Deno.stdout.write(frame).then(() => undefined)
+  );
+  return writeChain;
 }
 
 function validateJsonValue(
@@ -108,6 +115,46 @@ function createFacade(
   manifest: readonly SelectedTool[],
 ): Readonly<Record<string, unknown>> {
   let nextId = 2;
+  const pending = new Map<
+    number,
+    {
+      tool: string;
+      resolve: (value: unknown) => void;
+      reject: (error: Error) => void;
+    }
+  >();
+  let responseLoopStarted = false;
+  const responseLoop = async (): Promise<void> => {
+    try {
+      while (pending.size > 0) {
+        const response = await readFrame();
+        const deferred = pending.get(response.id);
+        if (!deferred || response.jsonrpc !== "2.0") {
+          throw new Error("Tool protocol error");
+        }
+        pending.delete(response.id);
+        if (response.error) {
+          const tool = deferred.tool;
+          const ToolExecutionError = class extends Error {
+            readonly tool = tool;
+            constructor(message: string) {
+              super(message);
+              this.name = "ToolExecutionError";
+            }
+          };
+          deferred.reject(new ToolExecutionError(response.error.message));
+        } else deferred.resolve(response.result);
+      }
+    } finally {
+      responseLoopStarted = false;
+      if (pending.size > 0) void startResponseLoop();
+    }
+  };
+  const startResponseLoop = (): Promise<void> => {
+    if (responseLoopStarted) return Promise.resolve();
+    responseLoopStarted = true;
+    return responseLoop();
+  };
   const root: Record<string, unknown> = {};
   for (const selected of manifest) {
     const segments = selected.facadePath.split(".");
@@ -122,27 +169,17 @@ function createFacade(
     const method = segments.at(-1)!;
     target[method] = async (args: unknown = {}) => {
       const id = nextId++;
+      const result = new Promise<unknown>((resolve, reject) =>
+        pending.set(id, { tool: selected.facadePath, resolve, reject })
+      );
       await writeFrame({
         jsonrpc: "2.0",
         id,
         method: "tool.call",
         params: { facadePath: selected.facadePath, args },
       });
-      const response = await readFrame();
-      if (response.jsonrpc !== "2.0" || response.id !== id) {
-        throw new Error("Tool protocol error");
-      }
-      if (response.error) {
-        const ToolExecutionError = class extends Error {
-          readonly tool = selected.facadePath;
-          constructor(message: string) {
-            super(message);
-            this.name = "ToolExecutionError";
-          }
-        };
-        throw new ToolExecutionError(response.error.message);
-      }
-      return response.result;
+      void startResponseLoop();
+      return await result;
     };
   }
   const freeze = (
@@ -182,15 +219,14 @@ async function main(): Promise<void> {
     });
     return;
   }
-
   const diagnostics: string[] = [];
   let diagnosticBytes = 0;
   const capture = (...args: unknown[]): void => {
     const message = formatDiagnostic(args);
-    const bytes = encoder.encode(message).length;
-    if (diagnosticBytes + bytes <= MAX_DIAGNOSTIC_BYTES) {
+    const length = encoder.encode(message).length;
+    if (diagnosticBytes + length <= MAX_DIAGNOSTIC_BYTES) {
       diagnostics.push(message);
-      diagnosticBytes += bytes;
+      diagnosticBytes += length;
     }
   };
   Object.defineProperty(globalThis, "console", {
@@ -204,7 +240,6 @@ async function main(): Promise<void> {
     configurable: false,
     writable: false,
   });
-
   try {
     const AsyncFunction =
       Object.getPrototypeOf(async function () {}).constructor;

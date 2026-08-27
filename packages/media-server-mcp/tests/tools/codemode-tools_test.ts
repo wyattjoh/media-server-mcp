@@ -3,6 +3,7 @@ import {
   assertEquals,
   assertGreater,
   assertLessOrEqual,
+  assertRejects,
   assertStringIncludes,
 } from "@std/assert";
 import { Client } from "@modelcontextprotocol/client";
@@ -13,6 +14,10 @@ import { createRadarrConfig } from "@wyattjoh/radarr";
 import { createSonarrConfig } from "@wyattjoh/sonarr";
 import { createMcpServerWithTools } from "../../src/server-factory.ts";
 import { createCodeModeCatalog } from "../../src/tools/codemode-tools.ts";
+import {
+  executeCodeMode,
+  shutdownCodeModeExecutions,
+} from "../../src/tools/codemode-executor.ts";
 import {
   createToolFilter,
   getEnabledTools,
@@ -607,6 +612,74 @@ Deno.test("codemode execute orchestrates selected tools across services", async 
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+Deno.test("codemode executor bounds parallel native calls", async () => {
+  let running = 0;
+  let maximum = 0;
+  const result = await executeCodeMode(
+    "return await Promise.all(Array.from({ length: 8 }, () => tools.tmdb.searchMovies({ query: 'Arrival' })));",
+    null,
+    [{ name: "tmdb_search_movies", facadePath: "tools.tmdb.searchMovies" }],
+    async () => {
+      running++;
+      maximum = Math.max(maximum, running);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      running--;
+      return { ok: true };
+    },
+  );
+  assertEquals(result, Array.from({ length: 8 }, () => ({ ok: true })));
+  assertLessOrEqual(maximum, 4);
+});
+
+Deno.test("codemode executor stops dispatch after a result quota breach", async () => {
+  let calls = 0;
+  await assertRejects(
+    () =>
+      executeCodeMode(
+        "return await Promise.all(Array.from({ length: 12 }, () => tools.tmdb.searchMovies({ query: 'Arrival' })));",
+        null,
+        [{
+          name: "tmdb_search_movies",
+          facadePath: "tools.tmdb.searchMovies",
+        }],
+        () => {
+          calls++;
+          return Promise.resolve({ payload: "x".repeat(130 * 1024) });
+        },
+      ),
+    Error,
+    "Code Mode tool result bytes exceeds limit",
+  );
+  assertLessOrEqual(calls, 4);
+});
+
+Deno.test("codemode executor handles cancellation and shutdown idempotently", async () => {
+  const controller = new AbortController();
+  const cancelled = executeCodeMode(
+    "while (true) {}",
+    null,
+    [],
+    undefined,
+    controller.signal,
+  );
+  controller.abort();
+  await assertRejects(
+    () => cancelled,
+    Error,
+    "Code Mode execution cancelled",
+  );
+
+  const active = executeCodeMode("while (true) {}", null);
+  const activeRejection = assertRejects(() => active, Error);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  await Promise.all([
+    shutdownCodeModeExecutions(),
+    shutdownCodeModeExecutions(),
+  ]);
+  await activeRejection;
+  assertEquals(await executeCodeMode("return 'clean';", null), "clean");
 });
 
 Deno.test("codemode catalog includes mutations as non-executable and ignores native overrides", async () => {

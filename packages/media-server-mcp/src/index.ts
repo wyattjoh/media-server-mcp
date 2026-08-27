@@ -34,6 +34,7 @@ import {
   parseToolConfig,
 } from "./tools/tool-filter.ts";
 import { configureLogging, getLogger } from "./logging.ts";
+import { shutdownCodeModeExecutions } from "./tools/codemode-executor.ts";
 
 interface ServerState extends ServiceConfig {
   isToolEnabled: (toolName: string) => boolean;
@@ -249,6 +250,7 @@ function setupGracefulShutdown(state: ServerState): void {
       if (state.transport) {
         await state.transport.close();
       }
+      await shutdownCodeModeExecutions();
 
       logger.info("Graceful shutdown completed");
     } catch (error) {
