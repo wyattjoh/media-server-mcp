@@ -1545,7 +1545,7 @@ Deno.test("codemode catalog has an explicit reviewed contract for every native t
   };
   const catalog = createCodeModeCatalog(services);
 
-  assertEquals(catalog.length, 102);
+  assertEquals(catalog.length, 104);
   assertEquals(
     new Set(catalog.map((entry) => entry.name)).size,
     catalog.length,
