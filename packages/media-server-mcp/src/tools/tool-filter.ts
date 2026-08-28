@@ -103,6 +103,8 @@ export function parseToolConfig(
  * Get the final list of enabled tools based on configuration
  */
 export function getEnabledTools(config: ToolFilterConfig): string[] {
+  if (config.profile === "codemode") return [];
+
   // Start with tools from the profile
   const enabledTools = new Set(getToolsForProfile(config.profile));
 

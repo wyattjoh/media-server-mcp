@@ -18,6 +18,21 @@ import {
 
 const REQUEST_TIMEOUT_MS = 30_000;
 
+type SearchHub = SearchResponse["MediaContainer"]["Hub"][number];
+type SearchMetadataItem = NonNullable<SearchHub["Metadata"]>[number];
+
+const PLEX_SEARCH_TYPE_MATCHERS = {
+  [SearchType.Movies]: (item) =>
+    item.type === "movie" && item.subtype !== "clip",
+  [SearchType.TV]: (item) =>
+    item.type === "show" || item.type === "season" || item.type === "episode",
+  [SearchType.OtherVideos]: (item) =>
+    item.type === "clip" || item.subtype === "clip",
+  [SearchType.People]: (item) => item.type === "person",
+} satisfies Readonly<
+  Record<SearchType, (item: SearchMetadataItem) => boolean>
+>;
+
 export interface PlexConfig {
   readonly baseUrl: string;
   readonly apiKey: string;
@@ -138,7 +153,16 @@ export function getAccounts(
   return makeRequest(config, "/accounts");
 }
 
-export function search(
+/**
+ * Searches Plex libraries and optionally filters results by public media categories.
+ *
+ * @param config - Plex server connection configuration.
+ * @param query - Search query sent to the local Plex hub-search endpoint.
+ * @param limit - Maximum results requested from each upstream search hub.
+ * @param searchTypes - Media categories retained in the returned hubs.
+ * @returns The upstream response, filtered with consistent counts when categories are selected.
+ */
+export async function search(
   config: PlexConfig,
   query: string,
   limit: number = 100,
@@ -147,14 +171,36 @@ export function search(
   const searchParams = new URLSearchParams();
   searchParams.set("query", query);
   searchParams.set("limit", limit.toString());
-  if (searchTypes.length > 0) {
-    searchParams.set("searchTypes", searchTypes.join(","));
-  }
 
-  return makeRequest<SearchResponse>(
+  const response = await makeRequest<SearchResponse>(
     config,
     `/hubs/search?${searchParams.toString()}`,
   );
+  if (searchTypes.length === 0) return response;
+
+  const matchers = searchTypes.map((searchType) =>
+    PLEX_SEARCH_TYPE_MATCHERS[searchType]
+  );
+  const hubs = (response.MediaContainer.Hub ?? []).reduce<SearchHub[]>(
+    (filteredHubs, hub) => {
+      const metadata = hub.Metadata?.filter((item) =>
+        matchers.some((matches) => matches(item))
+      );
+      if (!metadata || metadata.length === 0) return filteredHubs;
+      filteredHubs.push({ ...hub, size: metadata.length, Metadata: metadata });
+      return filteredHubs;
+    },
+    [],
+  );
+
+  return {
+    ...response,
+    MediaContainer: {
+      ...response.MediaContainer,
+      size: hubs.length,
+      Hub: hubs,
+    },
+  };
 }
 
 export function getMetadata(

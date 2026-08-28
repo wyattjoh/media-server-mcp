@@ -1,0 +1,109 @@
+# Code Mode
+
+Code Mode replaces the full native tool list with three progressive-discovery tools. It is intended for models that can search for the operation they need, inspect only the relevant contracts, and combine selected read-only operations in one bounded JavaScript computation.
+
+## Enable Code Mode
+
+Configure at least one media service and set the profile:
+
+```bash
+TOOL_PROFILE=codemode
+deno task start
+```
+
+The server advertises only `codemode_search`, `codemode_describe`, and `codemode_execute`. Resources and prompts for configured services remain available. The Code Mode catalog contains every native tool for every configured service regardless of `TOOL_BRANCHES`, `TOOL_INCLUDE`, or `TOOL_EXCLUDE`; those ordinary filtering overrides are ignored for this profile.
+
+## Search, describe, execute
+
+1. Call `codemode_search` with a concise capability query and optional service or policy filters. Search is case-insensitive, normalizes whitespace, and ranks exact native names, exact phrases, all-token matches, then partial token matches; ties retain deterministic catalog order. Results are compact metadata, not executable contracts. Each page reports `total`, `returned`, `offset`, and `hasMore`; while `hasMore` is true, request the next page with `offset + returned`. With unchanged query and filters, concatenating those bounded pages reconstructs the complete filtered catalog in stable rank order.
+2. Call `codemode_describe` with the exact names selected from search. It returns JSON input/output schemas, annotations, availability, a namespaced facade path, and a TypeScript-style authoring signature.
+3. Call `codemode_execute` with JavaScript function-body source and the exact read-only native names in `selectedTools`.
+
+The source is the body of an async JavaScript function. It may use `await` and the immutable `input` and `tools` values directly; do not wrap it in a function and do not submit TypeScript syntax. A selected operation is called through its described facade, such as `tools.tmdb.searchMovies(...)`. Selection is explicit: a facade is absent unless its native name appears in `selectedTools`.
+
+Native failures are catchable `ToolExecutionError` values with stable `name`, `tool`, and `message` fields. The function must explicitly `return` the JSON value that should become the MCP result. Intermediate native results and console diagnostics are not returned automatically. Project large native responses immediately into a small final value, and use native pagination where an operation provides it; Code Mode raises the bounded intermediate transport ceiling for cross-service composition, not for returning full libraries.
+
+```js
+const [movies, libraries] = await Promise.all([
+  tools.tmdb.searchMovies({ query: "Arrival", language: "en-US" }),
+  tools.plex.getLibraries({}),
+]);
+
+return {
+  matches: movies.results.slice(0, 3).map(({ id, title }) => ({ id, title })),
+  libraryCount: libraries.MediaContainer.size,
+};
+```
+
+Use `selectedTools: ["tmdb_search_movies", "plex_get_libraries"]` for that source.
+
+Input schemas are strict. Properties with server defaults are optional in both JSON Schema and the TypeScript-style signature, and omitting them applies the documented default. Unknown properties are rejected before native dispatch instead of being ignored. Described output schemas intentionally model stable envelopes and projection fields while allowing compatible additional upstream metadata where service responses evolve.
+
+Plex `searchTypes` filters are applied locally after `/hubs/search` returns. An omitted or empty filter preserves the upstream response. An explicit filter removes nonmatching metadata and empty hubs and recomputes returned counts; the `tv` category includes shows, seasons, and episodes but excludes movies.
+
+## Fresh Pi release validation
+
+Before a release that changes Code Mode contracts, run the following prompt in a new Pi session connected to a `TOOL_PROFILE=codemode` server with Plex, TMDB, Radarr, and Sonarr configured. This deliberately uses Pi rather than a custom MCP harness so initialization, tool schemas, resource projection, and generated-code authoring are tested as a fresh client sees them.
+
+Read `runtime://media-server-mcp/identity` first and compare its package version and Code Mode contract revision with the release under evaluation. Treat a mismatch as stale or incorrect deployment evidence, not as a defect in the checked-out source. The identity also provides the configured service names, read-only execution policy, and active fixed limits without exposing service URLs or credentials.
+
+```text
+Validate this media-server MCP's complete Code Mode experience. Do not read its repository or rely on prior knowledge; use only initialization instructions, visible tool/resource descriptions, and observed results. Keep every returned projection small and never expose credentials, URLs, host paths, stack traces, stderr, or raw upstream bodies.
+
+1. Read runtime://media-server-mcp/identity. Report its server version, Code Mode contract revision, configured services, execution policy, and active limits before evaluating behavior. Compare the identity with the release under evaluation and classify any mismatch as a release/deployment validation failure. Also report the Pi version, model/provider, every visible media-server tool, and whether media-server initialization instructions were visible. Quote or faithfully summarize the instructions separately from tool descriptions.
+2. Confirm the native media tools are suppressed: only codemode_search, codemode_describe, and codemode_execute may be visible as media-server native tools. List any read_* conveniences separately and identify them as client-projected MCP resources, not leaked native tools.
+3. Search for "series episodes search lookup" within Sonarr read-only tools and "library search metadata" within Plex read-only tools. Follow `hasMore` with `offset + returned` until each filtered result set is complete. Report the ordered matches, pagination metadata, and confirm repeated calls are deterministic.
+4. Describe representative read-only operations for all configured services: Radarr movies or history, Sonarr series or episodes, TMDB movie search, and Plex search or libraries. Confirm required/defaulted input optionality, additionalProperties behavior, useful stable output fields, exact facade paths, and execution availability from the descriptions.
+5. Execute a single-service TMDB movie search while omitting its defaulted page and language inputs. Return at most three { id, title } objects.
+6. Execute one cross-service read with explicit selectedTools and described facade paths. Include every configured service (Radarr, Sonarr, TMDB, and Plex when all four are configured) and return only small counts or identity/title fields.
+7. Read one configured resource through the client's resource interface or a projected read_* convenience. Report it separately from Code Mode execution.
+8. Probe an unknown input property on a read-only native call and confirm rejection occurs before upstream dispatch. Do not retry with malformed or sensitive values.
+9. Attempt to select one described mutation in codemode_execute with source that would call it. Confirm selection fails before the mutation runs. Do not invoke any ordinary native mutation tool.
+10. If Plex is configured, search for "Star Trek" with searchTypes: ["tv"]. Confirm returned metadata contains only show, season, or episode types, no movie type, no empty hubs, and internally consistent returned counts.
+11. Report any schema-loading, connection, validation, execution, or resource error. Inspect all public errors and report whether any credential, upstream body, host path, stack trace, stderr, or unrelated native result leaked.
+
+Separate the final report into: Client/runtime versions; Server initialization instructions; Visible native tools; Projected resources; Described contracts; Empirically observed behavior; Security/error probes; Failures and limitations. Clearly distinguish claims learned from instructions, claims learned from tool descriptions, and behavior observed by calls.
+```
+
+A passing run completes search, describe, a single-service read, a cross-service read, and a resource read without connection or schema-loading rejection. It also observes strict unknown-property validation, safe mutation denial, deterministic multi-word discovery, useful four-service projection contracts, and TV-only Plex filtering. Keep the report as release evidence; do not add live credentials, service URLs, or full media-library results to the repository.
+
+## v1 execution scope
+
+All configured-service operations are discoverable so a model can understand the server's complete capability surface. Only explicitly reviewed read-only operations report `available: true` and can execute in v1. Mutation operations remain discoverable with their contracts and an unavailable reason, but cannot be selected or reached from generated code.
+
+Code Mode v1 deliberately excludes:
+
+- mutation approval and execution;
+- arbitrary external API or network access from generated code;
+- runtime TypeScript compilation;
+- persistent generated state between executions;
+- standalone compiled-binary packaging of the runner; and
+- hostile multi-tenant isolation guarantees.
+
+See [Code Mode security](codemode-security.md) for the authority boundary, optional operating-system containment, and deployment baseline.
+
+## Fixed limits
+
+Limits are server-owned and cannot be raised by generated code or request input.
+
+| Limit                     |    Value | Purpose                                                                               |
+| ------------------------- | -------: | ------------------------------------------------------------------------------------- |
+| Source                    |   64 KiB | Supports substantial orchestration without accepting program-sized payloads           |
+| JSON input                |   64 KiB | Carries useful request context without becoming bulk storage                          |
+| Protocol frame            |    1 MiB | Fits one maximum native result and its JSON-RPC envelope with bounded headroom        |
+| Selected tools            |       10 | Bounds facade construction and authorization review per execution                     |
+| Native calls              |       20 | Supports multi-step media workflows while bounding service amplification              |
+| Concurrent native calls   |        4 | Allows one call per supported service without a request fan-out spike                 |
+| Entire request            |  192 KiB | Bounds source, input, and selected-tool metadata together                             |
+| One native result         |  512 KiB | Supports representative metadata-rich native pages while remaining explicitly bounded |
+| Cumulative native results |    2 MiB | Allows four maximum-size service results or several bounded Plex reads                |
+| Diagnostics               |    8 KiB | Preserves useful debug context while draining output floods                           |
+| Final result              |  128 KiB | Encourages explicit projection rather than returning every intermediate result        |
+| Wall clock                | 1 second | Leaves substantial measured metadata-projection headroom while stopping runaway code  |
+| Concurrent executions     |        4 | Prevents one client from consuming unbounded child processes                          |
+
+Run `deno task bench:codemode` to reproduce the benchmark. The benchmark measures child startup, search and describe response sizes, sequential and parallel four-service orchestration, small service results, 1,200-item metadata-bearing service results, and a three-read metadata-heavy Plex projection. Large native results are projected to byte counts rather than returned in full. It emits machine-readable JSON with all samples, median and p95 timings, intermediate fixture sizes, final output sizes, Deno/platform metadata, and the active limits.
+
+The limits are fixed against deterministic fixtures rather than host memory availability. The benchmark's large fixtures contain 1,200 metadata-bearing items per service and its Plex projection combines three metadata-heavy reads while returning only counts and one title per page. It records both intermediate fixture bytes and final MCP output bytes so the 512 KiB per-native and 2 MiB cumulative ceilings can be evaluated independently of machine capacity. The 1 second wall-clock limit retains more than 18× the measured metadata-heavy p95 headroom while remaining an effective runaway-code bound.
+
+These measurements characterize executor overhead with deterministic representative results; they do not claim to benchmark Radarr, Sonarr, TMDB, Plex, network, or disk latency. Native calls still share the overall wall-clock limit, so operators should keep service endpoints responsive and return paginated results where supported.

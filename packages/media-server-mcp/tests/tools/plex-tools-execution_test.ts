@@ -112,21 +112,27 @@ Deno.test(
 );
 
 Deno.test(
-  "plex_search - happy path returns structuredContent with catchall outputSchema",
+  "plex_search - returns category-filtered structuredContent",
   async () => {
     const mockResponse = {
       MediaContainer: {
         size: 1,
-        identifier: "com.plexapp.plugins.library",
         Hub: [{
-          type: "movie",
-          title: "Movies",
-          size: 1,
+          type: "mixed",
+          title: "Star Trek",
+          size: 3,
           Metadata: [{
-            ratingKey: "12345",
-            title: "Inception",
-            year: 2010,
+            ratingKey: "movie",
+            title: "Star Trek",
             type: "movie",
+          }, {
+            ratingKey: "show",
+            title: "Star Trek",
+            type: "show",
+          }, {
+            ratingKey: "episode",
+            title: "Pilot",
+            type: "episode",
           }],
         }],
       },
@@ -157,17 +163,26 @@ Deno.test(
       try {
         const result = await client.callTool({
           name: "plex_search",
-          arguments: { query: "Inception" },
+          arguments: { query: "Star Trek", searchTypes: ["tv"] },
         });
 
         assertExists(result.structuredContent);
         assertEquals(result.isError, undefined);
 
         const structured = result.structuredContent as Record<string, unknown>;
-        const container = structured.MediaContainer as Record<string, unknown>;
-        assertExists(container);
+        const container = structured.MediaContainer as {
+          size: number;
+          Hub: Array<{
+            size: number;
+            Metadata: Array<{ type: string }>;
+          }>;
+        };
         assertEquals(container.size, 1);
-        assertEquals(Array.isArray(container.Hub), true);
+        assertEquals(container.Hub[0].size, 2);
+        assertEquals(
+          container.Hub[0].Metadata.map((item) => item.type),
+          ["show", "episode"],
+        );
       } finally {
         await cleanup();
       }
@@ -178,11 +193,12 @@ Deno.test(
 );
 
 Deno.test(
-  "plex_get_capabilities - happy path returns structuredContent with catchall outputSchema",
+  "plex_get_capabilities - happy path returns structuredContent with stable outputSchema",
   async () => {
     const mockResponse = {
       MediaContainer: {
         size: 0,
+        friendlyName: "Test Plex",
         machineIdentifier: "abc123",
         version: "1.43.0",
       },
@@ -234,11 +250,12 @@ Deno.test(
 );
 
 Deno.test(
-  "plex_get_libraries - happy path returns structuredContent with catchall outputSchema",
+  "plex_get_libraries - happy path returns structuredContent with stable outputSchema",
   async () => {
     const mockResponse = {
       MediaContainer: {
         size: 2,
+        title1: "Plex Library",
         Directory: [
           { key: "1", title: "Movies", type: "movie" },
           { key: "2", title: "TV Shows", type: "show" },

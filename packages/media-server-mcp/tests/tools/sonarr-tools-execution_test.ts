@@ -119,7 +119,7 @@ Deno.test(
 );
 
 Deno.test(
-  "sonarr_get_series_by_id - happy path returns structuredContent with catchall outputSchema",
+  "sonarr_get_series_by_id - returns the stable series projection and additional fields",
   async () => {
     const mockSeries = {
       id: 1,
@@ -281,6 +281,65 @@ Deno.test(
         const structured = result.structuredContent as Record<string, unknown>;
         assertEquals(structured.total, 1);
         assertEquals(Array.isArray(structured.data), true);
+      } finally {
+        await cleanup();
+      }
+    } finally {
+      fetchStub.restore();
+    }
+  },
+);
+
+Deno.test(
+  "sonarr_get_calendar - maps enrichment flags to the matching query parameters",
+  async () => {
+    let requestedUrl: URL | undefined;
+    const fetchStub = stub(
+      globalThis,
+      "fetch",
+      (input: RequestInfo | URL) => {
+        requestedUrl = new URL(
+          input instanceof Request ? input.url : input.toString(),
+        );
+        return Promise.resolve(Response.json([{
+          id: 1,
+          seriesId: 2,
+          seasonNumber: 1,
+          episodeNumber: 1,
+          title: "Pilot",
+          hasFile: false,
+          monitored: true,
+          unverifiedSceneNumbering: false,
+          series: {
+            id: 2,
+            tvdbId: 123,
+            title: "Example Series",
+            year: 2026,
+          },
+        }]));
+      },
+    );
+
+    try {
+      const server = new McpServer({ name: "test", version: "1.0.0" });
+      createSonarrTools(
+        server,
+        createSonarrConfig("http://localhost:8989", "test-api-key"),
+        () => true,
+      );
+      const { client, cleanup } = await createConnectedClient(server);
+
+      try {
+        const result = await client.callTool({
+          name: "sonarr_get_calendar",
+          arguments: { includeSeries: true, includeEpisodeFile: false },
+        });
+        assertEquals(result.isError, undefined, JSON.stringify(result));
+        assertEquals(requestedUrl?.searchParams.get("includeSeries"), "true");
+        assertEquals(
+          requestedUrl?.searchParams.has("includeEpisodeFile"),
+          false,
+        );
       } finally {
         await cleanup();
       }

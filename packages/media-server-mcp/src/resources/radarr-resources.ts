@@ -3,6 +3,12 @@ import { ResourceTemplate } from "@modelcontextprotocol/server";
 import type { RadarrConfig } from "@wyattjoh/radarr";
 import * as radarrClient from "@wyattjoh/radarr";
 
+/**
+ * Registers Radarr configuration and movie resources on an MCP server.
+ *
+ * @param server MCP server that receives the resources.
+ * @param config Radarr client configuration used by resource handlers.
+ */
 export function createRadarrResources(
   server: McpServer,
   config: Readonly<RadarrConfig>,
@@ -26,6 +32,42 @@ export function createRadarrResources(
         contents: [{
           uri: uri.href,
           text: JSON.stringify({ qualityProfiles, rootFolders }),
+          mimeType: "application/json",
+        }],
+      };
+    },
+  );
+
+  // Compact static resource: config://radarr/summary
+  server.registerResource(
+    "radarr-config-summary",
+    "config://radarr/summary",
+    {
+      description:
+        "Compact Radarr quality profile identities and root folder status for routine decisions",
+      mimeType: "application/json",
+    },
+    async (uri) => {
+      const [qualityProfiles, rootFolders] = await Promise.all([
+        radarrClient.getQualityProfiles(config),
+        radarrClient.getRootFolders(config),
+      ]);
+
+      return {
+        contents: [{
+          uri: uri.href,
+          text: JSON.stringify({
+            qualityProfiles: qualityProfiles.map(({ id, name }) => ({
+              id,
+              name,
+            })),
+            rootFolders: rootFolders.map(({
+              id,
+              path,
+              accessible,
+              freeSpace,
+            }) => ({ id, path, accessible, freeSpace })),
+          }),
           mimeType: "application/json",
         }],
       };

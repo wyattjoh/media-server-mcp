@@ -3,6 +3,12 @@ import { ResourceTemplate } from "@modelcontextprotocol/server";
 import type { SonarrConfig } from "@wyattjoh/sonarr";
 import * as sonarrClient from "@wyattjoh/sonarr";
 
+/**
+ * Registers Sonarr configuration and series resources on an MCP server.
+ *
+ * @param server MCP server that receives the resources.
+ * @param config Sonarr client configuration used by resource handlers.
+ */
 export function createSonarrResources(
   server: McpServer,
   config: Readonly<SonarrConfig>,
@@ -26,6 +32,42 @@ export function createSonarrResources(
         contents: [{
           uri: uri.href,
           text: JSON.stringify({ qualityProfiles, rootFolders }),
+          mimeType: "application/json",
+        }],
+      };
+    },
+  );
+
+  // Compact static resource: config://sonarr/summary
+  server.registerResource(
+    "sonarr-config-summary",
+    "config://sonarr/summary",
+    {
+      description:
+        "Compact Sonarr quality profile identities and root folder status for routine decisions",
+      mimeType: "application/json",
+    },
+    async (uri) => {
+      const [qualityProfiles, rootFolders] = await Promise.all([
+        sonarrClient.getQualityProfiles(config),
+        sonarrClient.getRootFolders(config),
+      ]);
+
+      return {
+        contents: [{
+          uri: uri.href,
+          text: JSON.stringify({
+            qualityProfiles: qualityProfiles.map(({ id, name }) => ({
+              id,
+              name,
+            })),
+            rootFolders: rootFolders.map(({
+              id,
+              path,
+              accessible,
+              freeSpace,
+            }) => ({ id, path, accessible, freeSpace })),
+          }),
           mimeType: "application/json",
         }],
       };

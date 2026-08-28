@@ -162,6 +162,11 @@ export const TOOL_BRANCHES: ToolCategory[] = [
 
 export const TOOL_PROFILES: ToolProfile[] = [
   {
+    name: "codemode",
+    description: "Progressive discovery through the Code Mode facade",
+    branches: [],
+  },
+  {
     name: "default",
     description: "Essential discovery and add functionality (default)",
     branches: ["discovery-add"],

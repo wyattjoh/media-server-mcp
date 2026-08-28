@@ -138,7 +138,7 @@ export interface SearchResponse {
 
 interface SearchResponseMediaContainer {
   size: number;
-  identifier: string;
+  identifier?: string;
   Hub: SearchHub[];
 }
 
@@ -194,6 +194,7 @@ interface MetadataItem extends BaseMetadataItem {
   librarySectionUUID: string;
   personal: boolean;
   sourceTitle: string;
+  subtype: string | undefined;
   viewCount?: number;
   lastViewedAt?: number;
   chapterSource?: string;

@@ -15,7 +15,7 @@ deno lint
 deno fmt
 
 # Run tests
-deno test --allow-net --allow-env
+deno test --allow-run=deno --allow-net --allow-env
 
 # Development with hot reload
 deno task dev
@@ -56,7 +56,7 @@ Each package is independently publishable and has its own `deno.json` configurat
 ## Development Best Practices
 
 - Always use `deno task fmt`, `deno task lint`, and `deno task check` after modifying or creating code to ensure that it's correct.
-- Run `deno test --allow-net --allow-env` to verify all tests pass before committing changes.
+- Run `deno test --allow-run=deno --allow-net --allow-env` to verify all tests pass before committing changes.
 - Tests are organized by layer: `packages/media-server-mcp/tests/` contains `tools/` (tool tests), `server_test.ts`, `auth_test.ts`, and transport tests (`sse-transport_test.ts`, `streamable-http-transport_test.ts`). Each client package also has its own `tests/` directory.
 - After changing any of the available MCP tools or resources, evaluate if you need to update the README.md and CLAUDE.md to be reflective of those changes.
 - When creating pull requests, always use the PR template at `.github/pull_request_template.md`.
@@ -167,7 +167,7 @@ MCP_AUTH_TOKEN=your-secure-auth-token
 MCP_ALLOWED_ORIGINS=localhost,127.0.0.1,[::1] # Browser Origin hostnames allowed in HTTP mode
 
 # Tool Configuration (all optional)
-TOOL_PROFILE=default          # Predefined profile: default, minimal, curator, maintainer, power-user, full
+TOOL_PROFILE=default          # Predefined profile: codemode, default, minimal, curator, maintainer, power-user, full
 TOOL_BRANCHES=discovery-add   # Comma-separated branches to enable
 TOOL_EXCLUDE=radarr_disk_scan # Comma-separated tools to exclude
 TOOL_INCLUDE=tmdb_search_movies # Comma-separated tools to force-include (overrides other settings)
@@ -195,6 +195,14 @@ TOOL_CONFIG_PATH=./tools.json # Path to JSON configuration file for tool setting
 - **MCP 2026-07-28**: Streamable HTTP is served by `createMcpHandler()` from `@modelcontextprotocol/server`, which provides stateless modern requests and 2025-era stateless compatibility. Do not reintroduce session maps or `Mcp-Session-Id` handling. Stdio uses `serveStdio()` so it can negotiate either era. Keep `--sse` on `@modelcontextprotocol/server-legacy/sse` only as the deprecated legacy bridge.
 
 ## Available Tools by Service
+
+### Code Mode Tools (`TOOL_PROFILE=codemode`)
+
+- `codemode_search` - Search compact metadata for all native tools belonging to configured services
+- `codemode_describe` - Reserved facade for exact native tool contracts
+- `codemode_execute` - Reserved facade for isolated JavaScript execution
+
+Code Mode suppresses native tool advertisement without changing service resources or prompts. Its catalog ignores `TOOL_BRANCHES`, `TOOL_INCLUDE`, and `TOOL_EXCLUDE`; mutation-capable tools remain discoverable but are marked unavailable for Code Mode execution. Read `runtime://media-server-mcp/identity` before release validation to confirm the running package version, Code Mode contract revision, configured services, execution policy, and active fixed limits. Increment `CODEMODE_CONTRACT_REVISION` whenever search, describe, execute, policy, or fixed-limit compatibility changes.
 
 ### Radarr Tools (when `RADARR_URL` and `RADARR_API_KEY` are configured)
 
@@ -400,16 +408,22 @@ TOOL_CONFIG_PATH=./tools.json # Path to JSON configuration file for tool setting
 
 ## Available Resources by Service
 
-MCP resources expose structured data as readable URIs. They are registered when the corresponding service is configured.
+MCP resources expose structured data as readable URIs. Service resources are registered when the corresponding service is configured.
+
+### Code Mode Runtime Resources
+
+- `runtime://media-server-mcp/identity` - Allowlisted running package and Code Mode contract identity, registered when Code Mode is active
 
 ### Radarr Resources (when `RADARR_URL` and `RADARR_API_KEY` are configured)
 
-- `config://radarr` - Radarr configuration (quality profiles, root folders, tags)
+- `config://radarr` - Complete Radarr configuration for troubleshooting
+- `config://radarr/summary` - Compact Radarr quality-profile identities and root-folder status for routine decisions
 - `radarr://movies/{movieId}` - Details for a specific movie by Radarr ID
 
 ### Sonarr Resources (when `SONARR_URL` and `SONARR_API_KEY` are configured)
 
-- `config://sonarr` - Sonarr configuration (quality profiles, root folders, tags)
+- `config://sonarr` - Complete Sonarr configuration for troubleshooting
+- `config://sonarr/summary` - Compact Sonarr quality-profile identities and root-folder status for routine decisions
 - `sonarr://series/{seriesId}` - Details for a specific series by Sonarr ID
 
 ### TMDB Resources (when `TMDB_API_KEY` is configured)

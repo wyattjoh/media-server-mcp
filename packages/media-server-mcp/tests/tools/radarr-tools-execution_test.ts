@@ -120,7 +120,7 @@ Deno.test(
 );
 
 Deno.test(
-  "radarr_get_movie - happy path returns structuredContent with catchall outputSchema",
+  "radarr_get_movie - returns the stable movie projection and additional fields",
   async () => {
     const mockMovie = {
       id: 1,
