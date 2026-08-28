@@ -15,6 +15,98 @@ const SLIM_OMIT_KEYS = new Set([
 const slimReplacer = (key: string, value: unknown) =>
   SLIM_OMIT_KEYS.has(key) ? undefined : value;
 
+const PlexMediaIdentitySchema = z.object({
+  ratingKey: z.string(),
+  type: z.string(),
+  title: z.string(),
+}).catchall(z.unknown());
+
+const PlexCollectionIdentitySchema = PlexMediaIdentitySchema.extend({
+  subtype: z.string(),
+}).catchall(z.unknown());
+
+const PlexCapabilitiesOutputSchema = z.object({
+  MediaContainer: z.object({
+    size: z.number(),
+    friendlyName: z.string(),
+    machineIdentifier: z.string(),
+    version: z.string(),
+  }).catchall(z.unknown()),
+}).catchall(z.unknown());
+
+const PlexLibrariesOutputSchema = z.object({
+  MediaContainer: z.object({
+    size: z.number(),
+    title1: z.string(),
+    Directory: z.array(
+      z.object({
+        key: z.string(),
+        type: z.string(),
+        title: z.string(),
+      }).catchall(z.unknown()),
+    ),
+  }).catchall(z.unknown()),
+}).catchall(z.unknown());
+
+const PlexSearchOutputSchema = z.object({
+  MediaContainer: z.object({
+    size: z.number(),
+    identifier: z.string(),
+    Hub: z.array(
+      z.object({
+        size: z.number(),
+        title: z.string(),
+        type: z.string(),
+        Metadata: z.array(PlexMediaIdentitySchema).optional(),
+      }).catchall(z.unknown()),
+    ),
+  }).catchall(z.unknown()),
+}).catchall(z.unknown());
+
+const PlexMetadataOutputSchema = z.object({
+  MediaContainer: z.object({
+    size: z.number(),
+    identifier: z.string(),
+    librarySectionID: z.number(),
+    librarySectionTitle: z.string(),
+    librarySectionUUID: z.string(),
+    Metadata: z.array(PlexMediaIdentitySchema),
+  }).catchall(z.unknown()),
+}).catchall(z.unknown());
+
+const PlexLibraryItemsOutputSchema = z.object({
+  MediaContainer: z.object({
+    size: z.number(),
+    totalSize: z.number().optional(),
+    offset: z.number().optional(),
+    identifier: z.string(),
+    librarySectionID: z.number(),
+    librarySectionTitle: z.string(),
+    librarySectionUUID: z.string(),
+    Metadata: z.array(PlexMediaIdentitySchema).optional(),
+  }).catchall(z.unknown()),
+}).catchall(z.unknown());
+
+const PlexCollectionsOutputSchema = z.object({
+  MediaContainer: z.object({
+    size: z.number(),
+    totalSize: z.number().optional(),
+    offset: z.number().optional(),
+    identifier: z.string(),
+    librarySectionID: z.number(),
+    librarySectionTitle: z.string(),
+    librarySectionUUID: z.string(),
+    Metadata: z.array(PlexCollectionIdentitySchema).optional(),
+  }).catchall(z.unknown()),
+}).catchall(z.unknown());
+
+/**
+ * Registers Plex tools and their stable MCP input and output contracts.
+ *
+ * @param server MCP server receiving the Plex tool registrations.
+ * @param config Plex connection configuration captured by tool handlers.
+ * @param isToolEnabled Predicate controlling which Plex tools are registered.
+ */
 export function createPlexTools(
   server: McpServer,
   config: Readonly<PlexConfig>,
@@ -30,7 +122,7 @@ export function createPlexTools(
         description:
           "Get Plex server capabilities, version, and system information",
         inputSchema: {},
-        outputSchema: z.object({}).catchall(z.unknown()),
+        outputSchema: PlexCapabilitiesOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_capabilities", async () => {
@@ -54,7 +146,7 @@ export function createPlexTools(
         title: "Get Plex media libraries",
         description: "List all media libraries available on the Plex server",
         inputSchema: {},
-        outputSchema: z.object({}).catchall(z.unknown()),
+        outputSchema: PlexLibrariesOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_libraries", async () => {
@@ -112,7 +204,7 @@ export function createPlexTools(
             "Filter by content types. If not provided, searches all types",
           ),
         },
-        outputSchema: z.object({}).catchall(z.unknown()),
+        outputSchema: PlexSearchOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_search", async (args) => {
@@ -146,7 +238,7 @@ export function createPlexTools(
             "The rating key (unique identifier) of the media item",
           ),
         },
-        outputSchema: z.object({}).catchall(z.unknown()),
+        outputSchema: PlexMetadataOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_metadata", async (args) => {
@@ -277,7 +369,7 @@ export function createPlexTools(
             "Number of items per page (default: 200). Use start for pagination.",
           ),
         },
-        outputSchema: z.object({}).catchall(z.unknown()),
+        outputSchema: PlexLibraryItemsOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_library_items", async (args) => {
@@ -317,7 +409,7 @@ export function createPlexTools(
             "Number of collections per page (default: 100). Use start for pagination.",
           ),
         },
-        outputSchema: z.object({}).catchall(z.unknown()),
+        outputSchema: PlexCollectionsOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_collections", async (args) => {
@@ -348,7 +440,7 @@ export function createPlexTools(
             "The collection rating key/ID",
           ),
         },
-        outputSchema: z.object({}).catchall(z.unknown()),
+        outputSchema: PlexLibraryItemsOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_collection_items", async (args) => {

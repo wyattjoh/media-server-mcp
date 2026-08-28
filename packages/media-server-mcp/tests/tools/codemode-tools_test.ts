@@ -440,6 +440,81 @@ Deno.test("codemode describe returns exact requested contracts without prior sea
   );
 });
 
+Deno.test("codemode describe publishes useful Plex output contracts", async () => {
+  await withClient(
+    {
+      plexConfig: createPlexConfig("http://localhost:32400", "test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      const names = [
+        "plex_get_capabilities",
+        "plex_get_libraries",
+        "plex_search",
+        "plex_get_metadata",
+        "plex_get_library_items",
+        "plex_get_collections",
+        "plex_get_collection_items",
+      ];
+      const response = await client.callTool({
+        name: "codemode_describe",
+        arguments: { names },
+      });
+      const result = response.structuredContent as {
+        descriptions: Array<{
+          name: string;
+          outputSchema: Record<string, unknown>;
+          signature: string;
+        }>;
+      };
+      const descriptions = new Map(
+        result.descriptions.map((
+          description,
+        ) => [description.name, description]),
+      );
+
+      for (const name of names) {
+        const schema = descriptions.get(name)?.outputSchema;
+        assert(schema !== undefined);
+        assertEquals(schema.required, ["MediaContainer"]);
+        assert(
+          Object.keys(schema.properties as Record<string, unknown>).length > 0,
+        );
+      }
+
+      const libraries = descriptions.get("plex_get_libraries");
+      assert(libraries !== undefined);
+      assertStringIncludes(libraries.signature, "MediaContainer:");
+      assertStringIncludes(libraries.signature, "Directory:");
+      assertStringIncludes(libraries.signature, "key: string");
+      assertStringIncludes(libraries.signature, "type: string");
+      assertStringIncludes(libraries.signature, "title: string");
+      assertStringIncludes(libraries.signature, "size: number");
+
+      const search = descriptions.get("plex_search");
+      assert(search !== undefined);
+      assertStringIncludes(search.signature, "Hub:");
+      assertStringIncludes(search.signature, "Metadata?:");
+      assertStringIncludes(search.signature, "ratingKey: string");
+      assertStringIncludes(search.signature, "type: string");
+      assertStringIncludes(search.signature, "title: string");
+      assertStringIncludes(search.signature, "size: number");
+
+      const searchContainer = (
+        search.outputSchema.properties as Record<
+          string,
+          { properties: Record<string, unknown> }
+        >
+      ).MediaContainer;
+      const hubs = searchContainer.properties.Hub as {
+        items: { additionalProperties: unknown };
+      };
+      assert(hubs.items.additionalProperties !== false);
+    },
+  );
+});
+
 Deno.test(
   "native and Code Mode inputs keep defaults optional and reject unknown properties",
   async () => {
@@ -1161,7 +1236,12 @@ Deno.test("codemode execute orchestrates selected tools across services", async 
       }));
     }
     return Promise.resolve(Response.json({
-      MediaContainer: { machineIdentifier: "plex-1", version: "1.43.0" },
+      MediaContainer: {
+        size: 0,
+        friendlyName: "Test Plex",
+        machineIdentifier: "plex-1",
+        version: "1.43.0",
+      },
     }));
   };
   try {

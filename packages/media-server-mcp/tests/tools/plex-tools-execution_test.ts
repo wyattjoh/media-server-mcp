@@ -194,11 +194,12 @@ Deno.test(
 );
 
 Deno.test(
-  "plex_get_capabilities - happy path returns structuredContent with catchall outputSchema",
+  "plex_get_capabilities - happy path returns structuredContent with stable outputSchema",
   async () => {
     const mockResponse = {
       MediaContainer: {
         size: 0,
+        friendlyName: "Test Plex",
         machineIdentifier: "abc123",
         version: "1.43.0",
       },
@@ -250,11 +251,12 @@ Deno.test(
 );
 
 Deno.test(
-  "plex_get_libraries - happy path returns structuredContent with catchall outputSchema",
+  "plex_get_libraries - happy path returns structuredContent with stable outputSchema",
   async () => {
     const mockResponse = {
       MediaContainer: {
         size: 2,
+        title1: "Plex Library",
         Directory: [
           { key: "1", title: "Movies", type: "movie" },
           { key: "2", title: "TV Shows", type: "show" },
