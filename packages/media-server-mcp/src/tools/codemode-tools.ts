@@ -377,6 +377,15 @@ function toTypeScriptType(schema: JsonSchema): string {
     const fields = Object.entries(properties).map(([name, property]) =>
       `${name}${required.has(name) ? "" : "?"}: ${toTypeScriptType(property)}`
     );
+    const additionalProperties = schema.additionalProperties;
+    if (
+      fields.length === 0 && additionalProperties !== null &&
+      typeof additionalProperties === "object"
+    ) {
+      return `Record<string, ${
+        toTypeScriptType(additionalProperties as JsonSchema)
+      }>`;
+    }
     return `{ ${fields.join("; ")} }`;
   }
   if (schema.type === "integer" || schema.type === "number") return "number";

@@ -131,12 +131,14 @@ Deno.test(
 );
 
 Deno.test(
-  "tmdb_find_by_external_id - happy path returns structuredContent with catchall outputSchema",
+  "tmdb_find_by_external_id - happy path returns structuredContent with stable result collections",
   async () => {
     const mockResponse = {
       movie_results: [{ id: 550, title: "Fight Club" }],
       tv_results: [],
       person_results: [],
+      tv_episode_results: [],
+      tv_season_results: [],
     };
 
     const fetchStub = stub(
@@ -174,6 +176,49 @@ Deno.test(
         >;
         assertEquals(movies[0].id, 550);
         assertEquals(movies[0].title, "Fight Club");
+      } finally {
+        await cleanup();
+      }
+    } finally {
+      fetchStub.restore();
+    }
+  },
+);
+
+Deno.test(
+  "tmdb_get_person_details - accepts an unclassified person",
+  async () => {
+    const mockResponse = {
+      id: 123,
+      name: "Unclassified Person",
+      known_for_department: null,
+    };
+    const fetchStub = stub(
+      globalThis,
+      "fetch",
+      () =>
+        Promise.resolve(
+          new Response(JSON.stringify(mockResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+    );
+
+    try {
+      const server = new McpServer({ name: "test", version: "1.0.0" });
+      const config = createTMDBConfig("test-api-key");
+      createTMDBTools(server, config, () => true);
+      const { client, cleanup } = await createConnectedClient(server);
+
+      try {
+        const result = await client.callTool({
+          name: "tmdb_get_person_details",
+          arguments: { personId: 123 },
+        });
+
+        assertEquals(result.isError, undefined);
+        assertEquals(result.structuredContent, mockResponse);
       } finally {
         await cleanup();
       }

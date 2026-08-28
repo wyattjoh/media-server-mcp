@@ -440,6 +440,144 @@ Deno.test("codemode describe returns exact requested contracts without prior sea
   );
 });
 
+Deno.test("codemode describe publishes useful TMDB output contracts", async () => {
+  await withClient(
+    {
+      tmdbConfig: createTMDBConfig("test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      const names = [
+        "tmdb_search_movies",
+        "tmdb_search_tv",
+        "tmdb_search_people",
+        "tmdb_search_multi",
+        "tmdb_get_popular_movies",
+        "tmdb_get_movie_details",
+        "tmdb_get_tv_details",
+        "tmdb_get_person_details",
+        "tmdb_get_collection_details",
+        "tmdb_find_by_external_id",
+      ];
+      const response = await client.callTool({
+        name: "codemode_describe",
+        arguments: { names },
+      });
+      const result = response.structuredContent as {
+        descriptions: Array<{
+          name: string;
+          outputSchema: Record<string, unknown>;
+          signature: string;
+        }>;
+      };
+      const descriptions = new Map(
+        result.descriptions.map((
+          description,
+        ) => [description.name, description]),
+      );
+
+      for (
+        const name of [
+          "tmdb_search_movies",
+          "tmdb_search_tv",
+          "tmdb_search_people",
+          "tmdb_search_multi",
+          "tmdb_get_popular_movies",
+        ]
+      ) {
+        const description = descriptions.get(name)!;
+        assertStringIncludes(description.signature, "page: number");
+        assertStringIncludes(description.signature, "total_pages: number");
+        assertStringIncludes(description.signature, "total_results: number");
+        assertStringIncludes(description.signature, "results:");
+      }
+
+      assertStringIncludes(
+        descriptions.get("tmdb_search_movies")!.signature,
+        "title: string",
+      );
+      assertStringIncludes(
+        descriptions.get("tmdb_search_tv")!.signature,
+        "name: string",
+      );
+      assertStringIncludes(
+        descriptions.get("tmdb_search_people")!.signature,
+        "name: string",
+      );
+      const multi = descriptions.get("tmdb_search_multi")!;
+      assertStringIncludes(multi.signature, "media_type: string");
+      assertStringIncludes(multi.signature, "title?: string");
+      assertStringIncludes(multi.signature, "name?: string");
+
+      for (
+        const [name, identityField] of [
+          ["tmdb_get_movie_details", "title: string"],
+          ["tmdb_get_tv_details", "name: string"],
+          ["tmdb_get_person_details", "name: string"],
+          ["tmdb_get_collection_details", "parts:"],
+        ]
+      ) {
+        const description = descriptions.get(name)!;
+        assertStringIncludes(description.signature, "id: number");
+        assertStringIncludes(description.signature, identityField);
+        assert(
+          description.outputSchema.additionalProperties !== false,
+          `${name} should allow compatible additional TMDB fields`,
+        );
+      }
+
+      const externalId = descriptions.get("tmdb_find_by_external_id")!;
+      assertStringIncludes(externalId.signature, "movie_results:");
+      assertStringIncludes(externalId.signature, "person_results:");
+      assertStringIncludes(externalId.signature, "tv_results:");
+      assertStringIncludes(externalId.signature, "id: number");
+      assert(externalId.outputSchema.additionalProperties !== false);
+    },
+  );
+});
+
+Deno.test("codemode describe renders dynamic TMDB record contracts", async () => {
+  await withClient(
+    {
+      tmdbConfig: createTMDBConfig("test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      const response = await client.callTool({
+        name: "codemode_describe",
+        arguments: {
+          names: ["tmdb_get_watch_providers", "tmdb_get_certifications"],
+        },
+      });
+      const descriptions = (response.structuredContent as {
+        descriptions: Array<{ name: string; signature: string }>;
+      }).descriptions;
+      const byName = new Map(
+        descriptions.map((description) => [description.name, description]),
+      );
+
+      assertStringIncludes(
+        byName.get("tmdb_get_watch_providers")!.signature,
+        "results: Record<string,",
+      );
+      assertStringIncludes(
+        byName.get("tmdb_get_watch_providers")!.signature,
+        "provider_name: string",
+      );
+      assertStringIncludes(
+        byName.get("tmdb_get_certifications")!.signature,
+        "certifications: Record<string,",
+      );
+      assertStringIncludes(
+        byName.get("tmdb_get_certifications")!.signature,
+        "certification: string",
+      );
+    },
+  );
+});
+
 Deno.test("codemode describe publishes useful Plex output contracts", async () => {
   await withClient(
     {
