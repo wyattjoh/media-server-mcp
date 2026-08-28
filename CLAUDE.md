@@ -412,12 +412,14 @@ MCP resources expose structured data as readable URIs. They are registered when 
 
 ### Radarr Resources (when `RADARR_URL` and `RADARR_API_KEY` are configured)
 
-- `config://radarr` - Radarr configuration (quality profiles, root folders, tags)
+- `config://radarr` - Complete Radarr configuration for troubleshooting
+- `config://radarr/summary` - Compact Radarr quality-profile identities and root-folder status for routine decisions
 - `radarr://movies/{movieId}` - Details for a specific movie by Radarr ID
 
 ### Sonarr Resources (when `SONARR_URL` and `SONARR_API_KEY` are configured)
 
-- `config://sonarr` - Sonarr configuration (quality profiles, root folders, tags)
+- `config://sonarr` - Complete Sonarr configuration for troubleshooting
+- `config://sonarr/summary` - Compact Sonarr quality-profile identities and root-folder status for routine decisions
 - `sonarr://series/{seriesId}` - Details for a specific series by Sonarr ID
 
 ### TMDB Resources (when `TMDB_API_KEY` is configured)
