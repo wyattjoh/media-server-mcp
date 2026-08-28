@@ -237,6 +237,129 @@ Deno.test("codemode search is deterministic, bounded, and scoped to configured s
   );
 });
 
+Deno.test("codemode search traverses stable filtered pages without omissions", async () => {
+  await withClient(
+    {
+      radarrConfig: createRadarrConfig("http://localhost:7878", "test-key"),
+      sonarrConfig: createSonarrConfig(
+        "http://localhost:8989",
+        "test-key",
+      ),
+      tmdbConfig: createTMDBConfig("test-key"),
+      plexConfig: createPlexConfig("http://localhost:32400", "test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      const searchTool = (await client.listTools()).tools.find((tool) =>
+        tool.name === "codemode_search"
+      );
+      assertEquals(
+        Object.keys(searchTool?.outputSchema?.properties ?? {}).sort(),
+        ["hasMore", "matches", "offset", "returned", "total"],
+      );
+      assertEquals(
+        [...(searchTool?.outputSchema?.required as string[] ?? [])].sort(),
+        ["hasMore", "matches", "offset", "returned", "total"],
+      );
+      assertEquals(
+        (searchTool?.inputSchema.properties?.offset as { maximum?: number })
+          .maximum,
+        10_000,
+      );
+
+      const names: string[] = [];
+      let offset = 0;
+      let total = 0;
+      do {
+        const response = await client.callTool({
+          name: "codemode_search",
+          arguments: {
+            query: "get",
+            services: ["sonarr"],
+            policies: ["read-only"],
+            limit: 3,
+            offset,
+          },
+        });
+        const page = response.structuredContent as {
+          matches: Array<{ name: string; service: string; policy: string }>;
+          total: number;
+          returned: number;
+          offset: number;
+          hasMore: boolean;
+        };
+        total = page.total;
+        assertEquals(page.offset, offset);
+        assertEquals(page.returned, page.matches.length);
+        assertEquals(page.hasMore, offset + page.returned < page.total);
+        assert(
+          page.matches.every((match) =>
+            match.service === "sonarr" && match.policy === "read-only"
+          ),
+        );
+        names.push(...page.matches.map((match) => match.name));
+        offset += page.returned;
+      } while (offset < total);
+
+      assertEquals(names.length, total);
+      assertEquals(new Set(names).size, total);
+
+      const repeated = await client.callTool({
+        name: "codemode_search",
+        arguments: {
+          query: "get",
+          services: ["sonarr"],
+          policies: ["read-only"],
+          limit: 50,
+        },
+      });
+      assertEquals(
+        (repeated.structuredContent as {
+          matches: Array<{ name: string }>;
+        }).matches.map((match) => match.name),
+        names,
+      );
+
+      const beyond = await client.callTool({
+        name: "codemode_search",
+        arguments: {
+          query: "get",
+          services: ["sonarr"],
+          policies: ["read-only"],
+          offset: total,
+        },
+      });
+      assertEquals(beyond.structuredContent, {
+        matches: [],
+        total,
+        returned: 0,
+        offset: total,
+        hasMore: false,
+      });
+    },
+  );
+});
+
+Deno.test("codemode search rejects negative offsets", async () => {
+  await withClient(
+    {
+      tmdbConfig: createTMDBConfig("test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      for (const offset of [-1, 10_001]) {
+        const response = await client.callTool({
+          name: "codemode_search",
+          arguments: { offset },
+        });
+        assertEquals(response.isError, true);
+      }
+    },
+  );
+});
+
 Deno.test("codemode search ranks natural multi-word capability queries", async () => {
   await withClient(
     {

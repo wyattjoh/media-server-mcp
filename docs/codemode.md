@@ -15,7 +15,7 @@ The server advertises only `codemode_search`, `codemode_describe`, and `codemode
 
 ## Search, describe, execute
 
-1. Call `codemode_search` with a concise capability query and optional service or policy filters. Search is case-insensitive, normalizes whitespace, and ranks exact native names, exact phrases, all-token matches, then partial token matches; ties retain deterministic catalog order. Results are compact metadata, not executable contracts.
+1. Call `codemode_search` with a concise capability query and optional service or policy filters. Search is case-insensitive, normalizes whitespace, and ranks exact native names, exact phrases, all-token matches, then partial token matches; ties retain deterministic catalog order. Results are compact metadata, not executable contracts. Each page reports `total`, `returned`, `offset`, and `hasMore`; while `hasMore` is true, request the next page with `offset + returned`. With unchanged query and filters, concatenating those bounded pages reconstructs the complete filtered catalog in stable rank order.
 2. Call `codemode_describe` with the exact names selected from search. It returns JSON input/output schemas, annotations, availability, a namespaced facade path, and a TypeScript-style authoring signature.
 3. Call `codemode_execute` with JavaScript function-body source and the exact read-only native names in `selectedTools`.
 
@@ -50,7 +50,7 @@ Validate this media-server MCP's complete Code Mode experience. Do not read its 
 
 1. Report the Pi version, model/provider, Deno runtime reported by the server if visible, configured media services, every visible media-server tool, and whether media-server initialization instructions were visible. Quote or faithfully summarize the instructions separately from tool descriptions.
 2. Confirm the native media tools are suppressed: only codemode_search, codemode_describe, and codemode_execute may be visible as media-server native tools. List any read_* conveniences separately and identify them as client-projected MCP resources, not leaked native tools.
-3. Search for "series episodes search lookup" within Sonarr read-only tools and "library search metadata" within Plex read-only tools. Report the ordered matches and confirm repeated calls are deterministic.
+3. Search for "series episodes search lookup" within Sonarr read-only tools and "library search metadata" within Plex read-only tools. Follow `hasMore` with `offset + returned` until each filtered result set is complete. Report the ordered matches, pagination metadata, and confirm repeated calls are deterministic.
 4. Describe representative read-only operations for all configured services: Radarr movies or history, Sonarr series or episodes, TMDB movie search, and Plex search or libraries. Confirm required/defaulted input optionality, additionalProperties behavior, useful stable output fields, exact facade paths, and execution availability from the descriptions.
 5. Execute a single-service TMDB movie search while omitting its defaulted page and language inputs. Return at most three { id, title } objects.
 6. Execute one cross-service read with explicit selectedTools and described facade paths. Include at least two configured services and return only small counts or identity/title fields.

@@ -391,7 +391,7 @@ TOOL_PROFILE=codemode
 # Result: 3 progressive-discovery tools; configured resources and prompts remain
 ```
 
-Use `codemode_search` to find exact native names, `codemode_describe` to inspect their contracts and facade paths, then `codemode_execute` with explicitly selected read-only names and a JavaScript async-function body that returns the desired JSON result. Multi-word search is ranked deterministically. Defaulted inputs are optional, unknown input properties are rejected, and described outputs expose stable fields for small projections. Plex category filters are applied to returned hubs so explicit TV searches exclude movies and retain consistent counts. The [Code Mode guide](docs/codemode.md#fresh-pi-release-validation) includes a copy-paste fresh Pi release-validation prompt.
+Use `codemode_search` to find exact native names, following `hasMore` with `offset + returned` to traverse every stable filtered page; use `codemode_describe` to inspect selected contracts and facade paths, then `codemode_execute` with explicitly selected read-only names and a JavaScript async-function body that returns the desired JSON result. Concise multi-word search is ranked deterministically. Defaulted inputs are optional, unknown input properties are rejected, and described outputs expose stable fields for small projections. Plex category filters are applied to returned hubs so explicit TV searches exclude movies and retain consistent counts. The [Code Mode guide](docs/codemode.md#fresh-pi-release-validation) includes a copy-paste fresh Pi release-validation prompt.
 
 #### Minimal Setup (Default)
 

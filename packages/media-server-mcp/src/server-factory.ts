@@ -44,7 +44,7 @@ function createCodeModeInstructions(): string {
   return `Code Mode exposes a discovery and read-only execution facade over configured native media tools.
 
 Workflow:
-1. Call codemode_search to find exact native tool names.
+1. Call codemode_search to find exact native tool names. Follow hasMore with offset + returned to traverse every stable filtered page.
 2. Call codemode_describe with those names and use each described facadePath and input/output contract.
 3. Call codemode_execute with an async JavaScript function body. Put every native tool name the code may call in selectedTools, call only its described facade path, and explicitly return a JSON value.
 

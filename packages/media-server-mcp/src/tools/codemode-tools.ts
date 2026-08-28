@@ -16,6 +16,7 @@ import { withStrictInputSchemas, wrapToolHandler } from "./tool-wrapper.ts";
 const SERVICE_NAMES = ["radarr", "sonarr", "tmdb", "plex"] as const;
 const POLICY_NAMES = ["read-only", "mutation"] as const;
 const MAX_SEARCH_RESULTS = 50;
+const MAX_SEARCH_OFFSET = 10_000;
 const MAX_DESCRIBE_TOOLS = 10;
 const MAX_SELECTED_TOOLS = 10;
 const logger = getLogger(["media-server-mcp", "tools", "codemode"]);
@@ -318,6 +319,10 @@ const SearchOutputSchema = {
     available: z.boolean(),
     facadePath: z.string(),
   })),
+  total: z.number().int().nonnegative(),
+  returned: z.number().int().nonnegative(),
+  offset: z.number().int().nonnegative(),
+  hasMore: z.boolean(),
 };
 
 const ExecuteOutputSchema = {
@@ -549,7 +554,7 @@ export function createCodeModeTools(
     {
       title: "Search available media tools",
       description:
-        "Search compact metadata for all native tools on configured services. Use returned exact names with codemode_describe; discoverable mutation tools are unavailable to execute in Code Mode v1.",
+        "Search compact metadata for all native tools on configured services. Page through all matches with offset and hasMore, then use returned exact names with codemode_describe; discoverable mutation tools are unavailable to execute in Code Mode v1.",
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -565,13 +570,15 @@ export function createCodeModeTools(
         policies: z.array(z.enum(POLICY_NAMES)).max(POLICY_NAMES.length)
           .optional().describe("Tool policy classes to include"),
         limit: z.number().int().min(1).max(MAX_SEARCH_RESULTS).default(20),
+        offset: z.number().int().min(0).max(MAX_SEARCH_OFFSET).default(0)
+          .describe("Zero-based offset into the stable filtered result set"),
       },
       outputSchema: SearchOutputSchema,
     },
     wrapToolHandler("codemode_search", (args) => {
       const query = normalizeSearchText(args.query);
       const tokens = query ? query.split(" ") : [];
-      const matches = catalog.map((entry, index) => ({ entry, index }))
+      const rankedMatches = catalog.map((entry, index) => ({ entry, index }))
         .filter(({ entry }) =>
           (!args.services || args.services.includes(entry.service)) &&
           (!args.policies || args.policies.includes(entry.policy))
@@ -588,8 +595,9 @@ export function createCodeModeTools(
           left.rank[0] - right.rank[0] ||
           left.rank[1] - right.rank[1] ||
           left.index - right.index
-        )
-        .slice(0, args.limit)
+        );
+      const total = rankedMatches.length;
+      const matches = rankedMatches.slice(args.offset, args.offset + args.limit)
         .map(({ entry }) => ({
           name: entry.name,
           title: entry.title,
@@ -599,9 +607,16 @@ export function createCodeModeTools(
           available: entry.available,
           facadePath: entry.facadePath,
         }));
+      const result = {
+        matches,
+        total,
+        returned: matches.length,
+        offset: args.offset,
+        hasMore: args.offset + matches.length < total,
+      };
       return Promise.resolve({
-        content: [{ type: "text", text: JSON.stringify({ matches }) }],
-        structuredContent: { matches },
+        content: [{ type: "text", text: JSON.stringify(result) }],
+        structuredContent: result,
       });
     }),
   );
