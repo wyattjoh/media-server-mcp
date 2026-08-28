@@ -6,6 +6,7 @@
     "packages/tmdb",
     "packages/media-server-mcp"
   ],
+  "exclude": [".scratch/"],
   "tasks": {
     "dev": "deno run --allow-all --watch packages/media-server-mcp/src/index.ts",
     "dev:sse": "deno run --allow-all --watch packages/media-server-mcp/src/index.ts --sse",

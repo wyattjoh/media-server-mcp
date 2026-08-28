@@ -1,3 +1,4 @@
 .env.*
 !.env.example
 /media-server-mcp
+.scratch/
