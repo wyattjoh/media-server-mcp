@@ -15,6 +15,7 @@ import {
   type PlexConfig,
   removeFromCollection,
   search,
+  type SearchResponse,
   SearchType,
   testConnection,
 } from "../mod.ts";
@@ -205,7 +206,6 @@ Deno.test({
 const SEARCH_RESPONSE = {
   MediaContainer: {
     size: 99,
-    identifier: "com.plexapp.plugins.library",
     Hub: [{
       hubIdentifier: "mixed",
       size: 99,
@@ -239,6 +239,10 @@ const SEARCH_RESPONSE = {
       Metadata: [{ ratingKey: "track", title: "Theme", type: "track" }],
     }],
   },
+};
+
+const EMPTY_SEARCH_RESPONSE_WITHOUT_IDENTIFIER: SearchResponse = {
+  MediaContainer: { size: 0, Hub: [] },
 };
 
 async function runMockSearch(
@@ -330,12 +334,10 @@ Deno.test("search - TV-only Star Trek results exclude movies and unknowns", asyn
 });
 
 Deno.test("search - filtered empty responses normalize missing hubs", async () => {
-  const { result } = await runMockSearch([SearchType.TV], {
-    MediaContainer: {
-      size: 0,
-      identifier: "com.plexapp.plugins.library",
-    },
-  });
+  const { result } = await runMockSearch(
+    [SearchType.TV],
+    EMPTY_SEARCH_RESPONSE_WITHOUT_IDENTIFIER,
+  );
 
   assertEquals(result.MediaContainer.size, 0);
   assertEquals(result.MediaContainer.Hub, []);

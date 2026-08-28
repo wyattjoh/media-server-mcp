@@ -138,7 +138,7 @@ export interface SearchResponse {
 
 interface SearchResponseMediaContainer {
   size: number;
-  identifier: string;
+  identifier?: string;
   Hub: SearchHub[];
 }
 

@@ -51,7 +51,7 @@ const PlexLibrariesOutputSchema = z.object({
 const PlexSearchOutputSchema = z.object({
   MediaContainer: z.object({
     size: z.number(),
-    identifier: z.string(),
+    identifier: z.string().optional(),
     Hub: z.array(
       z.object({
         size: z.number(),

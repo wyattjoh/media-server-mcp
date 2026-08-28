@@ -37,6 +37,34 @@ return {
 
 Use `selectedTools: ["tmdb_search_movies", "plex_get_libraries"]` for that source.
 
+Input schemas are strict. Properties with server defaults are optional in both JSON Schema and the TypeScript-style signature, and omitting them applies the documented default. Unknown properties are rejected before native dispatch instead of being ignored. Described output schemas intentionally model stable envelopes and projection fields while allowing compatible additional upstream metadata where service responses evolve.
+
+Plex `searchTypes` filters are applied locally after `/hubs/search` returns. An omitted or empty filter preserves the upstream response. An explicit filter removes nonmatching metadata and empty hubs and recomputes returned counts; the `tv` category includes shows, seasons, and episodes but excludes movies.
+
+## Fresh Pi release validation
+
+Before a release that changes Code Mode contracts, run the following prompt in a new Pi session connected to a `TOOL_PROFILE=codemode` server with Plex, TMDB, Radarr, and Sonarr configured. This deliberately uses Pi rather than a custom MCP harness so initialization, tool schemas, resource projection, and generated-code authoring are tested as a fresh client sees them.
+
+```text
+Validate this media-server MCP's complete Code Mode experience. Do not read its repository or rely on prior knowledge; use only initialization instructions, visible tool/resource descriptions, and observed results. Keep every returned projection small and never expose credentials, URLs, host paths, stack traces, stderr, or raw upstream bodies.
+
+1. Report the Pi version, model/provider, Deno runtime reported by the server if visible, configured media services, every visible media-server tool, and whether media-server initialization instructions were visible. Quote or faithfully summarize the instructions separately from tool descriptions.
+2. Confirm the native media tools are suppressed: only codemode_search, codemode_describe, and codemode_execute may be visible as media-server native tools. List any read_* conveniences separately and identify them as client-projected MCP resources, not leaked native tools.
+3. Search for "series episodes search lookup" within Sonarr read-only tools and "library search metadata" within Plex read-only tools. Report the ordered matches and confirm repeated calls are deterministic.
+4. Describe representative read-only operations for all configured services: Radarr movies or history, Sonarr series or episodes, TMDB movie search, and Plex search or libraries. Confirm required/defaulted input optionality, additionalProperties behavior, useful stable output fields, exact facade paths, and execution availability from the descriptions.
+5. Execute a single-service TMDB movie search while omitting its defaulted page and language inputs. Return at most three { id, title } objects.
+6. Execute one cross-service read with explicit selectedTools and described facade paths. Include at least two configured services and return only small counts or identity/title fields.
+7. Read one configured resource through the client's resource interface or a projected read_* convenience. Report it separately from Code Mode execution.
+8. Probe an unknown input property on a read-only native call and confirm rejection occurs before upstream dispatch. Do not retry with malformed or sensitive values.
+9. Attempt to select one described mutation in codemode_execute with source that would call it. Confirm selection fails before the mutation runs. Do not invoke any ordinary native mutation tool.
+10. If Plex is configured, search for "Star Trek" with searchTypes: ["tv"]. Confirm returned metadata contains only show, season, or episode types, no movie type, no empty hubs, and internally consistent returned counts.
+11. Report any schema-loading, connection, validation, execution, or resource error. Inspect all public errors and report whether any credential, upstream body, host path, stack trace, stderr, or unrelated native result leaked.
+
+Separate the final report into: Client/runtime versions; Server initialization instructions; Visible native tools; Projected resources; Described contracts; Empirically observed behavior; Security/error probes; Failures and limitations. Clearly distinguish claims learned from instructions, claims learned from tool descriptions, and behavior observed by calls.
+```
+
+A passing run completes search, describe, a single-service read, a cross-service read, and a resource read without connection or schema-loading rejection. It also observes strict unknown-property validation, safe mutation denial, deterministic multi-word discovery, useful four-service projection contracts, and TV-only Plex filtering. Keep the report as release evidence; do not add live credentials, service URLs, or full media-library results to the repository.
+
 ## v1 execution scope
 
 All configured-service operations are discoverable so a model can understand the server's complete capability surface. Only explicitly reviewed read-only operations report `available: true` and can execute in v1. Mutation operations remain discoverable with their contracts and an unavailable reason, but cannot be selected or reached from generated code.

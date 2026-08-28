@@ -117,7 +117,6 @@ Deno.test(
     const mockResponse = {
       MediaContainer: {
         size: 1,
-        identifier: "com.plexapp.plugins.library",
         Hub: [{
           type: "mixed",
           title: "Star Trek",

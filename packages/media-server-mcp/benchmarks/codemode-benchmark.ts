@@ -57,9 +57,14 @@ type Measurement = {
   outputBytes: number | undefined;
 };
 
-function representativeItems(): Array<Record<string, unknown>> {
+function representativeItems(
+  service: "radarr" | "sonarr" | "tmdb" | "plex",
+): Array<Record<string, unknown>> {
   return Array.from({ length: fixtureItemCount }, (_, id) => ({
     id,
+    ...service === "radarr" ? { tmdbId: id, year: 2024 } : {},
+    ...service === "sonarr" ? { tvdbId: id, year: 2024 } : {},
+    ...service === "plex" ? { key: String(id), type: "movie" } : {},
     title: `Representative media item ${id}`,
     summary: "x".repeat(160),
   }));
@@ -102,14 +107,14 @@ async function measure(
 const originalFetch = globalThis.fetch;
 globalThis.fetch = (input) => {
   const url = input instanceof Request ? input.url : String(input);
-  const items = representativeItems();
   if (url.includes("localhost:7878/api/v3/movie")) {
-    return Promise.resolve(Response.json(items));
+    return Promise.resolve(Response.json(representativeItems("radarr")));
   }
   if (url.includes("localhost:8989/api/v3/series")) {
-    return Promise.resolve(Response.json(items));
+    return Promise.resolve(Response.json(representativeItems("sonarr")));
   }
   if (url.includes("api.themoviedb.org/3/search/movie")) {
+    const items = representativeItems("tmdb");
     return Promise.resolve(Response.json({
       page: 1,
       total_pages: 1,
@@ -118,8 +123,13 @@ globalThis.fetch = (input) => {
     }));
   }
   if (url.includes("localhost:32400/library/sections")) {
+    const items = representativeItems("plex");
     return Promise.resolve(Response.json({
-      MediaContainer: { size: items.length, Directory: items },
+      MediaContainer: {
+        size: items.length,
+        title1: "Plex Library",
+        Directory: items,
+      },
     }));
   }
   return Promise.resolve(
