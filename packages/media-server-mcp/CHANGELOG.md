@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.4.0](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/media-server-mcp-v2.3.0...@wyattjoh/media-server-mcp-v2.4.0) (2026-08-28)
+
+
+### Features
+
+* **codemode:** add Code Mode support ([#17](https://github.com/wyattjoh/media-server-mcp/issues/17)) ([b15f7bc](https://github.com/wyattjoh/media-server-mcp/commit/b15f7bc311308090b0038b77960130afd67cc8d6))
+* **plex:** add playback history and account lookup tools ([#15](https://github.com/wyattjoh/media-server-mcp/issues/15)) ([23bc886](https://github.com/wyattjoh/media-server-mcp/commit/23bc8868b9f33cda7f6d9d80f6ef1e75780423b0))
+
 ## [2.3.0](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/media-server-mcp-v2.2.0...@wyattjoh/media-server-mcp-v2.3.0) (2026-08-12)
 
 
