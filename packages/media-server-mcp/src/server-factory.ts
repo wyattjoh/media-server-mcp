@@ -13,6 +13,7 @@ import { createPlexResources } from "./resources/plex-resources.ts";
 import { createRadarrResources } from "./resources/radarr-resources.ts";
 import { createSonarrResources } from "./resources/sonarr-resources.ts";
 import { createTMDBResources } from "./resources/tmdb-resources.ts";
+import { createRuntimeResources } from "./resources/runtime-resources.ts";
 import { CODEMODE_LIMITS } from "./tools/codemode-executor.ts";
 import {
   createCodeModeCatalog,
@@ -115,6 +116,7 @@ function setupTools(
 
   if (isCodeMode) {
     createCodeModeTools(server, createCodeModeCatalog(config), config);
+    createRuntimeResources(server, deno.version, config);
   }
   if (config.radarrConfig && !isCodeMode) {
     createRadarrTools(server, config.radarrConfig, isToolEnabled);

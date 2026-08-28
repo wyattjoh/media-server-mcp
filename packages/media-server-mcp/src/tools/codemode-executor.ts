@@ -1,6 +1,14 @@
 import { getLogger } from "../logging.ts";
 
 /**
+ * Revision of the public Code Mode discovery and execution contract.
+ *
+ * Increment this whenever search, describe, execute, policy, or fixed-limit
+ * compatibility changes so deployed clients can detect contract drift.
+ */
+export const CODEMODE_CONTRACT_REVISION = 1;
+
+/**
  * Fixed server-owned resource limits for Code Mode executions.
  */
 export const CODEMODE_LIMITS = {

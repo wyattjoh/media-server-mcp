@@ -202,7 +202,7 @@ TOOL_CONFIG_PATH=./tools.json # Path to JSON configuration file for tool setting
 - `codemode_describe` - Reserved facade for exact native tool contracts
 - `codemode_execute` - Reserved facade for isolated JavaScript execution
 
-Code Mode suppresses native tool advertisement without changing resources or prompts. Its catalog ignores `TOOL_BRANCHES`, `TOOL_INCLUDE`, and `TOOL_EXCLUDE`; mutation-capable tools remain discoverable but are marked unavailable for Code Mode execution.
+Code Mode suppresses native tool advertisement without changing service resources or prompts. Its catalog ignores `TOOL_BRANCHES`, `TOOL_INCLUDE`, and `TOOL_EXCLUDE`; mutation-capable tools remain discoverable but are marked unavailable for Code Mode execution. Read `runtime://media-server-mcp/identity` before release validation to confirm the running package version, Code Mode contract revision, configured services, execution policy, and active fixed limits. Increment `CODEMODE_CONTRACT_REVISION` whenever search, describe, execute, policy, or fixed-limit compatibility changes.
 
 ### Radarr Tools (when `RADARR_URL` and `RADARR_API_KEY` are configured)
 
@@ -408,7 +408,11 @@ Code Mode suppresses native tool advertisement without changing resources or pro
 
 ## Available Resources by Service
 
-MCP resources expose structured data as readable URIs. They are registered when the corresponding service is configured.
+MCP resources expose structured data as readable URIs. Service resources are registered when the corresponding service is configured.
+
+### Code Mode Runtime Resources
+
+- `runtime://media-server-mcp/identity` - Allowlisted running package and Code Mode contract identity, registered when Code Mode is active
 
 ### Radarr Resources (when `RADARR_URL` and `RADARR_API_KEY` are configured)
 
