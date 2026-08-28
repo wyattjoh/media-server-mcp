@@ -15,6 +15,7 @@ import { createSonarrConfig } from "@wyattjoh/sonarr";
 import { createMcpServerWithTools } from "../../src/server-factory.ts";
 import { createCodeModeCatalog } from "../../src/tools/codemode-tools.ts";
 import {
+  CODEMODE_LIMITS,
   executeCodeMode,
   shutdownCodeModeExecutions,
 } from "../../src/tools/codemode-executor.ts";
@@ -115,6 +116,84 @@ Deno.test("codemode profile advertises only facade tools while retaining resourc
       assertEquals(tools.tools.map((tool) => tool.name).sort(), CODEMODE_TOOLS);
       assertGreater((await client.listResources()).resources.length, 0);
       assertGreater((await client.listPrompts()).prompts.length, 0);
+    },
+  );
+});
+
+Deno.test("codemode initialization teaches the complete safe workflow", async () => {
+  await withClient(
+    {
+      tmdbConfig: createTMDBConfig("initialization-secret"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    (client) => {
+      const instructions = client.getInstructions();
+      assert(instructions !== undefined);
+      for (
+        const expected of [
+          "codemode_search",
+          "codemode_describe",
+          "codemode_execute",
+          "selectedTools",
+          "facadePath",
+          "async JavaScript function body",
+          "explicitly return a JSON value",
+          "resources",
+          "prompts",
+          "read_*",
+          "Mutation tools are discoverable but unavailable",
+          "filesystem",
+          "network",
+          "environment",
+          "subprocess",
+          "FFI",
+          "persist",
+        ]
+      ) {
+        assertStringIncludes(instructions, expected);
+      }
+      const expectedLimits = [
+        ["Source", CODEMODE_LIMITS.sourceBytes],
+        ["Input", CODEMODE_LIMITS.inputBytes],
+        ["Complete execution request", CODEMODE_LIMITS.requestBytes],
+        ["Runner protocol frame", CODEMODE_LIMITS.frameBytes],
+        ["Native tool calls", CODEMODE_LIMITS.toolCalls],
+        ["at most", CODEMODE_LIMITS.concurrentToolCalls],
+        ["Native tool result", CODEMODE_LIMITS.toolResultBytes],
+        ["across one execution", CODEMODE_LIMITS.totalToolResultBytes],
+        ["Final returned result", CODEMODE_LIMITS.finalResultBytes],
+        ["Retained diagnostics", CODEMODE_LIMITS.logBytes],
+        ["Execution timeout", CODEMODE_LIMITS.executionTimeoutMs],
+        ["Global execution concurrency", CODEMODE_LIMITS.concurrentExecutions],
+      ] as const;
+      for (const [label, limit] of expectedLimits) {
+        const formatted = limit.toLocaleString("en-US");
+        assert(
+          instructions.split("\n").some((line) =>
+            line.includes(label) && line.includes(formatted)
+          ),
+          `Expected ${label} instruction to include ${formatted}`,
+        );
+      }
+      assert(!instructions.includes("initialization-secret"));
+      assert(!instructions.includes(Deno.cwd()));
+      assert(!instructions.includes("RADARR_API_KEY"));
+      return Promise.resolve();
+    },
+  );
+});
+
+Deno.test("native profiles do not receive Code Mode instructions", async () => {
+  await withClient(
+    {
+      tmdbConfig: createTMDBConfig("test-key"),
+      isToolEnabled: () => true,
+      isCodeMode: false,
+    },
+    (client) => {
+      assertEquals(client.getInstructions(), undefined);
+      return Promise.resolve();
     },
   );
 });
