@@ -143,3 +143,170 @@ Deno.test(
     }
   },
 );
+
+Deno.test(
+  "history tools preserve stable projections, enrichment, counts, and extra fields",
+  async () => {
+    const requestedUrls: URL[] = [];
+    const fetchStub = stub(
+      globalThis,
+      "fetch",
+      (input: RequestInfo | URL) => {
+        const url = new URL(
+          input instanceof Request ? input.url : input.toString(),
+        );
+        requestedUrls.push(url);
+        const records = url.port === "7878"
+          ? [{
+            id: 10,
+            movieId: 20,
+            eventType: "grabbed",
+            date: "2026-08-28T00:00:00Z",
+            sourceTitle: "Arrival.2016",
+            movie: url.searchParams.get("includeMovie") === "true"
+              ? {
+                id: 20,
+                tmdbId: 329865,
+                title: "Arrival",
+                year: 2016,
+                monitored: true,
+              }
+              : null,
+          }]
+          : [{
+            id: 30,
+            seriesId: 40,
+            episodeId: 50,
+            eventType: "downloadFolderImported",
+            date: "2026-08-28T01:00:00Z",
+            sourceTitle: "Severance.S01E01",
+            series: url.searchParams.get("includeSeries") === "true"
+              ? {
+                id: 40,
+                tvdbId: 371980,
+                title: "Severance",
+                year: 2022,
+                monitored: true,
+              }
+              : null,
+            episode: url.searchParams.get("includeEpisode") === "true"
+              ? {
+                id: 50,
+                seriesId: 40,
+                seasonNumber: 1,
+                episodeNumber: 1,
+                title: "Good News About Hell",
+                hasFile: true,
+              }
+              : null,
+          }];
+        return Promise.resolve(Response.json({
+          page: 1,
+          pageSize: 20,
+          totalRecords: 1,
+          records,
+        }));
+      },
+    );
+
+    try {
+      const cases = [
+        {
+          name: "radarr_get_history",
+          arguments: { includeMovie: true },
+          register: (server: McpServer) =>
+            createRadarrTools(
+              server,
+              createRadarrConfig("http://localhost:7878", "test-api-key"),
+              () => true,
+            ),
+        },
+        {
+          name: "sonarr_get_history",
+          arguments: { includeSeries: true, includeEpisode: true },
+          register: (server: McpServer) =>
+            createSonarrTools(
+              server,
+              createSonarrConfig("http://localhost:8989", "test-api-key"),
+              () => true,
+            ),
+        },
+      ] as const;
+
+      for (const testCase of cases) {
+        const server = new McpServer({ name: "test", version: "1.0.0" });
+        testCase.register(server);
+        const { client, cleanup } = await createConnectedClient(server);
+        try {
+          const result = await client.callTool({
+            name: testCase.name,
+            arguments: testCase.arguments,
+          });
+          assertEquals(result.isError, undefined, JSON.stringify(result));
+          const structured = result.structuredContent as {
+            totalRecords: number;
+            returned: number;
+            records: Array<Record<string, unknown>>;
+          };
+          assertEquals(structured.totalRecords, 1);
+          assertEquals(structured.returned, 1);
+          assertEquals(structured.records[0].sourceTitle !== undefined, true);
+          if (testCase.name === "radarr_get_history") {
+            assertEquals(structured.records[0].movie, {
+              id: 20,
+              tmdbId: 329865,
+              title: "Arrival",
+              year: 2016,
+              monitored: true,
+            });
+          } else {
+            assertEquals(structured.records[0].series, {
+              id: 40,
+              tvdbId: 371980,
+              title: "Severance",
+              year: 2022,
+              monitored: true,
+            });
+            assertEquals(structured.records[0].episode, {
+              id: 50,
+              seriesId: 40,
+              seasonNumber: 1,
+              episodeNumber: 1,
+              title: "Good News About Hell",
+              hasFile: true,
+            });
+          }
+
+          const defaultResult = await client.callTool({
+            name: testCase.name,
+            arguments: {},
+          });
+          assertEquals(
+            defaultResult.isError,
+            undefined,
+            JSON.stringify(defaultResult),
+          );
+          const defaultRecord = (defaultResult.structuredContent as {
+            records: Array<Record<string, unknown>>;
+          }).records[0];
+          if (testCase.name === "radarr_get_history") {
+            assertEquals(defaultRecord.movie, null);
+          } else {
+            assertEquals(defaultRecord.series, null);
+            assertEquals(defaultRecord.episode, null);
+          }
+        } finally {
+          await cleanup();
+        }
+      }
+
+      const radarrRequest = requestedUrls.find((url) => url.port === "7878")!;
+      assertEquals(radarrRequest.searchParams.get("includeMovie"), "true");
+      const sonarrRequest = requestedUrls.find((url) => url.port === "8989")!;
+      assertEquals(sonarrRequest.searchParams.get("includeSeries"), "true");
+      assertEquals(sonarrRequest.searchParams.get("includeEpisode"), "true");
+    } finally {
+      fetchStub.restore();
+    }
+  },
+);

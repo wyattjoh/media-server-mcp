@@ -515,6 +515,91 @@ Deno.test("codemode describe publishes useful Plex output contracts", async () =
   );
 });
 
+Deno.test("codemode describe publishes useful Arr output contracts", async () => {
+  await withClient(
+    {
+      radarrConfig: createRadarrConfig("http://localhost:7878", "test-key"),
+      sonarrConfig: createSonarrConfig("http://localhost:8989", "test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      const names = [
+        "radarr_get_movies",
+        "radarr_get_history",
+        "sonarr_get_series",
+        "sonarr_get_episodes",
+        "sonarr_get_history",
+        "sonarr_get_series_history",
+      ];
+      const response = await client.callTool({
+        name: "codemode_describe",
+        arguments: { names },
+      });
+      const result = response.structuredContent as {
+        descriptions: Array<{
+          name: string;
+          outputSchema: Record<string, unknown>;
+          signature: string;
+        }>;
+      };
+      const descriptions = new Map(
+        result.descriptions.map((
+          description,
+        ) => [description.name, description]),
+      );
+
+      const movies = descriptions.get("radarr_get_movies")!;
+      assertStringIncludes(movies.signature, "data:");
+      assertStringIncludes(movies.signature, "tmdbId: number");
+      assertStringIncludes(movies.signature, "title: string");
+      assertStringIncludes(movies.signature, "year: number");
+      assertStringIncludes(movies.signature, "returned: number");
+      assertStringIncludes(movies.signature, "skip: number");
+      assertStringIncludes(movies.signature, "limit?: number");
+
+      const radarrHistory = descriptions.get("radarr_get_history")!;
+      assertStringIncludes(radarrHistory.signature, "records:");
+      assertStringIncludes(radarrHistory.signature, "movieId: number");
+      assertStringIncludes(radarrHistory.signature, "eventType: string");
+      assertStringIncludes(radarrHistory.signature, "date: string");
+      assertStringIncludes(radarrHistory.signature, "movie?:");
+      assertStringIncludes(radarrHistory.signature, "returned: number");
+      assertStringIncludes(radarrHistory.signature, "includeMovie?: boolean");
+
+      const series = descriptions.get("sonarr_get_series")!;
+      assertStringIncludes(series.signature, "tvdbId: number");
+      assertStringIncludes(series.signature, "title: string");
+      assertStringIncludes(series.signature, "year: number");
+
+      const episodes = descriptions.get("sonarr_get_episodes")!;
+      assertStringIncludes(episodes.signature, "seriesId: number");
+      assertStringIncludes(episodes.signature, "seasonNumber: number");
+      assertStringIncludes(episodes.signature, "episodeNumber: number");
+      assertStringIncludes(episodes.signature, "title?: string");
+
+      for (const name of ["sonarr_get_history", "sonarr_get_series_history"]) {
+        const history = descriptions.get(name)!;
+        assertStringIncludes(history.signature, "eventType: string");
+        assertStringIncludes(history.signature, "date: string");
+        assertStringIncludes(history.signature, "series?:");
+        assertStringIncludes(history.signature, "episode?:");
+        assertStringIncludes(history.signature, "includeSeries?: boolean");
+        assertStringIncludes(history.signature, "includeEpisode?: boolean");
+      }
+
+      const historySchema = radarrHistory.outputSchema as {
+        properties: {
+          records: { items: { additionalProperties: unknown } };
+        };
+      };
+      assert(
+        historySchema.properties.records.items.additionalProperties !== false,
+      );
+    },
+  );
+});
+
 Deno.test(
   "native and Code Mode inputs keep defaults optional and reject unknown properties",
   async () => {
@@ -858,8 +943,8 @@ Deno.test("codemode progressive discovery executes a cross-service projection", 
     const url = String(input);
     if (url.includes("/api/v3/movie")) {
       return Promise.resolve(Response.json([
-        { id: 1, title: "Arrival" },
-        { id: 2, title: "Contact" },
+        { id: 1, tmdbId: 329865, title: "Arrival", year: 2016 },
+        { id: 2, tmdbId: 686, title: "Contact", year: 1997 },
       ]));
     }
     if (url.includes("api.themoviedb.org/3/search/movie")) {

@@ -11,6 +11,83 @@ const SONARR_PAGINATED_HISTORY_EVENT_TYPE_IDS = {
   episodeFileDeleted: 5,
 } as const;
 
+const SonarrSeriesOutputSchema = z.object({
+  id: z.number().optional(),
+  tvdbId: z.number(),
+  title: z.string(),
+  year: z.number(),
+}).catchall(z.unknown());
+
+const SonarrEpisodeOutputSchema = z.object({
+  id: z.number().optional(),
+  seriesId: z.number(),
+  seasonNumber: z.number(),
+  episodeNumber: z.number(),
+  title: z.string().optional(),
+  series: SonarrSeriesOutputSchema.nullish(),
+}).catchall(z.unknown());
+
+const SonarrHistoryOutputSchema = z.object({
+  id: z.number(),
+  seriesId: z.number(),
+  episodeId: z.number(),
+  eventType: z.string(),
+  date: z.string(),
+  series: SonarrSeriesOutputSchema.nullish(),
+  episode: SonarrEpisodeOutputSchema.nullish(),
+}).catchall(z.unknown());
+
+const SonarrQueueItemOutputSchema = z.object({
+  id: z.number().optional(),
+  seriesId: z.number().optional(),
+  episodeId: z.number().optional(),
+  title: z.string().optional(),
+}).catchall(z.unknown());
+
+const SonarrSeriesListOutputSchema = z.object({
+  data: z.array(SonarrSeriesOutputSchema),
+  total: z.number(),
+  returned: z.number(),
+  skip: z.number(),
+  limit: z.number().optional(),
+}).catchall(z.unknown());
+
+const SonarrEpisodeListOutputSchema = z.object({
+  data: z.array(SonarrEpisodeOutputSchema),
+  total: z.number(),
+  returned: z.number(),
+  skip: z.number(),
+  limit: z.number().optional(),
+}).catchall(z.unknown());
+
+const SonarrQueueOutputSchema = z.object({
+  data: z.array(SonarrQueueItemOutputSchema),
+  total: z.number(),
+  returned: z.number(),
+  skip: z.number(),
+  limit: z.number().optional(),
+}).catchall(z.unknown());
+
+const SonarrEpisodePageOutputSchema = z.object({
+  page: z.number(),
+  pageSize: z.number(),
+  totalRecords: z.number(),
+  returned: z.number(),
+  records: z.array(SonarrEpisodeOutputSchema),
+}).catchall(z.unknown());
+
+const SonarrHistoryPageOutputSchema = z.object({
+  page: z.number(),
+  pageSize: z.number(),
+  totalRecords: z.number(),
+  returned: z.number(),
+  records: z.array(SonarrHistoryOutputSchema),
+}).catchall(z.unknown());
+
+const SonarrHistoryListOutputSchema = z.object({
+  data: z.array(SonarrHistoryOutputSchema),
+}).catchall(z.unknown());
+
 export function createSonarrTools(
   server: McpServer,
   config: Readonly<SonarrConfig>,
@@ -33,13 +110,7 @@ export function createSonarrTools(
             "Number of results to skip (for pagination)",
           ),
         },
-        outputSchema: {
-          data: z.array(z.record(z.string(), z.unknown())),
-          total: z.number(),
-          returned: z.number(),
-          skip: z.number(),
-          limit: z.number().optional(),
-        },
+        outputSchema: SonarrSeriesListOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_search_series", async (args) => {
@@ -358,13 +429,7 @@ export function createSonarrTools(
             "Sort options for series",
           ),
         },
-        outputSchema: {
-          data: z.array(z.record(z.string(), z.unknown())),
-          total: z.number(),
-          returned: z.number(),
-          skip: z.number(),
-          limit: z.number().optional(),
-        },
+        outputSchema: SonarrSeriesListOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_series", async (args) => {
@@ -398,7 +463,7 @@ export function createSonarrTools(
           id: z.number().optional().describe("Series ID in Sonarr"),
           tvdbId: z.number().optional().describe("The TV Database (TVDB) ID"),
         },
-        outputSchema: z.object({}).catchall(z.unknown()),
+        outputSchema: SonarrSeriesOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_series_by_id", async (args) => {
@@ -469,13 +534,7 @@ export function createSonarrTools(
             "Number of results to skip (for pagination)",
           ),
         },
-        outputSchema: {
-          data: z.array(z.record(z.string(), z.unknown())),
-          total: z.number(),
-          returned: z.number(),
-          skip: z.number(),
-          limit: z.number().optional(),
-        },
+        outputSchema: SonarrEpisodeListOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_episodes", async (args) => {
@@ -524,13 +583,7 @@ export function createSonarrTools(
             "Number of results to skip (for pagination)",
           ),
         },
-        outputSchema: {
-          data: z.array(z.record(z.string(), z.unknown())),
-          total: z.number(),
-          returned: z.number(),
-          skip: z.number(),
-          limit: z.number().optional(),
-        },
+        outputSchema: SonarrEpisodeListOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_calendar", async (args) => {
@@ -538,8 +591,8 @@ export function createSonarrTools(
           config,
           args.start,
           args.end,
-          args.includeEpisodeFile,
           args.includeSeries,
+          args.includeEpisodeFile,
           args.limit,
           args.skip,
         );
@@ -569,13 +622,7 @@ export function createSonarrTools(
             "Number of results to skip (for pagination)",
           ),
         },
-        outputSchema: {
-          data: z.array(z.record(z.string(), z.unknown())),
-          total: z.number(),
-          returned: z.number(),
-          skip: z.number(),
-          limit: z.number().optional(),
-        },
+        outputSchema: SonarrQueueOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_queue", async (args) => {
@@ -728,7 +775,7 @@ export function createSonarrTools(
         inputSchema: {
           id: z.number().describe("Episode ID in Sonarr"),
         },
-        outputSchema: z.object({}).catchall(z.unknown()),
+        outputSchema: SonarrEpisodeOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_episode", async (args) => {
@@ -850,12 +897,7 @@ export function createSonarrTools(
             "Whether to include series data in results",
           ),
         },
-        outputSchema: {
-          page: z.number(),
-          pageSize: z.number(),
-          totalRecords: z.number(),
-          records: z.array(z.record(z.string(), z.unknown())),
-        },
+        outputSchema: SonarrEpisodePageOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_wanted_missing", async (args) => {
@@ -871,6 +913,7 @@ export function createSonarrTools(
           page: results.page,
           pageSize: results.pageSize,
           totalRecords: results.totalRecords,
+          returned: results.records.length,
           records: results.records,
         };
         return {
@@ -903,12 +946,7 @@ export function createSonarrTools(
             "Whether to include series data in results",
           ),
         },
-        outputSchema: {
-          page: z.number(),
-          pageSize: z.number(),
-          totalRecords: z.number(),
-          records: z.array(z.record(z.string(), z.unknown())),
-        },
+        outputSchema: SonarrEpisodePageOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_wanted_cutoff", async (args) => {
@@ -924,6 +962,7 @@ export function createSonarrTools(
           page: results.page,
           pageSize: results.pageSize,
           totalRecords: results.totalRecords,
+          returned: results.records.length,
           records: results.records,
         };
         return {
@@ -966,12 +1005,7 @@ export function createSonarrTools(
             "Whether to include episode data",
           ),
         },
-        outputSchema: {
-          page: z.number(),
-          pageSize: z.number(),
-          totalRecords: z.number(),
-          records: z.array(z.record(z.string(), z.unknown())),
-        },
+        outputSchema: SonarrHistoryPageOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_history", async (args) => {
@@ -991,6 +1025,7 @@ export function createSonarrTools(
           page: results.page,
           pageSize: results.pageSize,
           totalRecords: results.totalRecords,
+          returned: results.records.length,
           records: results.records,
         };
         return {
@@ -1023,7 +1058,7 @@ export function createSonarrTools(
             "Whether to include episode data",
           ),
         },
-        outputSchema: { data: z.array(z.record(z.string(), z.unknown())) },
+        outputSchema: SonarrHistoryListOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("sonarr_get_series_history", async (args) => {

@@ -11,6 +11,53 @@ const RADARR_PAGINATED_HISTORY_EVENT_TYPE_IDS = {
   movieFileDeleted: 6,
 } as const;
 
+const RadarrMovieOutputSchema = z.object({
+  id: z.number().optional(),
+  tmdbId: z.number(),
+  title: z.string(),
+  year: z.number(),
+}).catchall(z.unknown());
+
+const RadarrHistoryOutputSchema = z.object({
+  id: z.number(),
+  movieId: z.number(),
+  eventType: z.string(),
+  date: z.string(),
+  movie: RadarrMovieOutputSchema.nullish(),
+}).catchall(z.unknown());
+
+const RadarrMovieListOutputSchema = z.object({
+  data: z.array(RadarrMovieOutputSchema),
+  total: z.number(),
+  returned: z.number(),
+  skip: z.number(),
+  limit: z.number().optional(),
+}).catchall(z.unknown());
+
+const RadarrMoviePageOutputSchema = z.object({
+  page: z.number(),
+  pageSize: z.number(),
+  totalRecords: z.number(),
+  returned: z.number(),
+  records: z.array(RadarrMovieOutputSchema),
+}).catchall(z.unknown());
+
+const RadarrHistoryPageOutputSchema = z.object({
+  page: z.number(),
+  pageSize: z.number(),
+  totalRecords: z.number(),
+  returned: z.number(),
+  records: z.array(RadarrHistoryOutputSchema),
+}).catchall(z.unknown());
+
+const RadarrHistoryListOutputSchema = z.object({
+  data: z.array(RadarrHistoryOutputSchema),
+}).catchall(z.unknown());
+
+const RadarrCalendarOutputSchema = z.object({
+  data: z.array(RadarrMovieOutputSchema),
+}).catchall(z.unknown());
+
 export function createRadarrTools(
   server: McpServer,
   config: Readonly<RadarrConfig>,
@@ -33,13 +80,7 @@ export function createRadarrTools(
             "Number of results to skip (for pagination)",
           ),
         },
-        outputSchema: {
-          data: z.array(z.record(z.string(), z.unknown())),
-          total: z.number(),
-          returned: z.number(),
-          skip: z.number(),
-          limit: z.number().optional(),
-        },
+        outputSchema: RadarrMovieListOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_search_movie", async (args) => {
@@ -276,13 +317,7 @@ export function createRadarrTools(
             "Sort options for movies",
           ),
         },
-        outputSchema: {
-          data: z.array(z.record(z.string(), z.unknown())),
-          total: z.number(),
-          returned: z.number(),
-          skip: z.number(),
-          limit: z.number().optional(),
-        },
+        outputSchema: RadarrMovieListOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_get_movies", async (args) => {
@@ -317,7 +352,7 @@ export function createRadarrTools(
             "The Movie Database (TMDB) ID",
           ),
         },
-        outputSchema: z.object({}).catchall(z.unknown()),
+        outputSchema: RadarrMovieOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_get_movie", async (args) => {
@@ -537,12 +572,7 @@ export function createRadarrTools(
           sortDirection: z.enum(["ascending", "descending"]).optional()
             .default("ascending").describe("Sort direction"),
         },
-        outputSchema: {
-          page: z.number(),
-          pageSize: z.number(),
-          totalRecords: z.number(),
-          records: z.array(z.record(z.string(), z.unknown())),
-        },
+        outputSchema: RadarrMoviePageOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_get_wanted_missing", async (args) => {
@@ -557,6 +587,7 @@ export function createRadarrTools(
           page: results.page,
           pageSize: results.pageSize,
           totalRecords: results.totalRecords,
+          returned: results.records.length,
           records: results.records,
         };
         return {
@@ -587,12 +618,7 @@ export function createRadarrTools(
           sortDirection: z.enum(["ascending", "descending"]).optional()
             .default("ascending").describe("Sort direction"),
         },
-        outputSchema: {
-          page: z.number(),
-          pageSize: z.number(),
-          totalRecords: z.number(),
-          records: z.array(z.record(z.string(), z.unknown())),
-        },
+        outputSchema: RadarrMoviePageOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_get_wanted_cutoff", async (args) => {
@@ -607,6 +633,7 @@ export function createRadarrTools(
           page: results.page,
           pageSize: results.pageSize,
           totalRecords: results.totalRecords,
+          returned: results.records.length,
           records: results.records,
         };
         return {
@@ -647,12 +674,7 @@ export function createRadarrTools(
             "Whether to include movie data in results",
           ),
         },
-        outputSchema: {
-          page: z.number(),
-          pageSize: z.number(),
-          totalRecords: z.number(),
-          records: z.array(z.record(z.string(), z.unknown())),
-        },
+        outputSchema: RadarrHistoryPageOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_get_history", async (args) => {
@@ -671,6 +693,7 @@ export function createRadarrTools(
           page: results.page,
           pageSize: results.pageSize,
           totalRecords: results.totalRecords,
+          returned: results.records.length,
           records: results.records,
         };
         return {
@@ -698,7 +721,7 @@ export function createRadarrTools(
             "Whether to include movie data",
           ),
         },
-        outputSchema: { data: z.array(z.record(z.string(), z.unknown())) },
+        outputSchema: RadarrHistoryListOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_get_movie_history", async (args) => {
@@ -738,7 +761,7 @@ export function createRadarrTools(
             "Include unmonitored movies",
           ),
         },
-        outputSchema: { data: z.array(z.record(z.string(), z.unknown())) },
+        outputSchema: RadarrCalendarOutputSchema,
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("radarr_get_calendar", async (args) => {
