@@ -21,7 +21,7 @@ The server advertises only `codemode_search`, `codemode_describe`, and `codemode
 
 The source is the body of an async JavaScript function. It may use `await` and the immutable `input` and `tools` values directly; do not wrap it in a function and do not submit TypeScript syntax. A selected operation is called through its described facade, such as `tools.tmdb.searchMovies(...)`. Selection is explicit: a facade is absent unless its native name appears in `selectedTools`.
 
-Native failures are catchable `ToolExecutionError` values with stable `name`, `tool`, and `message` fields. The function must explicitly `return` the JSON value that should become the MCP result. Intermediate native results and console diagnostics are not returned automatically.
+Native failures are catchable `ToolExecutionError` values with stable `name`, `tool`, and `message` fields. The function must explicitly `return` the JSON value that should become the MCP result. Intermediate native results and console diagnostics are not returned automatically. Project large native responses immediately into a small final value, and use native pagination where an operation provides it; Code Mode raises the bounded intermediate transport ceiling for cross-service composition, not for returning full libraries.
 
 ```js
 const [movies, libraries] = await Promise.all([
@@ -55,7 +55,7 @@ Validate this media-server MCP's complete Code Mode experience. Do not read its 
 3. Search for "series episodes search lookup" within Sonarr read-only tools and "library search metadata" within Plex read-only tools. Follow `hasMore` with `offset + returned` until each filtered result set is complete. Report the ordered matches, pagination metadata, and confirm repeated calls are deterministic.
 4. Describe representative read-only operations for all configured services: Radarr movies or history, Sonarr series or episodes, TMDB movie search, and Plex search or libraries. Confirm required/defaulted input optionality, additionalProperties behavior, useful stable output fields, exact facade paths, and execution availability from the descriptions.
 5. Execute a single-service TMDB movie search while omitting its defaulted page and language inputs. Return at most three { id, title } objects.
-6. Execute one cross-service read with explicit selectedTools and described facade paths. Include at least two configured services and return only small counts or identity/title fields.
+6. Execute one cross-service read with explicit selectedTools and described facade paths. Include every configured service (Radarr, Sonarr, TMDB, and Plex when all four are configured) and return only small counts or identity/title fields.
 7. Read one configured resource through the client's resource interface or a projected read_* convenience. Report it separately from Code Mode execution.
 8. Probe an unknown input property on a read-only native call and confirm rejection occurs before upstream dispatch. Do not retry with malformed or sensitive values.
 9. Attempt to select one described mutation in codemode_execute with source that would call it. Confirm selection fails before the mutation runs. Do not invoke any ordinary native mutation tool.
@@ -86,24 +86,24 @@ See [Code Mode security](codemode-security.md) for the authority boundary, optio
 
 Limits are server-owned and cannot be raised by generated code or request input.
 
-| Limit                     |    Value | Purpose                                                                                        |
-| ------------------------- | -------: | ---------------------------------------------------------------------------------------------- |
-| Source                    |   64 KiB | Supports substantial orchestration without accepting program-sized payloads                    |
-| JSON input                |   64 KiB | Carries useful request context without becoming bulk storage                                   |
-| Protocol frame            |  256 KiB | Fits one maximum native result plus framing overhead                                           |
-| Selected tools            |       10 | Bounds facade construction and authorization review per execution                              |
-| Native calls              |       20 | Supports multi-step media workflows while bounding service amplification                       |
-| Concurrent native calls   |        4 | Allows one call per supported service without a request fan-out spike                          |
-| Entire request            |  192 KiB | Bounds source, input, and selected-tool metadata together                                      |
-| One native result         |  128 KiB | Supports representative large library/search pages                                             |
-| Cumulative native results |  512 KiB | Allows four maximum-size service results without unbounded aggregation                         |
-| Diagnostics               |    8 KiB | Preserves useful debug context while draining output floods                                    |
-| Final result              |  128 KiB | Encourages explicit projection rather than returning every intermediate result                 |
-| Wall clock                | 1 second | Leaves substantial measured startup/orchestration headroom while stopping runaway code quickly |
-| Concurrent executions     |        4 | Prevents one client from consuming unbounded child processes                                   |
+| Limit                     |    Value | Purpose                                                                               |
+| ------------------------- | -------: | ------------------------------------------------------------------------------------- |
+| Source                    |   64 KiB | Supports substantial orchestration without accepting program-sized payloads           |
+| JSON input                |   64 KiB | Carries useful request context without becoming bulk storage                          |
+| Protocol frame            |    1 MiB | Fits one maximum native result and its JSON-RPC envelope with bounded headroom        |
+| Selected tools            |       10 | Bounds facade construction and authorization review per execution                     |
+| Native calls              |       20 | Supports multi-step media workflows while bounding service amplification              |
+| Concurrent native calls   |        4 | Allows one call per supported service without a request fan-out spike                 |
+| Entire request            |  192 KiB | Bounds source, input, and selected-tool metadata together                             |
+| One native result         |  512 KiB | Supports representative metadata-rich native pages while remaining explicitly bounded |
+| Cumulative native results |    2 MiB | Allows four maximum-size service results or several bounded Plex reads                |
+| Diagnostics               |    8 KiB | Preserves useful debug context while draining output floods                           |
+| Final result              |  128 KiB | Encourages explicit projection rather than returning every intermediate result        |
+| Wall clock                | 1 second | Leaves substantial measured metadata-projection headroom while stopping runaway code  |
+| Concurrent executions     |        4 | Prevents one client from consuming unbounded child processes                          |
 
-Run `deno task bench:codemode` to reproduce the benchmark. The benchmark measures child startup, search and describe response sizes, sequential and parallel four-service orchestration, and small and approximately 75 KiB results for Radarr, Sonarr, TMDB, and Plex. It emits machine-readable JSON with all samples, median and p95 timings, output sizes, Deno/platform metadata, and the active limits.
+Run `deno task bench:codemode` to reproduce the benchmark. The benchmark measures child startup, search and describe response sizes, sequential and parallel four-service orchestration, small service results, 1,200-item metadata-bearing service results, and a three-read metadata-heavy Plex projection. Large native results are projected to byte counts rather than returned in full. It emits machine-readable JSON with all samples, median and p95 timings, intermediate fixture sizes, final output sizes, Deno/platform metadata, and the active limits.
 
-The limits were fixed against Deno 2.9.5 on Apple Silicon. A five-sample release run through the production MCP facade recorded a 33 ms no-tool execution p95, sub-millisecond search/describe calls, 27–31 ms four-service orchestration, and 26–28 ms representative large-result round trips. The 1 second wall-clock limit therefore retains more than 30× observed p95 headroom while remaining an effective runaway-code bound. Result quotas are deliberately close to the useful approximately 75 KiB fixtures instead of the host's available memory.
+The limits are fixed against deterministic fixtures rather than host memory availability. The benchmark's large fixtures contain 1,200 metadata-bearing items per service and its Plex projection combines three metadata-heavy reads while returning only counts and one title per page. It records both intermediate fixture bytes and final MCP output bytes so the 512 KiB per-native and 2 MiB cumulative ceilings can be evaluated independently of machine capacity. The 1 second wall-clock limit retains more than 18× the measured metadata-heavy p95 headroom while remaining an effective runaway-code bound.
 
 These measurements characterize executor overhead with deterministic representative results; they do not claim to benchmark Radarr, Sonarr, TMDB, Plex, network, or disk latency. Native calls still share the overall wall-clock limit, so operators should keep service endpoints responsive and return paginated results where supported.

@@ -1618,6 +1618,108 @@ Deno.test("codemode execute orchestrates selected tools across services", async 
   }
 });
 
+Deno.test("codemode execute projects bounded metadata-heavy cross-service results", async () => {
+  const originalFetch = globalThis.fetch;
+  const representativeItems = (count: number) =>
+    Array.from({ length: count }, (_, id) => ({
+      id,
+      tmdbId: id,
+      tvdbId: id,
+      year: 2024,
+      key: String(id),
+      ratingKey: String(id),
+      type: "movie",
+      title: `Representative title ${id}`,
+      summary: "x".repeat(180),
+    }));
+  const crossServiceItems = representativeItems(300);
+  const plexItems = representativeItems(600);
+  globalThis.fetch = (input) => {
+    const url = String(input);
+    if (url.includes("localhost:7878/api/v3/movie")) {
+      return Promise.resolve(Response.json(crossServiceItems));
+    }
+    if (url.includes("localhost:8989/api/v3/series")) {
+      return Promise.resolve(Response.json(crossServiceItems));
+    }
+    if (url.includes("api.themoviedb.org")) {
+      return Promise.resolve(Response.json({
+        page: 1,
+        total_pages: 1,
+        total_results: crossServiceItems.length,
+        results: crossServiceItems,
+      }));
+    }
+    if (url.includes("/library/sections/")) {
+      return Promise.resolve(Response.json({
+        MediaContainer: {
+          size: plexItems.length,
+          identifier: "com.plexapp.plugins.library",
+          librarySectionID: 1,
+          librarySectionTitle: "Movies",
+          librarySectionUUID: "fixture-library",
+          Metadata: plexItems,
+        },
+      }));
+    }
+    return Promise.resolve(Response.json({
+      MediaContainer: {
+        size: 1,
+        title1: "Plex Library",
+        Directory: [{ key: "1", type: "movie", title: "Movies" }],
+      },
+    }));
+  };
+  try {
+    await withClient(
+      {
+        radarrConfig: createRadarrConfig("http://localhost:7878", "test-key"),
+        sonarrConfig: createSonarrConfig("http://localhost:8989", "test-key"),
+        tmdbConfig: createTMDBConfig("test-key"),
+        plexConfig: createPlexConfig("http://localhost:32400", "test-key"),
+        isToolEnabled: codemodeFilter(),
+        isCodeMode: true,
+      },
+      async (client) => {
+        const crossService = await client.callTool({
+          name: "codemode_execute",
+          arguments: {
+            source:
+              "const [radarr, sonarr, tmdb, plex] = await Promise.all([tools.radarr.getMovies({}), tools.sonarr.getSeries({}), tools.tmdb.searchMovies({ query: 'Arrival' }), tools.plex.getLibraries({})]); return { radarr: radarr.returned, sonarr: sonarr.returned, tmdb: tmdb.total_results, plex: plex.MediaContainer.size };",
+            selectedTools: [
+              "radarr_get_movies",
+              "sonarr_get_series",
+              "tmdb_search_movies",
+              "plex_get_libraries",
+            ],
+          },
+        });
+        assertEquals(crossService.structuredContent, {
+          result: { radarr: 300, sonarr: 300, tmdb: 300, plex: 1 },
+        });
+
+        const plexProjection = await client.callTool({
+          name: "codemode_execute",
+          arguments: {
+            source:
+              "const pages = await Promise.all(['1', '2', '3'].map((key) => tools.plex.getLibraryItems({ key, size: 200 }))); return pages.map((page) => ({ count: page.MediaContainer.size, firstTitle: page.MediaContainer.Metadata[0].title }));",
+            selectedTools: ["plex_get_library_items"],
+          },
+        });
+        assertEquals(plexProjection.structuredContent, {
+          result: Array.from({ length: 3 }, () => ({
+            count: 600,
+            firstTitle: "Representative title 0",
+          })),
+        });
+        assert(!JSON.stringify(plexProjection).includes("summary"));
+      },
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 Deno.test("codemode executor bounds parallel native calls", async () => {
   let running = 0;
   let maximum = 0;
@@ -1650,11 +1752,13 @@ Deno.test("codemode executor stops dispatch after a result quota breach", async 
         }],
         () => {
           calls++;
-          return Promise.resolve({ payload: "x".repeat(130 * 1024) });
+          return Promise.resolve({
+            payload: "x".repeat(CODEMODE_LIMITS.toolResultBytes),
+          });
         },
       ),
     Error,
-    "Code Mode tool result bytes exceeds limit",
+    "Code Mode native result bytes for tmdb_search_movies exceeds limit",
   );
   assertLessOrEqual(calls, 4);
 });

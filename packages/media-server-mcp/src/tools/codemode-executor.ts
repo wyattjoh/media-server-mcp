@@ -6,7 +6,7 @@ import { getLogger } from "../logging.ts";
  * Increment this whenever search, describe, execute, policy, or fixed-limit
  * compatibility changes so deployed clients can detect contract drift.
  */
-export const CODEMODE_CONTRACT_REVISION = 1;
+export const CODEMODE_CONTRACT_REVISION = 2;
 
 /**
  * Fixed server-owned resource limits for Code Mode executions.
@@ -14,12 +14,12 @@ export const CODEMODE_CONTRACT_REVISION = 1;
 export const CODEMODE_LIMITS = {
   sourceBytes: 64 * 1024,
   inputBytes: 64 * 1024,
-  frameBytes: 256 * 1024,
+  frameBytes: 1024 * 1024,
   toolCalls: 20,
   concurrentToolCalls: 4,
   requestBytes: 192 * 1024,
-  toolResultBytes: 128 * 1024,
-  totalToolResultBytes: 512 * 1024,
+  toolResultBytes: 512 * 1024,
+  totalToolResultBytes: 2 * 1024 * 1024,
   logBytes: 8 * 1024,
   finalResultBytes: 128 * 1024,
   executionTimeoutMs: 1_000,
@@ -395,10 +395,11 @@ export async function executeCodeMode(
     const terminalFailure = new Promise<never>((_, reject) => {
       rejectTerminal = reject;
     });
-    const failLimit = (name: string): void => {
+    const failLimit = (name: string, nativeName?: string): void => {
       if (!acceptingCalls) return;
       acceptingCalls = false;
-      rejectTerminal(limitError(name));
+      const operation = nativeName ? ` for ${nativeName}` : "";
+      rejectTerminal(limitError(`${name}${operation}`));
     };
     let writeChain = Promise.resolve();
     const write = (message: unknown): Promise<void> => {
@@ -436,17 +437,17 @@ export async function executeCodeMode(
         if (terminated || !acceptingCalls) return;
         const size = bytes(result);
         if (size > CODEMODE_LIMITS.toolResultBytes) {
-          failLimit("tool result bytes");
+          failLimit("native result bytes", nativeName);
           return;
         }
         resultBytes += size;
         if (resultBytes > CODEMODE_LIMITS.totalToolResultBytes) {
-          failLimit("total tool result bytes");
+          failLimit("cumulative native result bytes", nativeName);
           return;
         }
         await write({ jsonrpc: "2.0", id: message.id, result });
       } catch (error) {
-        if (terminated) return;
+        if (terminated || !acceptingCalls) return;
         const messageText = error instanceof Error
           ? error.message
           : String(error);

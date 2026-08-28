@@ -48,12 +48,14 @@ const callArgumentsByName = {
   plex_get_libraries: {},
 } as const;
 let fixtureItemCount = 1;
+let observedIntermediateBytes = 0;
 
 type Measurement = {
   name: string;
   samplesMs: number[];
   medianMs: number;
   p95Ms: number;
+  intermediateBytes: number;
   outputBytes: number | undefined;
 };
 
@@ -64,7 +66,9 @@ function representativeItems(
     id,
     ...service === "radarr" ? { tmdbId: id, year: 2024 } : {},
     ...service === "sonarr" ? { tvdbId: id, year: 2024 } : {},
-    ...service === "plex" ? { key: String(id), type: "movie" } : {},
+    ...service === "plex"
+      ? { key: String(id), ratingKey: String(id), type: "movie" }
+      : {},
     title: `Representative media item ${id}`,
     summary: "x".repeat(160),
   }));
@@ -84,6 +88,7 @@ async function measure(
   const samplesMs: number[] = [];
   let output: unknown;
   for (let index = 0; index < repetitions; index++) {
+    observedIntermediateBytes = 0;
     const startedAt = performance.now();
     try {
       output = await operation();
@@ -98,33 +103,56 @@ async function measure(
     samplesMs,
     medianMs: percentile(samplesMs, 0.5),
     p95Ms: percentile(samplesMs, 0.95),
+    intermediateBytes: observedIntermediateBytes,
     outputBytes: output === undefined
       ? undefined
       : encoder.encode(JSON.stringify(output)).length,
   };
 }
 
+function fixtureResponse(value: unknown): Response {
+  const body = JSON.stringify(value);
+  observedIntermediateBytes += encoder.encode(body).length;
+  return new Response(body, {
+    headers: { "content-type": "application/json" },
+  });
+}
+
 const originalFetch = globalThis.fetch;
 globalThis.fetch = (input) => {
   const url = input instanceof Request ? input.url : String(input);
   if (url.includes("localhost:7878/api/v3/movie")) {
-    return Promise.resolve(Response.json(representativeItems("radarr")));
+    return Promise.resolve(fixtureResponse(representativeItems("radarr")));
   }
   if (url.includes("localhost:8989/api/v3/series")) {
-    return Promise.resolve(Response.json(representativeItems("sonarr")));
+    return Promise.resolve(fixtureResponse(representativeItems("sonarr")));
   }
   if (url.includes("api.themoviedb.org/3/search/movie")) {
     const items = representativeItems("tmdb");
-    return Promise.resolve(Response.json({
+    return Promise.resolve(fixtureResponse({
       page: 1,
       total_pages: 1,
       total_results: items.length,
       results: items,
     }));
   }
+  if (url.includes("localhost:32400/library/sections/")) {
+    const items = representativeItems("plex");
+    return Promise.resolve(fixtureResponse({
+      MediaContainer: {
+        size: items.length,
+        title1: "Plex Library",
+        identifier: "com.plexapp.plugins.library",
+        librarySectionID: 1,
+        librarySectionTitle: "Movies",
+        librarySectionUUID: "benchmark-library",
+        Metadata: items,
+      },
+    }));
+  }
   if (url.includes("localhost:32400/library/sections")) {
     const items = representativeItems("plex");
-    return Promise.resolve(Response.json({
+    return Promise.resolve(fixtureResponse({
       MediaContainer: {
         size: items.length,
         title1: "Plex Library",
@@ -200,17 +228,28 @@ try {
       )),
   );
 
+  fixtureItemCount = 600;
+  measurements.push(
+    await measure("plex-metadata-heavy-projection", () =>
+      execute(
+        "const [first, second, third] = await Promise.all([1, 2, 3].map((sectionKey) => tools.plex.getLibraryItems({ key: String(sectionKey) }))); return [first, second, third].map((result) => ({ count: result.MediaContainer.size, firstTitle: result.MediaContainer.Metadata?.[0]?.title ?? null }));",
+        ["plex_get_library_items"],
+      )),
+  );
+
   for (const name of selectedToolNames) {
     for (const size of ["small", "large"] as const) {
-      fixtureItemCount = size === "small" ? 1 : 350;
+      fixtureItemCount = size === "small" ? 1 : 1_200;
       measurements.push(
         await measure(`${name}-${size}`, () =>
           execute(
-            `return await ${facadeByName[name as keyof typeof facadeByName]}(${
+            `const value = await ${
+              facadeByName[name as keyof typeof facadeByName]
+            }(${
               JSON.stringify(
                 callArgumentsByName[name as keyof typeof callArgumentsByName],
               )
-            });`,
+            }); return { projectedJsonBytes: new TextEncoder().encode(JSON.stringify(value)).length };`,
             [name],
           )),
       );

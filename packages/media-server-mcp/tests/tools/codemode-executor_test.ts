@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from "@std/assert";
+import { assertEquals, assertRejects, assertThrows } from "@std/assert";
 import {
   CODEMODE_LIMITS,
   createCodeModeFrameReader,
@@ -7,6 +7,23 @@ import {
   executeCodeMode,
   getCodeModeRunnerLaunch,
 } from "../../src/tools/codemode-executor.ts";
+
+const encoder = new TextEncoder();
+
+function jsonBytes(value: unknown): number {
+  return encoder.encode(JSON.stringify(value)).length;
+}
+
+function payloadWithJsonBytes(target: number): { payload: string } {
+  const empty = { payload: "" };
+  const overhead = jsonBytes(empty);
+  if (target < overhead) throw new Error("Target is too small");
+  // The two-byte suffix proves limits are based on encoded UTF-8 bytes rather
+  // than JavaScript string length.
+  const suffix = target - overhead >= 2 ? "é" : "";
+  const suffixBytes = encoder.encode(suffix).length;
+  return { payload: "x".repeat(target - overhead - suffixBytes) + suffix };
+}
 
 function readerFromChunks(
   chunks: readonly Uint8Array[],
@@ -65,6 +82,26 @@ Deno.test("codemode frame reader handles every byte split", async () => {
     assertEquals(await protocol.read(), expected);
     await protocol.assertEnd();
   }
+});
+
+Deno.test("codemode protocol frame quota uses encoded UTF-8 boundaries", () => {
+  const below = payloadWithJsonBytes(CODEMODE_LIMITS.frameBytes - 1);
+  const exact = payloadWithJsonBytes(CODEMODE_LIMITS.frameBytes);
+  const above = payloadWithJsonBytes(CODEMODE_LIMITS.frameBytes + 1);
+
+  assertEquals(
+    encodeCodeModeFrame(below).length,
+    CODEMODE_LIMITS.frameBytes + 3,
+  );
+  assertEquals(
+    encodeCodeModeFrame(exact).length,
+    CODEMODE_LIMITS.frameBytes + 4,
+  );
+  assertThrows(
+    () => encodeCodeModeFrame(above),
+    Error,
+    "Code Mode frame bytes exceeds limit",
+  );
 });
 
 Deno.test("codemode frame reader handles coalesced frames", async () => {
@@ -270,6 +307,126 @@ Deno.test("codemode drains hostile diagnostics with bounded retention", async ()
   );
   assertEquals(result.text.length, CODEMODE_LIMITS.logBytes);
   assertEquals(result.truncated, true);
+});
+
+Deno.test("codemode native result quota uses encoded UTF-8 boundaries", async () => {
+  const selected = [{
+    name: "plex_get_metadata",
+    facadePath: "tools.plex.getMetadata",
+  }];
+  for (
+    const target of [
+      CODEMODE_LIMITS.toolResultBytes - 1,
+      CODEMODE_LIMITS.toolResultBytes,
+    ]
+  ) {
+    const value = payloadWithJsonBytes(target);
+    assertEquals(
+      await executeCodeMode(
+        "const value = await tools.plex.getMetadata({ ratingKey: '1' }); return value.payload.length;",
+        null,
+        selected,
+        () => Promise.resolve(value),
+      ),
+      value.payload.length,
+    );
+  }
+
+  await assertRejects(
+    () =>
+      executeCodeMode(
+        "return await tools.plex.getMetadata({ ratingKey: '1' });",
+        null,
+        selected,
+        () =>
+          Promise.resolve(
+            payloadWithJsonBytes(CODEMODE_LIMITS.toolResultBytes + 1),
+          ),
+      ),
+    Error,
+    "Code Mode native result bytes for plex_get_metadata exceeds limit",
+  );
+});
+
+Deno.test("codemode cumulative native quota uses encoded UTF-8 boundaries", async () => {
+  const selected = [{
+    name: "plex_get_metadata",
+    facadePath: "tools.plex.getMetadata",
+  }];
+  const source =
+    "const values = []; for (let i = 0; i < input.calls; i++) values.push(await tools.plex.getMetadata({ ratingKey: String(i) })); return values.length;";
+  const calls = 5;
+
+  for (
+    const total of [
+      CODEMODE_LIMITS.totalToolResultBytes - 1,
+      CODEMODE_LIMITS.totalToolResultBytes,
+    ]
+  ) {
+    let call = 0;
+    const base = Math.floor(total / calls);
+    const remainder = total - base * calls;
+    assertEquals(
+      await executeCodeMode(source, { calls }, selected, () => {
+        const target = base + (call++ < remainder ? 1 : 0);
+        return Promise.resolve(payloadWithJsonBytes(target));
+      }),
+      calls,
+    );
+  }
+
+  let call = 0;
+  const total = CODEMODE_LIMITS.totalToolResultBytes + 1;
+  const base = Math.floor(total / calls);
+  const remainder = total - base * calls;
+  await assertRejects(
+    () =>
+      executeCodeMode(source, { calls }, selected, () => {
+        const target = base + (call++ < remainder ? 1 : 0);
+        return Promise.resolve(payloadWithJsonBytes(target));
+      }),
+    Error,
+    "Code Mode cumulative native result bytes for plex_get_metadata exceeds limit",
+  );
+});
+
+Deno.test("codemode final result quota uses encoded UTF-8 boundaries", async () => {
+  const selected = [{
+    name: "plex_get_metadata",
+    facadePath: "tools.plex.getMetadata",
+  }];
+  for (
+    const target of [
+      CODEMODE_LIMITS.finalResultBytes - 1,
+      CODEMODE_LIMITS.finalResultBytes,
+    ]
+  ) {
+    const value = payloadWithJsonBytes(target);
+    assertEquals(
+      await executeCodeMode(
+        "return await tools.plex.getMetadata({ ratingKey: '1' });",
+        null,
+        selected,
+        () => Promise.resolve(value),
+      ),
+      value,
+    );
+  }
+
+  await assertRejects(
+    () =>
+      executeCodeMode(
+        "return await tools.plex.getMetadata({ ratingKey: '1' });",
+        null,
+        selected,
+        () =>
+          Promise.resolve(
+            payloadWithJsonBytes(CODEMODE_LIMITS.finalResultBytes + 1),
+          ),
+      ),
+    Error,
+    "Result exceeds byte limit",
+  );
 });
 
 Deno.test("generated code has no filesystem, environment, process, or FFI authority", async () => {

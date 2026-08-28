@@ -1,4 +1,5 @@
-const MAX_FRAME_BYTES = 256 * 1024;
+// Keep synchronized with CODEMODE_LIMITS.frameBytes in codemode-executor.ts.
+const MAX_FRAME_BYTES = 1024 * 1024;
 const MAX_RESULT_BYTES = 128 * 1024;
 const MAX_RESULT_DEPTH = 32;
 const MAX_DIAGNOSTIC_BYTES = 8 * 1024;
