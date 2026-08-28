@@ -202,6 +202,145 @@ Deno.test({
 // Unit tests — no live Plex server required (use fetch mocks)
 // =============================================================================
 
+const SEARCH_RESPONSE = {
+  MediaContainer: {
+    size: 99,
+    identifier: "com.plexapp.plugins.library",
+    Hub: [{
+      hubIdentifier: "mixed",
+      size: 99,
+      title: "Mixed results",
+      type: "mixed",
+      hubKey: "/search/mixed",
+      more: false,
+      style: "shelf",
+      Metadata: [
+        { ratingKey: "movie", title: "Star Trek", type: "movie" },
+        {
+          ratingKey: "home-video",
+          title: "Convention footage",
+          type: "movie",
+          subtype: "clip",
+        },
+        { ratingKey: "show", title: "Star Trek", type: "show" },
+        { ratingKey: "season", title: "Season 1", type: "season" },
+        { ratingKey: "episode", title: "Pilot", type: "episode" },
+        { ratingKey: "person", title: "Leonard Nimoy", type: "person" },
+        { ratingKey: "clip", title: "Trailer", type: "clip" },
+      ],
+    }, {
+      hubIdentifier: "unknown",
+      size: 1,
+      title: "Unknown results",
+      type: "track",
+      hubKey: "/search/unknown",
+      more: false,
+      style: "shelf",
+      Metadata: [{ ratingKey: "track", title: "Theme", type: "track" }],
+    }],
+  },
+};
+
+async function runMockSearch(
+  searchTypes?: readonly SearchType[],
+  response: unknown = SEARCH_RESPONSE,
+) {
+  const originalFetch = globalThis.fetch;
+  let requestedUrl: URL | undefined;
+  globalThis.fetch = (input: string | URL | Request) => {
+    requestedUrl = new URL(
+      input instanceof Request ? input.url : input.toString(),
+    );
+    return Promise.resolve(
+      new Response(JSON.stringify(response), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+  };
+
+  try {
+    const result = await search(
+      createPlexConfig("http://localhost:32400", "fake-token"),
+      "Star Trek",
+      25,
+      searchTypes,
+    );
+    return { requestedUrl: requestedUrl!, result };
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
+
+Deno.test("search - sends only supported hub-search parameters", async () => {
+  const { requestedUrl } = await runMockSearch([SearchType.TV]);
+
+  assertEquals(requestedUrl.pathname, "/hubs/search");
+  assertEquals(requestedUrl.searchParams.get("query"), "Star Trek");
+  assertEquals(requestedUrl.searchParams.get("limit"), "25");
+  assertEquals(requestedUrl.searchParams.has("searchTypes"), false);
+});
+
+Deno.test("search - omitted and empty categories preserve upstream results", async () => {
+  const omitted = await runMockSearch();
+  const empty = await runMockSearch([]);
+
+  assertEquals(omitted.result as unknown, SEARCH_RESPONSE);
+  assertEquals(empty.result as unknown, SEARCH_RESPONSE);
+});
+
+Deno.test("search - maps every public category and recomputes counts", async () => {
+  const cases: Array<{
+    searchType: SearchType;
+    expectedRatingKeys: string[];
+  }> = [
+    { searchType: SearchType.Movies, expectedRatingKeys: ["movie"] },
+    {
+      searchType: SearchType.TV,
+      expectedRatingKeys: ["show", "season", "episode"],
+    },
+    { searchType: SearchType.People, expectedRatingKeys: ["person"] },
+    {
+      searchType: SearchType.OtherVideos,
+      expectedRatingKeys: ["home-video", "clip"],
+    },
+  ];
+
+  for (const { searchType, expectedRatingKeys } of cases) {
+    const { result } = await runMockSearch([searchType]);
+    assertEquals(result.MediaContainer.size, 1);
+    assertEquals(result.MediaContainer.Hub.length, 1);
+    assertEquals(result.MediaContainer.Hub[0].size, expectedRatingKeys.length);
+    assertEquals(
+      result.MediaContainer.Hub[0].Metadata?.map((item) => item.ratingKey),
+      expectedRatingKeys,
+    );
+  }
+});
+
+Deno.test("search - TV-only Star Trek results exclude movies and unknowns", async () => {
+  const { result } = await runMockSearch([SearchType.TV]);
+
+  assertEquals(
+    result.MediaContainer.Hub.flatMap((hub) =>
+      hub.Metadata?.map((item) => item.type) ?? []
+    ),
+    ["show", "season", "episode"],
+  );
+});
+
+Deno.test("search - filtered empty responses normalize missing hubs", async () => {
+  const { result } = await runMockSearch([SearchType.TV], {
+    MediaContainer: {
+      size: 0,
+      identifier: "com.plexapp.plugins.library",
+    },
+  });
+
+  assertEquals(result.MediaContainer.size, 0);
+  assertEquals(result.MediaContainer.Hub, []);
+});
+
 Deno.test("createPlexConfig - stores baseUrl and apiKey", () => {
   const cfg = createPlexConfig("http://plex.local:32400/", "my-token");
   assertEquals(cfg.baseUrl, "http://plex.local:32400"); // trailing slash stripped
