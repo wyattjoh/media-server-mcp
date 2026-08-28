@@ -393,6 +393,8 @@ TOOL_PROFILE=codemode
 
 Use `codemode_search` to find exact native names, following `hasMore` with `offset + returned` to traverse every stable filtered page; use `codemode_describe` to inspect selected contracts and facade paths, then `codemode_execute` with explicitly selected read-only names and a JavaScript async-function body that returns the desired JSON result. Concise multi-word search is ranked deterministically. Defaulted inputs are optional, unknown input properties are rejected, and described outputs expose stable fields for small projections. Plex category filters are applied to returned hubs so explicit TV searches exclude movies and retain consistent counts. The [Code Mode guide](docs/codemode.md#fresh-pi-release-validation) includes a copy-paste fresh Pi release-validation prompt.
 
+For routine Radarr decisions, read `config://radarr/summary` to retrieve only quality-profile identities and root-folder status. Use the existing `config://radarr` resource when troubleshooting requires complete quality definitions or unmapped-folder inventories.
+
 #### Minimal Setup (Default)
 
 ```bash
