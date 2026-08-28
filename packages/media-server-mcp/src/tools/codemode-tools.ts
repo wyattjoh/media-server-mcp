@@ -11,7 +11,7 @@ import { createRadarrTools } from "./radarr-tools.ts";
 import { createSonarrTools } from "./sonarr-tools.ts";
 import { createTMDBTools } from "./tmdb-tools.ts";
 import { executeCodeMode } from "./codemode-executor.ts";
-import { wrapToolHandler } from "./tool-wrapper.ts";
+import { withStrictInputSchemas, wrapToolHandler } from "./tool-wrapper.ts";
 
 const SERVICE_NAMES = ["radarr", "sonarr", "tmdb", "plex"] as const;
 const POLICY_NAMES = ["read-only", "mutation"] as const;
@@ -326,12 +326,15 @@ function getFacadePath(name: string): string {
   return facadePath;
 }
 
-function toJsonSchema(schema: unknown): JsonSchema {
+function toJsonSchema(
+  schema: unknown,
+  io: "input" | "output" = "output",
+): JsonSchema {
   if (!schema) return { type: "object", properties: {} };
   const zodSchema = schema instanceof z.ZodType
     ? schema
     : z.object(schema as z.ZodRawShape);
-  return z.toJSONSchema(zodSchema) as JsonSchema;
+  return z.toJSONSchema(zodSchema, { io }) as JsonSchema;
 }
 
 function toTypeScriptType(schema: JsonSchema): string {
@@ -385,7 +388,7 @@ function captureServiceTools(
         policy,
         available: policy === "read-only",
         facadePath: getFacadePath(name),
-        inputSchema: toJsonSchema(registration.inputSchema),
+        inputSchema: toJsonSchema(registration.inputSchema, "input"),
         outputSchema: toJsonSchema(registration.outputSchema),
         annotations: registration.annotations ?? {},
       });
@@ -508,6 +511,7 @@ export function createCodeModeTools(
   catalog: readonly CodeModeCatalogEntry[],
   config: Readonly<CodeModeServiceConfig>,
 ): void {
+  server = withStrictInputSchemas(server);
   server.registerTool(
     "codemode_search",
     {

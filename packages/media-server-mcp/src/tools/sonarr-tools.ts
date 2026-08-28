@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { SonarrConfig, SonarrSeries } from "@wyattjoh/sonarr";
 import * as sonarrClient from "@wyattjoh/sonarr";
-import { wrapToolHandler } from "./tool-wrapper.ts";
+import { withStrictInputSchemas, wrapToolHandler } from "./tool-wrapper.ts";
 
 const SONARR_PAGINATED_HISTORY_EVENT_TYPE_IDS = {
   grabbed: 1,
@@ -16,6 +16,7 @@ export function createSonarrTools(
   config: Readonly<SonarrConfig>,
   isToolEnabled: (toolName: string) => boolean,
 ): void {
+  server = withStrictInputSchemas(server);
   // sonarr_search_series
   if (isToolEnabled("sonarr_search_series")) {
     server.registerTool(
@@ -88,10 +89,12 @@ export function createSonarrTools(
           tags: z.array(z.number()).optional().describe(
             "Tag IDs to apply to the series",
           ),
-          seasons: z.array(z.object({
+          seasons: z.array(z.strictObject({
             seasonNumber: z.number(),
             monitored: z.boolean(),
-          })).optional().describe("Seasons to monitor"),
+          }, { error: () => "Invalid tool input" })).optional().describe(
+            "Seasons to monitor",
+          ),
           searchForMissingEpisodes: z.boolean().optional().default(false)
             .describe("Whether to search for missing episodes after adding"),
         },
@@ -312,7 +315,7 @@ export function createSonarrTools(
           skip: z.number().optional().describe(
             "Number of results to skip (for pagination)",
           ),
-          filters: z.object({
+          filters: z.strictObject({
             title: z.string().optional().describe(
               "Filter by title (partial match, case-insensitive)",
             ),
@@ -337,8 +340,10 @@ export function createSonarrTools(
             status: z.string().optional().describe("Filter by series status"),
             imdbId: z.string().optional().describe("Filter by IMDB ID"),
             tmdbId: z.number().optional().describe("Filter by TMDB ID"),
-          }).optional().describe("Filter options for series"),
-          sort: z.object({
+          }, { error: () => "Invalid tool input" }).optional().describe(
+            "Filter options for series",
+          ),
+          sort: z.strictObject({
             field: z.enum([
               "title",
               "year",
@@ -349,7 +354,9 @@ export function createSonarrTools(
               "episodeCount",
             ]).describe("Field to sort by"),
             direction: z.enum(["asc", "desc"]).describe("Sort direction"),
-          }).optional().describe("Sort options for series"),
+          }, { error: () => "Invalid tool input" }).optional().describe(
+            "Sort options for series",
+          ),
         },
         outputSchema: {
           data: z.array(z.record(z.string(), z.unknown())),

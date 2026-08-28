@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { RadarrConfig } from "@wyattjoh/radarr";
 import * as radarrClient from "@wyattjoh/radarr";
-import { wrapToolHandler } from "./tool-wrapper.ts";
+import { withStrictInputSchemas, wrapToolHandler } from "./tool-wrapper.ts";
 
 const RADARR_PAGINATED_HISTORY_EVENT_TYPE_IDS = {
   grabbed: 1,
@@ -16,6 +16,7 @@ export function createRadarrTools(
   config: Readonly<RadarrConfig>,
   isToolEnabled: (toolName: string) => boolean,
 ): void {
+  server = withStrictInputSchemas(server);
   // radarr_search_movie
   if (isToolEnabled("radarr_search_movie")) {
     server.registerTool(
@@ -224,7 +225,7 @@ export function createRadarrTools(
           skip: z.number().optional().describe(
             "Number of results to skip (for pagination)",
           ),
-          filters: z.object({
+          filters: z.strictObject({
             title: z.string().optional().describe(
               "Filter by title (partial match, case-insensitive)",
             ),
@@ -258,8 +259,10 @@ export function createRadarrTools(
             tags: z.array(z.number()).optional().describe(
               "Filter by tag IDs (matches any)",
             ),
-          }).optional().describe("Filter options for movies"),
-          sort: z.object({
+          }, { error: () => "Invalid tool input" }).optional().describe(
+            "Filter options for movies",
+          ),
+          sort: z.strictObject({
             field: z.enum([
               "title",
               "year",
@@ -269,7 +272,9 @@ export function createRadarrTools(
               "runtime",
             ]).describe("Field to sort by"),
             direction: z.enum(["asc", "desc"]).describe("Sort direction"),
-          }).optional().describe("Sort options for movies"),
+          }, { error: () => "Invalid tool input" }).optional().describe(
+            "Sort options for movies",
+          ),
         },
         outputSchema: {
           data: z.array(z.record(z.string(), z.unknown())),

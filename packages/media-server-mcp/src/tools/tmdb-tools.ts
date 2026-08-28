@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { TMDBConfig } from "@wyattjoh/tmdb";
 import * as tmdbClient from "@wyattjoh/tmdb";
-import { wrapToolHandler } from "./tool-wrapper.ts";
+import { withStrictInputSchemas, wrapToolHandler } from "./tool-wrapper.ts";
 
 // Reusable output schema shape for paginated TMDB responses.
 // toPaginatedResponse() always returns { page, total_pages, total_results, results }.
@@ -18,6 +18,7 @@ export function createTMDBTools(
   config: TMDBConfig,
   isToolEnabled: (toolName: string) => boolean,
 ): void {
+  server = withStrictInputSchemas(server);
   // tmdb_find_by_external_id
   if (isToolEnabled("tmdb_find_by_external_id")) {
     server.registerTool(

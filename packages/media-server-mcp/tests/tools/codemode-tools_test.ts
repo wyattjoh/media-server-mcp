@@ -200,7 +200,8 @@ Deno.test("codemode describe returns exact requested contracts without prior sea
       assertEquals(mutation.annotations, { openWorldHint: false });
 
       const readOnly = result.descriptions[1];
-      assertEquals(readOnly.inputSchema.required, ["query", "language"]);
+      assertEquals(readOnly.inputSchema.required, ["query"]);
+      assertEquals(readOnly.inputSchema.additionalProperties, false);
       assertEquals(
         (readOnly.inputSchema.properties as Record<string, { type: string }>)
           .query.type,
@@ -219,6 +220,7 @@ Deno.test("codemode describe returns exact requested contracts without prior sea
       assertEquals(typeof mutation.signature, "string");
       assert(String(mutation.signature).includes("tools.radarr.addMovie"));
       assert(String(mutation.signature).includes("JavaScript"));
+      assertStringIncludes(String(readOnly.signature), "language?: string");
 
       const serialized = JSON.stringify(result);
       assert(!serialized.includes("tmdb_search_tv"));
@@ -226,6 +228,239 @@ Deno.test("codemode describe returns exact requested contracts without prior sea
     },
   );
 });
+
+Deno.test(
+  "native and Code Mode inputs keep defaults optional and reject unknown properties",
+  async () => {
+    const originalFetch = globalThis.fetch;
+    const nativeRequests: string[] = [];
+    const oversizedUnknownProperty = "unexpected_".repeat(2_000);
+    globalThis.fetch = (input) => {
+      const url = String(input);
+      nativeRequests.push(url);
+      if (url.includes("/api/v3/calendar")) {
+        return Promise.resolve(Response.json([]));
+      }
+      return Promise.resolve(Response.json({
+        page: 1,
+        total_pages: 1,
+        total_results: 0,
+        results: [],
+      }));
+    };
+    try {
+      await withClient(
+        {
+          tmdbConfig: createTMDBConfig("test-key"),
+          sonarrConfig: createSonarrConfig(
+            "http://localhost:8989",
+            "test-key",
+          ),
+          isToolEnabled: () => true,
+          isCodeMode: false,
+        },
+        async (client) => {
+          const tools = (await client.listTools()).tools;
+          const movieTool = tools.find((tool) =>
+            tool.name === "tmdb_search_movies"
+          );
+          const calendarTool = tools.find((tool) =>
+            tool.name === "sonarr_get_calendar"
+          );
+          assertEquals(movieTool?.inputSchema.required, ["query"]);
+          assertEquals(movieTool?.inputSchema.additionalProperties, false);
+          assertEquals(calendarTool?.inputSchema.required, undefined);
+          assertEquals(
+            calendarTool?.inputSchema.additionalProperties,
+            false,
+          );
+
+          const invalid = await client.callTool({
+            name: "tmdb_search_movies",
+            arguments: {
+              query: "Arrival",
+              [oversizedUnknownProperty]: "ignored",
+            },
+          });
+          assertEquals(invalid.isError, true);
+          assertEquals(nativeRequests, []);
+          assertLessOrEqual(JSON.stringify(invalid).length, 1_000);
+          assert(!JSON.stringify(invalid).includes("test-key"));
+
+          const invalidNested = await client.callTool({
+            name: "sonarr_get_series",
+            arguments: {
+              filters: { [oversizedUnknownProperty]: "ignored" },
+            },
+          });
+          assertEquals(invalidNested.isError, true);
+          assertEquals(nativeRequests, []);
+          assertLessOrEqual(JSON.stringify(invalidNested).length, 1_000);
+          assert(!JSON.stringify(invalidNested).includes("test-key"));
+
+          const movie = await client.callTool({
+            name: "tmdb_search_movies",
+            arguments: { query: "Arrival" },
+          });
+          assertEquals(movie.isError, undefined, JSON.stringify(movie));
+          const movieUrl = new URL(nativeRequests[0]);
+          assertEquals(movieUrl.searchParams.get("page"), "1");
+          assertEquals(movieUrl.searchParams.get("language"), "en-US");
+
+          const calendar = await client.callTool({
+            name: "sonarr_get_calendar",
+            arguments: {},
+          });
+          assertEquals(calendar.isError, undefined, JSON.stringify(calendar));
+          assertEquals(new URL(nativeRequests[1]).search, "");
+        },
+      );
+
+      const codeModeRequests: string[] = [];
+      globalThis.fetch = (input) => {
+        const url = String(input);
+        codeModeRequests.push(url);
+        if (url.includes("api.themoviedb.org")) {
+          return Promise.resolve(Response.json({
+            page: 1,
+            total_pages: 1,
+            total_results: 0,
+            results: [],
+          }));
+        }
+        if (url.includes("/api/v3/calendar")) {
+          return Promise.resolve(Response.json([]));
+        }
+        return Promise.resolve(
+          new Response("unexpected request", {
+            status: 500,
+          }),
+        );
+      };
+
+      await withClient(
+        {
+          tmdbConfig: createTMDBConfig("test-key"),
+          sonarrConfig: createSonarrConfig(
+            "http://localhost:8989",
+            "test-key",
+          ),
+          isToolEnabled: codemodeFilter(),
+          isCodeMode: true,
+        },
+        async (client) => {
+          const tools = (await client.listTools()).tools;
+          const searchTool = tools.find((tool) =>
+            tool.name === "codemode_search"
+          );
+          const executeTool = tools.find((tool) =>
+            tool.name === "codemode_execute"
+          );
+          assertEquals(searchTool?.inputSchema.required, undefined);
+          assertEquals(searchTool?.inputSchema.additionalProperties, false);
+          assertEquals(executeTool?.inputSchema.required, ["source"]);
+          assertEquals(
+            executeTool?.inputSchema.additionalProperties,
+            false,
+          );
+
+          const invalidFacadeInput = await client.callTool({
+            name: "codemode_execute",
+            arguments: {
+              source: "return { executed: true };",
+              selectedTools: [],
+              [oversizedUnknownProperty]: "ignored",
+            },
+          });
+          assertEquals(invalidFacadeInput.isError, true);
+          assertEquals(codeModeRequests, []);
+          assertLessOrEqual(JSON.stringify(invalidFacadeInput).length, 1_000);
+          assert(!JSON.stringify(invalidFacadeInput).includes("test-key"));
+
+          const invalidNativeInput = await client.callTool({
+            name: "codemode_execute",
+            arguments: {
+              source:
+                'return await tools.tmdb.searchMovies({ query: "Arrival", unexpected: "ignored" });',
+              selectedTools: ["tmdb_search_movies"],
+            },
+          });
+          assertEquals(invalidNativeInput.isError, true);
+          assertEquals(codeModeRequests, []);
+          assertLessOrEqual(JSON.stringify(invalidNativeInput).length, 1_000);
+          assert(!JSON.stringify(invalidNativeInput).includes("test-key"));
+
+          const describe = await client.callTool({
+            name: "codemode_describe",
+            arguments: {
+              names: ["tmdb_search_movies", "sonarr_get_calendar"],
+            },
+          });
+          const descriptions = (describe.structuredContent as {
+            descriptions: Array<{
+              name: string;
+              inputSchema: Record<string, unknown>;
+              signature: string;
+            }>;
+          }).descriptions;
+          const movieDescription = descriptions.find((description) =>
+            description.name === "tmdb_search_movies"
+          )!;
+          const calendarDescription = descriptions.find((description) =>
+            description.name === "sonarr_get_calendar"
+          )!;
+          assertEquals(movieDescription.inputSchema.required, ["query"]);
+          assertEquals(
+            calendarDescription.inputSchema.required,
+            undefined,
+          );
+          assertEquals(
+            movieDescription.inputSchema.additionalProperties,
+            false,
+          );
+          assertStringIncludes(
+            movieDescription.signature,
+            "language?: string",
+          );
+          assertStringIncludes(
+            calendarDescription.signature,
+            "includeSeries?: boolean",
+          );
+
+          const result = await client.callTool({
+            name: "codemode_execute",
+            arguments: {
+              source:
+                "const [movie, calendar] = await Promise.all([tools.tmdb.searchMovies({ query: 'Arrival' }), tools.sonarr.getCalendar({})]); return { movieResults: movie.total_results, calendarResults: calendar.total };",
+              selectedTools: [
+                "tmdb_search_movies",
+                "sonarr_get_calendar",
+              ],
+            },
+          });
+          assertEquals(result.isError, undefined, JSON.stringify(result));
+          assertEquals(result.structuredContent, {
+            result: { movieResults: 0, calendarResults: 0 },
+          });
+          const movieRequest = codeModeRequests.find((url) =>
+            url.includes("api.themoviedb.org")
+          );
+          assert(movieRequest !== undefined);
+          const movieUrl = new URL(movieRequest);
+          assertEquals(movieUrl.searchParams.get("page"), "1");
+          assertEquals(movieUrl.searchParams.get("language"), "en-US");
+          const calendarRequest = codeModeRequests.find((url) =>
+            url.includes("/api/v3/calendar")
+          );
+          assert(calendarRequest !== undefined);
+          assertEquals(new URL(calendarRequest).search, "");
+        },
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  },
+);
 
 Deno.test("codemode describe rejects duplicate and unavailable names deterministically", async () => {
   await withClient(
@@ -687,6 +922,7 @@ Deno.test("codemode catalog has an explicit reviewed contract for every native t
     assertEquals(entry.available, entry.policy === "read-only");
     assert(entry.facadePath.startsWith(`tools.${entry.service}.`));
     assertEquals(entry.inputSchema.type, "object");
+    assertEquals(entry.inputSchema.additionalProperties, false);
     assertEquals(entry.outputSchema.type, "object");
     assertEquals(
       entry.annotations.readOnlyHint === true,

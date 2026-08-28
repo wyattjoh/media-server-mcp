@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { type PlexConfig, SearchType } from "@wyattjoh/plex";
 import * as plexClient from "@wyattjoh/plex";
-import { wrapToolHandler } from "./tool-wrapper.ts";
+import { withStrictInputSchemas, wrapToolHandler } from "./tool-wrapper.ts";
 
 const SLIM_OMIT_KEYS = new Set([
   "Media",
@@ -20,6 +20,7 @@ export function createPlexTools(
   config: Readonly<PlexConfig>,
   isToolEnabled: (toolName: string) => boolean,
 ): void {
+  server = withStrictInputSchemas(server);
   // plex_get_capabilities
   if (isToolEnabled("plex_get_capabilities")) {
     server.registerTool(
