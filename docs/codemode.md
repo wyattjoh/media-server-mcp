@@ -31,7 +31,7 @@ const [movies, libraries] = await Promise.all([
 
 return {
   matches: movies.results.slice(0, 3).map(({ id, title }) => ({ id, title })),
-  libraryCount: libraries.length,
+  libraryCount: libraries.MediaContainer.size,
 };
 ```
 
