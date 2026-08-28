@@ -15,7 +15,7 @@ The server advertises only `codemode_search`, `codemode_describe`, and `codemode
 
 ## Search, describe, execute
 
-1. Call `codemode_search` with a concise capability query and optional service or policy filters. Results are compact metadata, not executable contracts.
+1. Call `codemode_search` with a concise capability query and optional service or policy filters. Search is case-insensitive, normalizes whitespace, and ranks exact native names, exact phrases, all-token matches, then partial token matches; ties retain deterministic catalog order. Results are compact metadata, not executable contracts.
 2. Call `codemode_describe` with the exact names selected from search. It returns JSON input/output schemas, annotations, availability, a namespaced facade path, and a TypeScript-style authoring signature.
 3. Call `codemode_execute` with JavaScript function-body source and the exact read-only native names in `selectedTools`.
 

@@ -23,6 +23,29 @@ const logger = getLogger(["media-server-mcp", "tools", "codemode"]);
 type JsonSchema = Record<string, unknown>;
 type ServiceName = (typeof SERVICE_NAMES)[number];
 type PolicyName = (typeof POLICY_NAMES)[number];
+type SearchRank = readonly [tier: number, unmatchedTokens: number];
+
+function normalizeSearchText(value: string): string {
+  return value.trim().toLocaleLowerCase().replace(/\s+/gu, " ");
+}
+
+function rankSearchMatch(
+  entry: CodeModeCatalogEntry,
+  query: string,
+  tokens: readonly string[],
+): SearchRank | undefined {
+  const name = normalizeSearchText(entry.name);
+  const fields = [name, entry.title, entry.summary].map(normalizeSearchText);
+  if (name === query) return [0, 0];
+  if (fields.some((field) => field.includes(query))) return [1, 0];
+
+  const matchedTokens =
+    tokens.filter((token) => fields.some((field) => field.includes(token)))
+      .length;
+  if (matchedTokens === tokens.length) return [2, 0];
+  if (matchedTokens > 0) return [3, tokens.length - matchedTokens];
+  return undefined;
+}
 
 const FACADE_PATHS: Readonly<Record<string, string>> = {
   radarr_search_movie: "tools.radarr.searchMovie",
@@ -526,7 +549,7 @@ export function createCodeModeTools(
       },
       inputSchema: {
         query: z.string().max(200).default("").describe(
-          "Case-insensitive text matched against tool names, titles, and summaries",
+          "Case-insensitive phrase and token search across tool names, titles, and summaries",
         ),
         services: z.array(z.enum(SERVICE_NAMES)).max(SERVICE_NAMES.length)
           .optional().describe("Configured services to include"),
@@ -537,27 +560,36 @@ export function createCodeModeTools(
       outputSchema: SearchOutputSchema,
     },
     wrapToolHandler("codemode_search", (args) => {
-      const query = args.query.trim().toLocaleLowerCase();
-      const matches = catalog.filter((entry) => {
-        if (args.services && !args.services.includes(entry.service)) {
-          return false;
-        }
-        if (args.policies && !args.policies.includes(entry.policy)) {
-          return false;
-        }
-        if (!query) return true;
-        return [entry.name, entry.title, entry.summary].some((value) =>
-          value.toLocaleLowerCase().includes(query)
-        );
-      }).slice(0, args.limit).map((entry) => ({
-        name: entry.name,
-        title: entry.title,
-        summary: entry.summary,
-        service: entry.service,
-        policy: entry.policy,
-        available: entry.available,
-        facadePath: entry.facadePath,
-      }));
+      const query = normalizeSearchText(args.query);
+      const tokens = query ? query.split(" ") : [];
+      const matches = catalog.map((entry, index) => ({ entry, index }))
+        .filter(({ entry }) =>
+          (!args.services || args.services.includes(entry.service)) &&
+          (!args.policies || args.policies.includes(entry.policy))
+        )
+        .map(({ entry, index }) => ({
+          entry,
+          index,
+          rank: query ? rankSearchMatch(entry, query, tokens) : [0, 0],
+        }))
+        .filter((match): match is typeof match & { rank: SearchRank } =>
+          match.rank !== undefined
+        )
+        .sort((left, right) =>
+          left.rank[0] - right.rank[0] ||
+          left.rank[1] - right.rank[1] ||
+          left.index - right.index
+        )
+        .slice(0, args.limit)
+        .map(({ entry }) => ({
+          name: entry.name,
+          title: entry.title,
+          summary: entry.summary,
+          service: entry.service,
+          policy: entry.policy,
+          available: entry.available,
+          facadePath: entry.facadePath,
+        }));
       return Promise.resolve({
         content: [{ type: "text", text: JSON.stringify({ matches }) }],
         structuredContent: { matches },

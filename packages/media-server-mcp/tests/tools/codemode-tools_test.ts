@@ -158,6 +158,138 @@ Deno.test("codemode search is deterministic, bounded, and scoped to configured s
   );
 });
 
+Deno.test("codemode search ranks natural multi-word capability queries", async () => {
+  await withClient(
+    {
+      sonarrConfig: createSonarrConfig(
+        "http://localhost:8989",
+        "test-key",
+      ),
+      plexConfig: createPlexConfig("http://localhost:32400", "test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      const seriesResponse = await client.callTool({
+        name: "codemode_search",
+        arguments: {
+          query: "  SERIES   episodes search lookup  ",
+          policies: ["read-only"],
+          limit: 5,
+        },
+      });
+      const seriesResult = seriesResponse.structuredContent as {
+        matches: Array<{ name: string }>;
+      };
+      assertEquals(
+        seriesResult.matches[0]?.name,
+        "sonarr_get_episodes",
+      );
+
+      const plexResponse = await client.callTool({
+        name: "codemode_search",
+        arguments: {
+          query: "library search metadata",
+          services: ["plex"],
+          policies: ["read-only"],
+          limit: 5,
+        },
+      });
+      const plexResult = plexResponse.structuredContent as {
+        matches: Array<{ name: string }>;
+      };
+      assertEquals(plexResult.matches[0]?.name, "plex_search");
+      assert(
+        plexResult.matches.some((match) => match.name === "plex_get_metadata"),
+      );
+    },
+  );
+});
+
+Deno.test("codemode search applies ranking tiers with stable catalog-order ties", async () => {
+  await withClient(
+    {
+      radarrConfig: createRadarrConfig("http://localhost:7878", "test-key"),
+      sonarrConfig: createSonarrConfig(
+        "http://localhost:8989",
+        "test-key",
+      ),
+      tmdbConfig: createTMDBConfig("test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      const exactNameResponse = await client.callTool({
+        name: "codemode_search",
+        arguments: { query: "RADARR_GRAB_RELEASE", limit: 5 },
+      });
+      const exactNameResult = exactNameResponse.structuredContent as {
+        matches: Array<{ name: string }>;
+      };
+      assertEquals(
+        exactNameResult.matches.slice(0, 2).map((match) => match.name),
+        ["radarr_grab_release", "radarr_get_releases"],
+      );
+
+      const phraseResponse = await client.callTool({
+        name: "codemode_search",
+        arguments: {
+          query: "movies on tmdb",
+          policies: ["read-only"],
+          limit: 5,
+        },
+      });
+      const phraseResult = phraseResponse.structuredContent as {
+        matches: Array<{ name: string }>;
+      };
+      assertEquals(phraseResult.matches[0]?.name, "tmdb_search_movies");
+
+      const tiedResponse = await client.callTool({
+        name: "codemode_search",
+        arguments: { query: "quality cutoff", limit: 10 },
+      });
+      const tiedResult = tiedResponse.structuredContent as {
+        matches: Array<{ name: string }>;
+      };
+      assertEquals(
+        tiedResult.matches.slice(0, 2).map((match) => match.name),
+        ["radarr_get_wanted_cutoff", "sonarr_get_wanted_cutoff"],
+      );
+    },
+  );
+});
+
+Deno.test("codemode search filters and bounds empty queries before limiting", async () => {
+  await withClient(
+    {
+      tmdbConfig: createTMDBConfig("test-key"),
+      plexConfig: createPlexConfig("http://localhost:32400", "test-key"),
+      isToolEnabled: codemodeFilter(),
+      isCodeMode: true,
+    },
+    async (client) => {
+      const response = await client.callTool({
+        name: "codemode_search",
+        arguments: {
+          query: "   ",
+          services: ["plex"],
+          policies: ["read-only"],
+          limit: 2,
+        },
+      });
+      const result = response.structuredContent as {
+        matches: Array<{ service: string; policy: string }>;
+      };
+      assertEquals(result.matches.length, 2);
+      assert(
+        result.matches.every((match) =>
+          match.service === "plex" && match.policy === "read-only"
+        ),
+      );
+    },
+  );
+});
+
 Deno.test("codemode describe returns exact requested contracts without prior search", async () => {
   await withClient(
     {
