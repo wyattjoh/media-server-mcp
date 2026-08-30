@@ -147,6 +147,7 @@ const FACADE_PATHS: Readonly<Record<string, string>> = {
   plex_refresh_library: "tools.plex.refreshLibrary",
   plex_get_library_items: "tools.plex.getLibraryItems",
   plex_get_playback_history: "tools.plex.getPlaybackHistory",
+  plex_get_watch_history: "tools.plex.getWatchHistory",
   plex_get_collections: "tools.plex.getCollections",
   plex_get_collection_items: "tools.plex.getCollectionItems",
   plex_create_collection: "tools.plex.createCollection",
@@ -226,6 +227,7 @@ const EXECUTABLE_READ_ONLY_TOOLS = [
   "plex_get_metadata",
   "plex_get_library_items",
   "plex_get_playback_history",
+  "plex_get_watch_history",
   "plex_get_collections",
   "plex_get_collection_items",
 ] as const;

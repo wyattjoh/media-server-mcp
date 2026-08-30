@@ -223,10 +223,28 @@ export function getPlaybackHistory(
   ratingKey: string,
   options: Partial<PlaybackHistoryOptions> = {},
 ): Promise<GetPlaybackHistoryResponse> {
+  return getWatchHistory(config, options, ratingKey);
+}
+
+/**
+ * Get global Plex playback history across all playable media items.
+ *
+ * @param config Plex server configuration.
+ * @param options Optional account, pagination, and timestamp filters.
+ * @param ratingKey Optional internal item filter used by item-specific history.
+ * @returns The matching playback-history events in reverse chronological order.
+ */
+export function getWatchHistory(
+  config: PlexConfig,
+  options: Partial<PlaybackHistoryOptions> = {},
+  ratingKey: string | undefined = undefined,
+): Promise<GetPlaybackHistoryResponse> {
   const searchParams = new URLSearchParams();
-  searchParams.set("metadataItemID", ratingKey);
   searchParams.set("sort", "viewedAt:desc");
 
+  if (ratingKey !== undefined) {
+    searchParams.set("metadataItemID", ratingKey);
+  }
   if (options.accountId !== undefined) {
     searchParams.set("accountID", options.accountId.toString());
   }

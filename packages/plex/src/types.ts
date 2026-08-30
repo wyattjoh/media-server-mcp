@@ -464,6 +464,12 @@ interface LibraryMetadataItem {
   originallyAvailableAt: string;
   addedAt: number;
   updatedAt: number;
+  viewCount: number | undefined;
+  lastViewedAt: number | undefined;
+  grandparentTitle: string | undefined;
+  parentTitle: string | undefined;
+  parentIndex: number | undefined;
+  index: number | undefined;
   Genre: GenreItem[];
   Country: CountryItem[];
   Director: DirectorItem[];

@@ -459,6 +459,69 @@ Deno.test(
 );
 
 Deno.test(
+  "plex_get_watch_history - returns global history without an item filter",
+  async () => {
+    let capturedUrl = "";
+    const fetchStub = stub(globalThis, "fetch", (url) => {
+      capturedUrl = url.toString();
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            MediaContainer: {
+              size: 1,
+              totalSize: 1,
+              offset: 0,
+              Metadata: [{
+                historyKey: "/status/sessions/history/1",
+                ratingKey: "123",
+                key: "/library/metadata/123",
+                title: "Pilot",
+                grandparentTitle: "Example Show",
+                type: "episode",
+                viewedAt: 1700000000,
+                accountID: 42,
+              }],
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    });
+
+    try {
+      const server = new McpServer({ name: "test", version: "1.0.0" });
+      createPlexTools(
+        server,
+        createPlexConfig("http://localhost:32400", "test-plex-token"),
+        () => true,
+      );
+      const { client, cleanup } = await createConnectedClient(server);
+
+      try {
+        const result = await client.callTool({
+          name: "plex_get_watch_history",
+          arguments: { viewedAtSince: 1690000000, size: 1000 },
+        });
+        assertExists(result.structuredContent);
+        assertEquals(result.isError, undefined);
+
+        const requestUrl = new URL(capturedUrl);
+        assertEquals(requestUrl.searchParams.has("metadataItemID"), false);
+        assertEquals(requestUrl.searchParams.get("viewedAt>"), "1690000000");
+        assertEquals(
+          requestUrl.searchParams.get("X-Plex-Container-Size"),
+          "1000",
+        );
+      } finally {
+        await cleanup();
+      }
+    } finally {
+      fetchStub.restore();
+    }
+  },
+);
+
+Deno.test(
   "plex_get_playback_history - rejects page sizes above the maximum",
   async () => {
     const server = new McpServer({ name: "test", version: "1.0.0" });

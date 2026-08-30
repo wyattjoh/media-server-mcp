@@ -11,6 +11,7 @@ export {
   getLibraryItems,
   getMetadata,
   getPlaybackHistory,
+  getWatchHistory,
   type PlexConfig,
   refreshLibrary,
   removeFromCollection,

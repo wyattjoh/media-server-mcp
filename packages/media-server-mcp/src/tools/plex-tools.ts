@@ -15,6 +15,47 @@ const SLIM_OMIT_KEYS = new Set([
 const slimReplacer = (key: string, value: unknown) =>
   SLIM_OMIT_KEYS.has(key) ? undefined : value;
 
+function compactLibraryItems(
+  result: Awaited<ReturnType<typeof plexClient.getLibraryItems>>,
+): Record<string, unknown> {
+  const container = result.MediaContainer;
+  return {
+    MediaContainer: {
+      size: container.size,
+      ...(container.totalSize !== undefined && {
+        totalSize: container.totalSize,
+      }),
+      ...(container.offset !== undefined && { offset: container.offset }),
+      identifier: container.identifier,
+      librarySectionID: container.librarySectionID,
+      librarySectionTitle: container.librarySectionTitle,
+      librarySectionUUID: container.librarySectionUUID,
+      ...(container.Metadata !== undefined && {
+        Metadata: container.Metadata.map((item) => ({
+          ratingKey: item.ratingKey,
+          type: item.type,
+          title: item.title,
+          year: item.year,
+          ...(item.viewCount !== undefined && { viewCount: item.viewCount }),
+          ...(item.lastViewedAt !== undefined && {
+            lastViewedAt: item.lastViewedAt,
+          }),
+          ...(item.grandparentTitle !== undefined && {
+            grandparentTitle: item.grandparentTitle,
+          }),
+          ...(item.parentTitle !== undefined && {
+            parentTitle: item.parentTitle,
+          }),
+          ...(item.parentIndex !== undefined && {
+            parentIndex: item.parentIndex,
+          }),
+          ...(item.index !== undefined && { index: item.index }),
+        })),
+      }),
+    },
+  };
+}
+
 const PlexMediaIdentitySchema = z.object({
   ratingKey: z.string(),
   type: z.string(),
@@ -305,6 +346,50 @@ export function createPlexTools(
     );
   }
 
+  // plex_get_watch_history
+  if (isToolEnabled("plex_get_watch_history")) {
+    server.registerTool(
+      "plex_get_watch_history",
+      {
+        title: "Get global Plex watch history",
+        description:
+          "Get recent playback history across all playable Plex media items; combine accountID values with plex_get_accounts to resolve viewer names",
+        inputSchema: {
+          accountId: z.number().int().optional().describe(
+            "Filter history to a specific Plex account ID",
+          ),
+          start: z.number().int().min(0).optional().describe(
+            "Pagination offset (0-based)",
+          ),
+          size: z.number().int().min(1).max(1_000).optional().default(100)
+            .describe(
+              "Number of history entries to return (default: 100, maximum: 1,000)",
+            ),
+          viewedAtSince: z.number().int().min(0).optional().describe(
+            "Only return plays after this Unix timestamp",
+          ),
+        },
+        outputSchema: z.object({}).catchall(z.unknown()),
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      wrapToolHandler("plex_get_watch_history", async (args) => {
+        const result = await plexClient.getWatchHistory(config, {
+          accountId: args.accountId,
+          start: args.start,
+          size: args.size,
+          viewedAtSince: args.viewedAtSince,
+        });
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          }],
+          structuredContent: result,
+        };
+      }),
+    );
+  }
+
   // plex_refresh_library
   if (isToolEnabled("plex_refresh_library")) {
     server.registerTool(
@@ -373,19 +458,21 @@ export function createPlexTools(
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
       wrapToolHandler("plex_get_library_items", async (args) => {
-        const result = await plexClient.getLibraryItems(config, args.key, {
-          type: args.type,
-          studio: args.studio,
-          genre: args.genre,
-          year: args.year,
-          sort: args.sort,
-          start: args.start,
-          size: args.size,
-        });
+        const result = compactLibraryItems(
+          await plexClient.getLibraryItems(config, args.key, {
+            type: args.type,
+            studio: args.studio,
+            genre: args.genre,
+            year: args.year,
+            sort: args.sort,
+            start: args.start,
+            size: args.size,
+          }),
+        );
         return {
           content: [{
             type: "text",
-            text: JSON.stringify(result, slimReplacer, 2),
+            text: JSON.stringify(result, null, 2),
           }],
           structuredContent: result,
         };

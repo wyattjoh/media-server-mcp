@@ -63,7 +63,7 @@ Deno.test("runtime identity exposes the active Code Mode contract safely at the 
         version: deno.version,
       },
       codeMode: {
-        contractRevision: 2,
+        contractRevision: 3,
         configuredServices: ["radarr", "sonarr", "tmdb", "plex"],
         executionPolicy: "read-only",
         limits: CODEMODE_LIMITS,

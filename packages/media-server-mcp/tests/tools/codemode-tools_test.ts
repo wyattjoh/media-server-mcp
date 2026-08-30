@@ -1545,7 +1545,7 @@ Deno.test("codemode catalog has an explicit reviewed contract for every native t
   };
   const catalog = createCodeModeCatalog(services);
 
-  assertEquals(catalog.length, 104);
+  assertEquals(catalog.length, 105);
   assertEquals(
     new Set(catalog.map((entry) => entry.name)).size,
     catalog.length,
@@ -1631,6 +1631,7 @@ Deno.test("codemode execute projects bounded metadata-heavy cross-service result
       type: "movie",
       title: `Representative title ${id}`,
       summary: "x".repeat(180),
+      Media: [{ Part: [{ file: "x".repeat(1_000) }] }],
     }));
   const crossServiceItems = representativeItems(300);
   const plexItems = representativeItems(600);
@@ -1713,6 +1714,7 @@ Deno.test("codemode execute projects bounded metadata-heavy cross-service result
           })),
         });
         assert(!JSON.stringify(plexProjection).includes("summary"));
+        assert(!JSON.stringify(plexProjection).includes("Media"));
       },
     );
   } finally {
