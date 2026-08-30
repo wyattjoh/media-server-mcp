@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/plex-v0.6.0...@wyattjoh/plex-v0.7.0) (2026-08-30)
+
+
+### Features
+
+* **plex:** add global watch history ([#18](https://github.com/wyattjoh/media-server-mcp/issues/18)) ([a24695d](https://github.com/wyattjoh/media-server-mcp/commit/a24695d93e6b39402e8c9cceaf370b4611d3628a))
+
 ## [0.6.0](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/plex-v0.5.0...@wyattjoh/plex-v0.6.0) (2026-08-28)
 
 
