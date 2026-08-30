@@ -12,6 +12,7 @@ import {
   getLibraryItems,
   getMetadata,
   getPlaybackHistory,
+  getWatchHistory,
   type PlexConfig,
   removeFromCollection,
   search,
@@ -437,6 +438,47 @@ Deno.test(
       assertEquals(requestUrl.searchParams.get("X-Plex-Container-Size"), "5");
       assertEquals(requestUrl.searchParams.get("viewedAt>"), "1690000000");
       assertEquals(result.MediaContainer.Metadata?.[0]?.viewedAt, 1700000000);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  },
+);
+
+Deno.test(
+  "getWatchHistory - queries global history without a metadata item filter",
+  async () => {
+    const cfg = createPlexConfig("http://localhost:32400", "fake-token");
+    let capturedUrl = "";
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (url: string | URL | Request) => {
+      capturedUrl = url.toString();
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            MediaContainer: { size: 0, totalSize: 0, Metadata: [] },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    };
+
+    try {
+      await getWatchHistory(cfg, {
+        accountId: 42,
+        size: 1000,
+        viewedAtSince: 1690000000,
+      });
+      const requestUrl = new URL(capturedUrl);
+
+      assertEquals(requestUrl.pathname, "/status/sessions/history/all");
+      assertEquals(requestUrl.searchParams.has("metadataItemID"), false);
+      assertEquals(requestUrl.searchParams.get("accountID"), "42");
+      assertEquals(
+        requestUrl.searchParams.get("X-Plex-Container-Size"),
+        "1000",
+      );
+      assertEquals(requestUrl.searchParams.get("viewedAt>"), "1690000000");
+      assertEquals(requestUrl.searchParams.get("sort"), "viewedAt:desc");
     } finally {
       globalThis.fetch = originalFetch;
     }

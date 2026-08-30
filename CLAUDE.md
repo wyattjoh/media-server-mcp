@@ -396,6 +396,7 @@ Code Mode suppresses native tool advertisement without changing service resource
 - `plex_search` - Search across all Plex libraries for movies, TV shows, and other content with optional type filters
 - `plex_get_metadata` - Get detailed metadata for a specific movie, TV show, or other media item
 - `plex_get_playback_history` - Get playback history for a specific playable media item, such as a movie or episode, by rating key (up to 1,000 entries per request)
+- `plex_get_watch_history` - Get recent playback history across all playable media, with account and timestamp filters (up to 1,000 entries per request)
 
 #### Collection Management
 

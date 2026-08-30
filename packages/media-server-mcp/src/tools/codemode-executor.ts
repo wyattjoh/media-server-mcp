@@ -6,7 +6,7 @@ import { getLogger } from "../logging.ts";
  * Increment this whenever search, describe, execute, policy, or fixed-limit
  * compatibility changes so deployed clients can detect contract drift.
  */
-export const CODEMODE_CONTRACT_REVISION = 2;
+export const CODEMODE_CONTRACT_REVISION = 3;
 
 /**
  * Fixed server-owned resource limits for Code Mode executions.
