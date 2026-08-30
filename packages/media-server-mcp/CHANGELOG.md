@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.0](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/media-server-mcp-v2.4.0...@wyattjoh/media-server-mcp-v2.5.0) (2026-08-30)
+
+
+### Features
+
+* **plex:** add global watch history ([#18](https://github.com/wyattjoh/media-server-mcp/issues/18)) ([a24695d](https://github.com/wyattjoh/media-server-mcp/commit/a24695d93e6b39402e8c9cceaf370b4611d3628a))
+
 ## [2.4.0](https://github.com/wyattjoh/media-server-mcp/compare/@wyattjoh/media-server-mcp-v2.3.0...@wyattjoh/media-server-mcp-v2.4.0) (2026-08-28)
 
 
