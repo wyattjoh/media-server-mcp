@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icon.jpg" alt="Media Server MCP icon" width="160">
+</p>
+
 # Media Server MCP
 
 A Model Context Protocol (MCP) server that provides AI assistants with tools to manage Radarr (movies), Sonarr (TV series), Plex media servers, and access TMDB data through natural language interactions.
